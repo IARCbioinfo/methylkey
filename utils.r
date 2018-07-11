@@ -50,6 +50,9 @@ imputeNA<-function(betas,nalimit){
 #plot a circus manhattan plot
 circusplot<-function(ranges, genome){
 
+	require(ggplot2)
+	require(ggbio)
+
 	if (genome=="hg38"){ require(BSgenome.Hsapiens.UCSC.hg38) ; species=BSgenome.Hsapiens.UCSC.hg38}
 	if (genome=="hg19"){ require(BSgenome.Hsapiens.UCSC.hg19) ; species=BSgenome.Hsapiens.UCSC.hg19}
 	print(genome)
@@ -160,10 +163,35 @@ multiplot<-function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 }
 
 
+#######################
+# build annotation (annotatr)
+buildAnnot<-function(genome="hg19"){
+
+	require(annotatr)
+	listOfAnnotations<-builtin_annotations()
+	annots<-listOfAnnotations[grep(genome, listOfAnnotations)]
+	annotations <- build_annotations(genome = genome, annotations = annots)
+	return(annotations)
+}
+
+#######################
+# annotation (annotatr)
+annotate<-function(regions,genome="hg19"){
+	
+	require(annotatr)
+	annotations=NULL
+	if (genome=="hg19"){ load(paste0(path,"/annotatr.hg19.rdata")) }
+	if (genome=="hg38"){ load(paste0(path,"/annotatr.hg38.rdata")) }
+	else { annotations<-buildAnnot(genome=genome) }
+
+	cpg_regions <- read_regions(regions, genome=genome, format="BED")
+	cpg_annotated <- annotate_regions(cpg_regions, annotations=annotations, minoverlap = 0L)
+}
+
 
 #######################
 # violin plot
-violin_plot<-function(pdata,betas,group,barcode, path, out="./",genome="hg19",cpg_annotated=NULL){
+violin_plot<-function(pdata,betas,group,barcode,platform, path, out="./",genome="hg19",regions){
 
 	require(ggplot2)
 	require(annotatr)
@@ -171,44 +199,49 @@ violin_plot<-function(pdata,betas,group,barcode, path, out="./",genome="hg19",cp
 
 	if (!is.data.table(pdata)){ pdata<-data.table(pdata) }
 	colnames(pdata)[barcode]<-"barcode"
+	pdata$barcode<-as.character(pdata$barcode)
 
-	if (cpg_annotated==NULL){
-		load(paste0(path,"/annotatr.hg19.rdata"))
-		if (platform=="IlluminaHumanMethylation450k"){regions=paste0(path,"/illumina450k.bed")}
-		if (platform=="IlluminaHumanMethylationEPIC"){regions=paste0(path,"/illuminaEpic.bed")}
+	#get cpgs annotation
+	if (platform=="IlluminaHumanMethylation450k"){regions=paste0(path,"/illumina450k.bed")}
+	if (platform=="IlluminaHumanMethylationEPIC"){regions=paste0(path,"/illuminaEpic.bed")}
+	cpg_annotated<-annotate(regions,genome=genome)
 
-		cpg_regions <- read_regions(regions, genome=genome, format="BED")
-		cpg_annotated <- annotate_regions(cpg_regions, annotations=annotations, minoverlap = 0L)
-	}
-
+	#format annotation
 	annot<-data.table(cbind(cpg_annotated$name, cpg_annotated$annot$symbol, cpg_annotated$annot$type))
 	annot<-annot[!grepl("chromatin", V3) ]
 	annot<-unique(annot)
 	annot[, c("ref","type","annot") := tstrsplit(V3,"_") ]
 
+	#merge betas and pdata in a data.table
 	colnames(betas)<-gsub("X","",colnames(betas))
+	print("1")
 	b<-data.table(melt(as.matrix(betas)))
 	b<-merge(pdata[,.( barcode, grp=get(group))],b,by.x="barcode",by.y="Var2")
-
+	if (!is.character(b$Var1)) { b$Var1<-as.character(b$Var1) }
+	
+	#get cpg islands annotation
+	print("2")
 	cpg<-merge(b, annot[type=="cpg"], by.x="Var1", by.y="V1")
+	#get genes structure annotation
 	genes<-merge(b, annot[type=="genes"], by.x="Var1", by.y="V1",allow.cartesian=TRUE)
-	p1<-ggplot(cpg, aes_string(x="grp", y="value", fill="grp")) + geom_violin() + theme(axis.text.x=element_text(angle=50,hjust=1, size=8)) + guides(fill =FALSE) +
+	#violin plots
+	p1<-ggplot(cpg, aes_string(x="grp", y="value", fill="grp")) + geom_violin() + theme(axis.text.x=element_text(angle=50,hjust=1, size=14)) + guides(fill =FALSE) +
         ylab("Methylation %") + xlab("")
-	p2<-ggplot(cpg, aes_string(x="annot", y="value", fill="grp")) + geom_violin() + theme(axis.text.x=element_text(angle=50,hjust=1, size=8)) + guides(fill =FALSE) +
+	p2<-ggplot(cpg, aes_string(x="annot", y="value", fill="grp")) + geom_violin() + theme(axis.text.x=element_text(angle=50,hjust=1, size=14)) + guides(fill =FALSE) +
         ylab("Methylation %") + xlab("")
-	p3<-ggplot(genes, aes_string(x="annot", y="value", fill="grp")) + geom_violin(scale="area") + theme(axis.text.x=element_text(angle=50,hjust=1, size=8)) +
+	p3<-ggplot(genes, aes_string(x="annot", y="value", fill="grp")) + geom_violin(scale="area") + theme(axis.text.x=element_text(angle=50,hjust=1, size=14)) +
         ylab("Methylation %") + xlab("")
 
-	jpeg(paste(out, "violin1.jpg", sep="/"), width=1000, height=800)
-	p1
+	jpeg(paste0(out, "/violin1.jpg"), width=1000, height=800)
+	print(p1)
 	dev.off()
 
-	jpeg(paste(out, "violin2.jpg", sep="/"), width=1000, height=800)
-	p2
+	jpeg(paste0(out, "/violin2.jpg"), width=1000, height=800)
+	print(p2)
 	dev.off()
 
-	jpeg(paste(out, "violin3.jpg", sep="/"), width=1000, height=800)
-	p3
+	jpeg(paste0(out, "/violin3.jpg"), width=1000, height=800)
+	print(p3)
 	dev.off()
 
 
@@ -233,6 +266,20 @@ getDeltaBetas<-function(betas,group){
 		}
 	}
 	return(do.call(cbind, delta))
+}
+
+
+#######################
+# id maker
+idmaker <- function(x)
+{
+    max.val = x*100
+    count <- nchar(as.character(max.val))                       # find out how many 'numbers' each ID will have after the letter
+    size <- paste("%0",count,"d",sep="")                        # set the variable to be fed into 'sprintf' to ensure we have leading 0's
+    lets <- toupper(sample(letters,x, replace=T))               # randomising the letters 
+    nums <- sprintf(size,sample(1:max.val)[1])                  # randominsing the numbers, and ensuing they all have the same number of characters
+    ids <- paste(lets,nums,sep="")                              # joining them together
+    return(ids)
 }
 
 

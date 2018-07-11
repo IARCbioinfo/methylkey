@@ -11,7 +11,7 @@
 
 ### Estimate correlation covs vs. PCA axes
 
-makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=ncol(betas) ){
+makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=ncol(betas), id="_raw" ){
 
 	require(data.table)
 	require(reshape2)
@@ -19,6 +19,8 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 	require(ggplot2)
 
 	invtbetas = 1/t(betas) # n x p required for prcomp
+	#mval<-t(beta2m(as.matrix(betas)))
+	invtbetas[!is.finite(invtbetas)]<-min(invtbetas[is.finite(invtbetas)])
 
 	#variance for a probe should be > 0
 	sel<-which(apply(invtbetas, 2, var)==0)
@@ -44,7 +46,7 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 	}
 
 	p<-plot_PCA_contribution(pca, nPC)
-	jpeg(paste0(out, "/pca_contributions.jpg"))
+	jpeg(paste0(out, "/pca_contributions", id, ".jpg"))
 	plot(p)
 	dev.off()
 
@@ -59,12 +61,11 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 		for (PC in PCs){
 			for ( variable in variables ){
 				if ( tab[ , is.factor( get(variable) ) ]  ){
-
 					if ( length( levels( tab[ ,  get(variable)  ] ) ) == 2 ){
 						pv <- tab[ , wilcox.test(  get(PC) ~ get(variable)  ) ]$p.value
-					}else{
+					}else if ( length( levels( tab[ ,  get(variable)  ] ) ) > 2 ) {
 						pv <- tab[ , kruskal.test(  get(PC) ~ get(variable)  ) ]$p.value
-					}
+					}else { pv<-1 }
 
 				}else if ( tab[ , is.numeric( get(variable) ) ] ){
 					pv <- tab[ , cor.test(  get(PC), get(variable) , method = "kendall" ) ]$p.value
@@ -73,7 +74,7 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 			}
 		}
 
-		dt_pval[ , adj_pval := p.adjust( p_val ) ]
+		dt_pval[ , adj_pval := p.adjust( p_val, method = "fdr" ) ]
 
 	  	dt_pval[ , class_pval := "NS" ]
 	  	dt_pval[ adj_pval < 0.05, class_pval := "." ]
@@ -87,7 +88,13 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 	}
 
 	dt_pval<-estimate_PCA_corr(pca, pdata, nPC, variables)
+	
+	mt_pval<-acast(dt_pval, Variables~PCA_dim, value.var="p_val")
+	html_pval<-print( xtable(mt_pval), type="html", print.results=FALSE)
+	
 	mt_qval<-acast(dt_pval, Variables~PCA_dim, value.var="adj_pval")
-	return (print( xtable(mt_qval), type="html", print.results=FALSE))
+	html_qval<-print( xtable(mt_qval), type="html", print.results=FALSE)
+
+	return( list( pval=html_pval, qval=html_qval) )
 }
 

@@ -10,10 +10,12 @@ suppressPackageStartupMessages(library(GetoptLong))
 suppressPackageStartupMessages(library(wateRmelon))
 
 batch="no"
+what="betas"
+correction="sva"
 GetoptLong(matrix(c(	"meth=s", 	"meth.rdata file path",
 			"correction=s", "batch correction (sva, ssva or combat) , mandatory option",
 			"batch=i",	"batch variable, optional",
-			"variables=i@",	"vector of variables, mandatory option",
+			"variables=s@",	"vector of variables, mandatory option",
 			"what=s",	"beta if new batch correction or mval if chained correction"
 		), ncol=2, byrow=TRUE))
 
@@ -26,16 +28,17 @@ source( paste0(path, "/pca.r") )
 #1-read data
 print("load data")
 load(meth)
-process_id="D032"
 comment="Correction from filtered betas"
 if (what=="mval"){
 	comment=paste0( "Correction chained from ", process_id )
 }
 process_id=idmaker(1)
 
+
 ######################
 #2-check and reformat variables.
-variables<-colnames(pdata)[variables]
+variables<-autoformat(variables)
+variables<-colnames(pdata[variables])
 for (v in variables) {
 	pdata[ ,v ]<-gsub(" ",".",pdata[ ,v ] )
 	pdata[ ,v ]<-gsub("-","_",pdata[ ,v ] )
@@ -78,6 +81,9 @@ if(correction == "sva"){
 	}
 	#design<-cbind(design,sva$sv)
 	mval = t(residuals(lm(t(mval)~sva$sv)))
+
+	formula1<-paste(formula1, collapse="")
+	correction=paste0("on SVA corrected mvalues with model ", formula1)
 }
 
 if(correction == "ssva"){
@@ -101,6 +107,9 @@ if(correction == "ssva"){
 	}
 	#design<-cbind(design,sva$sv)
 	mval = t(residuals(lm(t(mval)~sva$sv)))
+	
+	formula1<-paste(formula1, collapse="")
+	correction=paste0("on SSVA corrected mvalues with model ", formula1)
 }
 
 
@@ -110,17 +119,15 @@ if(correction == "combat"){
 	require(sva)
 	mval<-ComBat(dat=mval, batch=pdata[,batch], mod=design, par.prior=TRUE, prior.plots=TRUE)
 	#if (!exists("sva")){sva=NULL}
-	correction=paste0(correction, " on batch ", colnames(pdata)[batch])
+	correction=paste0("on combat corrected mvalues for batch ", colnames(pdata)[batch] )
 }
 
 
 #######################
 #7-PCA
 print("running PCA")
-formula1<-paste(formula1, collapse="") #pca id
-suppressWarnings(  
-tab<-makepca( mval, pdata, out, colnames(pdata), 10, id=process_id )
-)
+ 
+tab<-makepca( mval, pdata, out, colnames(pdata), nPC=10, id=process_id ) 
 qvalue<-tab$qval
 pvalue<-tab$pval
 
@@ -129,13 +136,22 @@ pvalue<-tab$pval
 print("save report")
 library(templates)
 
-save(betas, mval, pdata, groups, samples, design, platform, genome, html, out, process_id, file=paste0(out, "/meth.rdata") )
+batch<-tmpl(paste(readLines(paste0(path, "/templates/pca.html.tpl")), collapse="\n"))
+batch<-tmplUpdate(batch, qvalue=qvalue)
+analysis[process_id]=batch
 
-report<-paste(readLines(html), collapse="\n")
-tpl<-tmpl(paste(readLines(paste0(path, "/batchcorrection.html.tpl")), collapse="\n"))
-tpl<-tmplUpdate(tpl, qvalue=qvalue)
+scripts<-tmpl(paste(readLines(paste0(path, "/templates/scripts.js")), collapse="\n"))
+style<-tmpl(paste(readLines(paste0(path, "/templates/style.css")), collapse="\n"))
+main<-tmpl(paste(readLines(paste0(path, "/templates/main.html.tpl")), collapse="\n"))
+tpl<-paste(analysis, collapse="\n")
+tpl<-tmplUpdate(main, scripts=scripts,style=style,tpl=tpl)
 
-cat(report, tpl, file = html)
+cat(tpl, "\n", file = html)
+
+save(betas, mval, pdata, groups, samples, design, platform, genome, regions, analysis, html, out, process_id, file=paste0(out, "/meth.rdata") )
+
+
+
 
 
 

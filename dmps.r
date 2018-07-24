@@ -7,57 +7,53 @@
 #
 #####################################################################################
 
-#library(GetoptLong)
-#library(xtable)
-#library(RColorBrewer)
-#library(ggplot2 )
-#suppressPackageStartupMessages(library(gplots))
-#suppressPackageStartupMessages(library(methylumi))
-#suppressPackageStartupMessages(library(wateRmelon))
-#suppressPackageStartupMessages(library(qqman))
-#suppressPackageStartupMessages(library(ggbio))
-#suppressPackageStartupMessages(library(data.table))
-
 library(GetoptLong)
 library(limma)
 library(qqman)
-#library(annotatr)
 
 #######################
 #parsing options and inputs
 batch="no"
 regions=""
 model="None"
-qvalue="0.05"
+fdr="0.05"
 genome="hg19"
+method="ls"
+nbpr2disp=50
+celllines<-c("K562","Nhlf","Hsmm","Gm12878","Hmec","Hepg2","Huvec","Nhek","H1hesc")
+
 GetoptLong(matrix(c(	"meth=s", 	"meth.rdata file path",
 			"model=s",	"model",
-			"variables=i@",	"vector of variables, mandatory option",
-			"level1=s",	"level to compare",
-			"level2=s",	"level to compare",
-			"qvalue=f",	"qvalue cutoff for toptable",
-			"method=s",	"method : ls or robust"
+			"variables=s@",	"vector of variables, mandatory option",
+			"case=s",	"level to compare",
+			"control=s",	"level to compare",
+			"fdr=f",	"fdr cutoff for toptable",
+			"method=s",	"method : ls or robust",
+			"nbpr2disp=i",	"number of dmps to plot for heatmap",
+			"celllines=s@",  "cellines"
 		), ncol=2, byrow=TRUE))
 
 path <- dirname(strsplit(commandArgs()[4],"=")[[1]][2])
 print(path)
 source( paste0(path, "/utils.r")  )
+source( paste0(path, "/plots.r")  )
+source( paste0(path, "/annot.r")  )
 
-level1=gsub("__cn__","",level1) #chomp endline when the class parameter is the last one 
-level2=gsub("__cn__","",level2) #chomp endline when the class parameter is the last one 
+case=gsub("__cn__","",case) #chomp endline when the class parameter is the last one 
+control=gsub("__cn__","",control) #chomp endline when the class parameter is the last one 
 
-process_id=idmaker(1)
 
 ################################################
 #1-read data
 print("load data")
 load(meth)
-genome="hg19"
+process_id=idmaker(1)
 dir.create(paste0(out,"/",process_id))
 
 #############################################
 #2-Prepare variables
-variables<-colnames(pdata)[variables]
+variables<-autoformat(variables)
+variables<-colnames(pdata[variables])
 pdata[ ,variables[1] ]<-as.factor(pdata[ ,variables[1] ])
 for (v in variables) {
 	if (is.factor(v)){
@@ -66,11 +62,11 @@ for (v in variables) {
 }
 
 #############################################
-#3-Order the levels : level2 become intercept and level 1 is compared to level 2.
-level1<-make.names(level1)
-level2<-make.names(level2)
-pdata[,variables[1]] <- relevel(pdata[,variables[1]], level1)
-pdata[,variables[1]] <- relevel(pdata[,variables[1]], level2)
+#3-Order the levels : control become intercept and case is compared to control.
+case<-make.names(case)
+control<-make.names(control)
+pdata[,variables[1]] <- relevel(pdata[,variables[1]], case)
+pdata[,variables[1]] <- relevel(pdata[,variables[1]], control)
 
 #############################################
 #4-create model
@@ -107,7 +103,7 @@ dev.off()
 
 #############################################
 #7-get top dmps
-toptable<-topTable(eb, adjust="BH", number=Inf, p=qvalue, sort.by="P")
+toptable<-topTable(eb, adjust="BH", number=Inf, p=fdr, sort.by="P")
 nbdmps=nrow(toptable)
 print( paste0("you get ", nbdmps, " DMPS"))
 if (nbdmps == 0) {
@@ -124,20 +120,14 @@ toptable$deltaBetas<-deltabetas[,1]
 #############################################
 #9-annotation
 print("Running annnotation")
-annotations=NULL
-if (genome=="hg19"){ 
-	load(paste0(path,"/annotatr.hg19.rdata")) 
-} else { 
-	annotations<-buildAnnot(genome=genome) 
-}
 
 #get regions
-if (platform=="IlluminaHumanMethylation450k"){regions=paste(path,"illumina450k.bed",sep="/")}
-if (platform=="IlluminaHumanMethylationEPIC"){regions=paste(path,"illuminaEpic.bed",sep="/")}
+if (platform=="IlluminaHumanMethylation450k"){regions=paste0(path,"/data/illumina450k.bed")}
+if (platform=="IlluminaHumanMethylationEPIC"){regions=paste0(path,"/data/illuminaEpic.bed")}
 if(regions == "") { stop( "\r Oups ! no region to annotate.") }
 
 #complete annotation
-cpg_annotated<-annotate(regions,genome=genome)
+cpg_annotated<-mk_annotate(regions,genome=genome)
 dm_annotated<-cpg_annotated[ cpg_annotated$name %in% rownames(toptable)]
 dm<-merge(toptable, dm_annotated, by.x="row.names", by.y="name")
 colnames(dm)[1]<-"cpg"
@@ -168,29 +158,65 @@ dev.off()
 #heatmap
 print("heatmap")
 require(NMF)
-nbpr2disp=50
-if (nrow(toptable)>nbpr2disp){
+if (nrow(toptable)<nbpr2disp){ nbpr2disp=nrow(toptable) }
 
+if (nbpr2disp>1) {
 	cpgs<-toptable$cpg[1:nbpr2disp]
 	symbols<-toptable$annot.symbol[1:nbpr2disp]
-	labrow<-paste0( toptable[cpgs], "(", symbols, ")")
+	labrow<-paste0( cpgs, "(", symbols, ")")
 	jpeg(paste(out, process_id, "heatmap.jpg",sep="/"), width=1600, height=1600)
-	aheatmap(betas[cpgs,], annCol=pdata[,groups], labCol=samples)
+	aheatmap(betas[cpgs,], annCol=pdata[,groups], labRow=labrow)
 	dev.off()
-
 }
 
 ########################
-#11-Create html report
+#11- barplots
+
+p<-mk_barplot(annotated_regions=dm_annotated, betafc=as.numeric(dm$logFC), what="cpgi" )
+ggsave(file=paste(out, process_id, "cpgi_barplot.jpg", sep="/"), plot=p, width=20, height=20, dpi = 300, units=)
+
+p<-mk_barplot(annotated_regions=dm_annotated, betafc=as.numeric(dm$logFC), what="genes" )
+ggsave(file=paste(out, process_id, "genes_barplot.jpg", sep="/"), plot=p, width=20, height=20, dpi = 300)
+
+########################
+#12- histone mark
+p<-mk_hmplot(dm, out, process_id, celllines)
+ggsave(file=paste(out, process_id, "chromHMM_barplot.jpg", sep="/"), plot=p, width=20, height=20, dpi = 300)
+#save.image(file=paste0(out,"/debug.rdata"))
+
+########################
+#MAPINFO
+print("create info file")
+
+info<-unique(data.frame(cpg_annotated)[,c(1,2,6)])
+info<-merge(info, eb$p.value, by.x="name", by.y="row.names")
+#info<-info[,c(1,2,3,8)]
+colnames(info)<-c("TargetID", "CHR", "MAPINFO", "Pval")
+#rownames(info)<-seq(1:nrow(info))
+
+########################
+#12-Create html report
 print("Create report")
 library(templates)
 
-save(betas, mval, ssva, pdata, groups, samples, design, platform, genome, toptable, dm_annotated, html, out, file=paste0(out, "/meth.rdata") )
-
-report<-paste(readLines(html), collapse="\n")
-tpl<-tmpl(paste(readLines(paste0(path, "/dmps.html.tpl")), collapse="\n"))
 formula1<-paste(formula1, collapse=" ")
 cmtx<-paste(cmtx, collapse=",")
-tpl<-tmplUpdate(tpl, process_id=process_id)
-cat(report, tpl, file = html)
+
+dmps<-tmpl(paste(readLines(paste0(path, "/templates/dmps.html.tpl")), collapse="\n"))
+dmps<-tmplUpdate(dmps, process_id=process_id)
+
+analysis[process_id]=dmps
+
+scripts<-tmpl(paste(readLines(paste0(path, "/templates/scripts.js")), collapse="\n"))
+style<-tmpl(paste(readLines(paste0(path, "/templates/style.css")), collapse="\n"))
+main<-tmpl(paste(readLines(paste0(path, "/templates/main.html.tpl")), collapse="\n"))
+tpl<-paste(analysis, collapse="\n")
+tpl<-tmplUpdate(main, scripts=scripts,style=style,tpl=tpl)
+
+cat(tpl, "\n", file = html)
+
+save(betas, mval, pdata, groups, samples, design, platform, method, analysis, genome, regions, toptable, html, out, process_id, info, file=paste0(out, "/meth.rdata") )
+
+
+
 

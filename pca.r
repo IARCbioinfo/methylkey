@@ -46,7 +46,7 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 	}
 
 	p<-plot_PCA_contribution(pca, nPC)
-	jpeg(paste0(out, "/pca_contributions", id, ".jpg"))
+	jpeg(paste0(out, "/pca_contributions_", id, ".jpg"))
 	plot(p)
 	dev.off()
 
@@ -94,7 +94,7 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 	
 	mt_qval<-acast(dt_pval, Variables~PCA_dim, value.var="adj_pval")
 	html_qval<-print( xtable(mt_qval), type="html", print.results=FALSE)
-
-	return( list( pval=html_pval, qval=html_qval) )
+	
+	return( list(pvalue=html_pval, qvalue=html_qval))
 }
 

@@ -1,0 +1,6 @@
+.vignette table {
+	border-collapse: collapse;
+	border: 1px solid black;
+}
+
+.vignette td{border : 1px solid black; width:100px;}

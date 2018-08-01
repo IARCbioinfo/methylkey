@@ -1,0 +1,7 @@
+<!-- probes files -->
+<tables>
+<table name="illuminaProbes_index" comment_char="#">
+<columns>value, name, dbkey, path</columns>
+<file path="tool-data/illuminaProbes_index.loc" /> 
+</table>
+</tables>

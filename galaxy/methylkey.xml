@@ -1,0 +1,216 @@
+<?xml version="1.0"?>
+<tool id="methylkey2" name="Methylkey2" version="0.2.1">
+<description>Methylation analysis pipeline</description> 
+
+<command>
+
+	#if $data.platform != "matrix":
+		mkdir idat_rep;
+		#for $f in $data.idat_collection
+			ln -s $f idat_rep/${f.name};
+		#end for
+	#end if
+
+	Rscript $__tool_directory__/../R/methylkey.r
+
+	--pdata $pdata
+	--out $html.files_path 
+	--samples $sample
+	--nalimit $nalimit
+	--missing $missing
+	--platform $data.platform
+	$violin
+	
+    	--groups $groups
+
+	#if $data.platform == "matrix":
+	--idat $data.idat
+	--genome $data.genome
+	#else
+	--idat idat_rep
+	--barcode $data.barcode
+	--pipeline $data.pipeline.name
+	--normalize $data.pipeline.normalize
+	
+	--filters $data.filters
+	--filters $data.custom
+
+	#if $data.pipeline.name == "minfi"
+		#if $data.pipeline.estimate.cell == "houseman"
+		--cell $data.pipeline.estimate.cell
+		--nbc $data.pipeline.estimate.nbc
+		#end if
+	#end if
+
+	#end if
+	
+	; cp $html.files_path/index.html $html
+
+</command>
+
+<macros>
+
+<xml name="illumina" token_plt="plt">
+
+	<param name="idat_collection" type="data_collection" format="idat" collection_type="list"/>
+	<param name="barcode" type="data_column" data_ref="pdata" label="Barcode" use_header_names="true" force_select="true" value="3"/>
+			
+	<param name="filters" type="select" label="Remove @PLT@ probes" optional="true" multiple="true" help="Remove probes from list">
+		<options from_data_table="illuminaProbes_index" >
+			<column name="value" index="3" />
+      			<column name="name" index="1" />
+			<filter type="static_value" value="@PLT@" column="2"/>
+			<validator type="no_options" message="No probes list available for this platform"/>
+		</options>
+	</param>
+
+	<param name="custom" optional="true" type="data" format="txt" label="Custom list"
+    		help="Select text file with probes id to remove (one by line)."/>
+
+	<conditional name="pipeline">
+		<param name="name" type="select" display="radio" label="Package" >
+			<option value="minfi">minfi</option>
+			<option value="methylumi">methylumi</option>
+		</param>
+				
+		<when value="minfi">
+		    	<param name="normalize" type="select" display="radio" label="Normalisation" >
+		    		<option value="funnorm">FunNorm</option>
+		    		<option value="none">Don't do that</option>
+		    	</param>
+		    
+			<conditional name="estimate">
+				<param name="cell" type="select"  display="radio" label="Etimate cell mixture composition">
+					<option value="no">Don't do that</option>
+				    	<option value="Houseman">Houseman (blood only)</option>
+				</param>
+				<when value="no"/>
+				<when value="houseman"/>
+			</conditional>
+		</when>
+
+		<when value="methylumi">
+		    	<param name="normalize" type="select" display="radio" label="Normalisation" >
+		    		<option value="bmiq">Bmiq</option>
+		    		<option value="none">Don't do that</option>
+		    	</param>
+		</when>
+	</conditional>
+
+</xml>
+
+</macros>
+
+
+<inputs>
+	<param name="pdata" type="data" format="tabular" label="Sample Sheet (phenotypic data)"/>
+	
+	<param name="sample" type="data_column" data_ref="pdata" label="Sample Names" use_header_names="true" force_select="true"
+		help="Warning: if you have space in the name of your column replace it by a dot or an underscore" value="1"/>
+
+	<param name="groups" type="data_column" data_ref="pdata" label="Sample Groups" use_header_names="true" force_select="true" multiple="true"
+		help="Warning: if you have space in the name of your column replace it by a dot or an underscore" value="2"/>
+
+	<param name="nalimit" type="text" value="0.05" label="Maximum NA fraction for a probe" 
+		help="Remove a probe if its beta value is NA for more than xx% of sample (0.05 = 5%)" />
+
+	<param name="missing" type="select" label="How to deal with missing values">
+		<option value="mean">Replace by mean of betas</option>
+		<option value="impute">Impute values with pamr</option>
+		<option value="keep">Keep it</option>
+	</param>
+	
+	<conditional name="data">
+		<param name="platform" type="select" label="Platform" >
+			<option value="IlluminaHumanMethylationEPIC">Illummina 850K (EPIC)</option>
+		    	<option value="IlluminaHumanMethylation450k">Illumina 450k </option>
+			<option value="matrix">Beta file from RNBeads (with coordinate values)</option>		    
+		</param>
+		<when value="IlluminaHumanMethylationEPIC">
+			<expand macro="illumina" plt="IlluminaHumanMethylationEPIC"/>
+		</when>
+		<when value="IlluminaHumanMethylation450k">
+			<expand macro="illumina" plt="IlluminaHumanMethylation450k"/>
+		</when>
+		<when value="matrix">
+			<param name="idat" type="data" format="tabular" label="betas file from rnbeads (with coordinate)"/>
+			<param name="genome" type="select" label="Genome" >
+				<option value="hg19">GRCH38/HG38</option>
+			    	<option value="hg38">GRCH37/HG19</option>
+			</param>
+		</when>		
+	</conditional>
+	  
+	<param name="violin" type="boolean" label="Draw violin plot with betas values" truevalue="--violin" falsevalue="" checked="true" />
+	
+</inputs>
+
+<outputs>
+	<data name="html" format="html" label="${pdata.name} report" />
+</outputs>
+
+
+
+
+
+<stdio>
+<regex match="Warning message:"
+           source="both"
+           level="warning"
+           description="Warning message:" />
+<regex match="PreprocessNoob:"
+           source="both"
+           level="warning"
+           description="Warning message:" />
+<regex match="error"
+           source="both"
+           level="fatal"
+           description="error encountered" />
+</stdio>
+
+
+<help>
+
+**What it does**
+
+Read idat file and get normalized betas values.
+You can also estimate cell mixture composition with Houseman for blood sample or RefFreeEwasher.
+
+You can choose between minfi or methylumi package.
+
+**Inputs**
+	
+Phenotypic data file in tabular format (pdata).
+	
+Collection of idat files from a 450k or Epic analysis.
+
+**Example of pdata file**
+
++---------------------+--------------+------------------+-----------+------------+--------+--------+
+|       barcode	      |  sentrix_id  | sentrix_position	| sample_id | Patient_id | group  | Gender |
++=====================+==============+==================+===========+============+========+========+
+| 200882160087_R06C01 |	200882160087 | R06C01           | FS01      | P01   	 | Normal | M      |
++---------------------+--------------+------------------+-----------+------------+--------+--------+
+| 200882160087_R03C01 |	200882160087 | R03C01	        | FS02	    | P01        | Tumor  | M      |
++---------------------+--------------+------------------+-----------+------------+--------+--------+
+| 200882160117_R01C01 |	200882160117 | R01C01	        | FS03	    | P02        | Normal | F      |
++---------------------+--------------+------------------+-----------+------------+--------+--------+
+|200882160087_R05C01  | 200882160087 | R05C01	        | FS04      | P02        | Tumor  | F      |
++---------------------+--------------+------------------+-----------+------------+--------+--------+
+
+
+**code**
+
+minfi : http://git.iarc.lan/EGE/methylkey/blob/master/minfi.r
+methylumi : http://git.iarc.lan/EGE/methylkey/blob/master/methylumi.r
+
+**The methylkey pipeline**
+
+.. image:: methylkey.png
+	:height: 412
+	:width: 562
+
+
+</help>
+
+</tool>

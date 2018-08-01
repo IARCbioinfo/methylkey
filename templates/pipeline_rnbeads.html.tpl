@@ -10,6 +10,7 @@ Cell mixture composition : {{ cell }} <br/>
 <a href="report.html_files/pdata.txt">pdata</a><br/>
 <a href="report.html_files/betas.txt">betas</a><br/>
 <a href="report.html_files/deltabetas.txt">DeltaBetas</a><br/>
+Continue to R : <a href="meth.rdata">RDATA</a><br/>
 
 </br></br>
 <HR>
@@ -21,11 +22,11 @@ Cell mixture composition : {{ cell }} <br/>
 
 <table class="vignette">
 <tr align="center">
-<td><a href="{{ out }}/{{ group }}/densityPlot2.jpg"><img class="gpt" src="{{ out }}/{{ group }}/densityPlot2.jpg" width="500" height="500"/></a></td>
-<td><a href="{{ out }}/{{ group }}/densityBeanPlot2.jpg"><img class="gpt" src="{{ out }}/{{ group }}/densityBeanPlot2.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/densityPlot2.jpg"><img class="gpt" src="{{ group }}/densityPlot2.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/densityBeanPlot2.jpg"><img class="gpt" src="{{ group }}/densityBeanPlot2.jpg" width="500" height="500"/></a></td>
 </tr>
 <tr>
-<td><a href="{{ out }}/{{ group }}/mdsPlot2.jpg"><img class="gpt"  src="{{ out }}/{{ group }}/mdsPlot2.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/mdsPlot2.jpg"><img class="gpt"  src="{{ group }}/mdsPlot2.jpg" width="500" height="500"/></a></td>
 <td></td>
 </tr>
 </table>

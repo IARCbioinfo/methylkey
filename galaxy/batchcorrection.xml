@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<tool id="batchcorrection2" name="Batch correction" version="0.2.1">
+<description>Correct batch effects</description>
+
+<command>
+	#import re
+	#set inputDir=$re.sub("\.dat","_files",str($input))
+	#set outputDir=$re.sub("\.dat","_files/",str($html))
+
+	Rscript $__tool_directory__/../R/batchcorrection.r
+	--meth $inputDir/meth.rdata
+	--variables $variables 
+	--output $html.files_path;
+
+	mv $html.files_path/* $inputDir/. ;
+	cp $inputDir/index.html $input;
+	mkdir $outputDir;
+	ln -sfvn $inputDir/* $outputDir/.;
+	cp $input $html; 
+
+</command>
+
+<inputs>
+	<param name="pdata" type="data" format="tabular" label="Sample Sheet (phenotypic data)"/>
+	<param name="input" type="data" format="html" label="methylkey analysis"/>
+	<param name="variables" type="data_column" data_ref="pdata" label="Variables to protect" use_header_names="true" force_select="true" multiple="true"
+		help="The fist variable is your main variable"/>
+</inputs>
+
+<outputs>
+    <data name="html" format="html" label="batch correction" />
+</outputs>
+
+<stdio>
+
+<regex match="Warning message:"
+           source="both"
+           level="warning"
+           description="Warning message:" />
+    <regex match="error"
+           source="both"
+           level="fatal"
+           description="error encountered" />
+</stdio>
+
+
+<help>
+
+</help>
+
+
+</tool>

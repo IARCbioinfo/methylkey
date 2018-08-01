@@ -10,7 +10,7 @@ If your variable of interest is not the more significant for PC1 and followings 
 <td><select class="toogle" onchange="showhidepq(this);"><option value=pvalue>pvalue</option><option value=qvalue>qvalue</option></select></td>
 </tr>
 <tr>
-<td><a href="{{ out }}/pca_contributions_{{ process_id }}.jpg"><img class="gpt"  src="{{ out }}/pca_contributions_{{ process_id }}.jpg" width="500" height="500"/></a></td>
+<td><a href="pca_contributions_{{ process_id }}.jpg"><img class="gpt"  src="pca_contributions_{{ process_id }}.jpg" width="500" height="500"/></a></td>
 <td><div class="pvalue">{{ pvalue }}</div> <div class="qvalue">{{ qvalue }}</div></td>
 <tr>
 </table>

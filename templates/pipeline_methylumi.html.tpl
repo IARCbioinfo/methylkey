@@ -12,6 +12,7 @@ Cell mixture composition : {{ cell }} <br/>
 <a href="report.html_files/pdata.txt">pdata</a><br/>
 <a href="report.html_files/betas.txt">betas</a><br/>
 <a href="report.html_files/deltabetas.txt">DeltaBetas</a><br/>
+Continue to R : <a href="meth.rdata">RDATA</a><br/>
 
 </br></br>
 <HR>
@@ -27,7 +28,7 @@ Tip 2: The 8th row of each sentrix is often lower compared to others. This is co
 </td>
 </tr>
 <tr>
-<td><a href="{{ out }}/boxplot_colour1.jpg"><img src="{{ out }}/boxplot_colour1.jpg" width="500" height="500" /></a></td>
+<td><a href="boxplot_colour1.jpg"><img src="boxplot_colour1.jpg" width="500" height="500" /></a></td>
 <td></td>
 </tr>
 <tr>
@@ -37,8 +38,8 @@ Tip 2: The 8th row of each sentrix is often lower compared to others. This is co
 </td>
 </tr>
 <tr>
-<td><a href="{{ out }}/methylated1.jpg"><img src="{{ out }}/methylated1.jpg" width="500" height="500" /></a></td>
-<td><a href="{{ out }}/unmethylated1.jpg"><img src="{{ out }}/unmethylated1.jpg" width="500" height="500" /></a></td>
+<td><a href="methylated1.jpg"><img src="methylated1.jpg" width="500" height="500" /></a></td>
+<td><a href="unmethylated1.jpg"><img src="unmethylated1.jpg" width="500" height="500" /></a></td>
 </tr>
 </table>
 
@@ -55,16 +56,16 @@ Tip 2: The 8th row of each sentrix is often lower compared to others. This is co
 <td><h3>Raw</h3></td><td><h3>Filtered & Normalized</h3></td>
 </tr>
 <tr>
-<td><a href="{{ out }}/{{ group }}/densityPlot1.jpg"><img class="gpt" src="{{ out }}/{{ group }}/densityPlot1.jpg" width="500" height="500"/></a></td>
-<td><a href="{{ out }}/{{ group }}/densityPlot2.jpg"><img class="gpt"  src="{{ out }}/{{ group }}/densityPlot2.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/densityPlot1.jpg"><img class="gpt" src="{{ group }}/densityPlot1.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/densityPlot2.jpg"><img class="gpt"  src="{{ group }}/densityPlot2.jpg" width="500" height="500"/></a></td>
 </tr>
 <tr>
-<td><a href="{{ out }}/{{ group }}/densityBeanPlot1.jpg"><img class="gpt" src="{{ out }}/{{ group }}/densityBeanPlot1.jpg" width="500" height="500"/></a></td>
-<td><a href="{{ out }}/{{ group }}/densityBeanPlot2.jpg"><img class="gpt"  src="{{ out }}/{{ group }}/densityBeanPlot2.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/densityBeanPlot1.jpg"><img class="gpt" src="{{ group }}/densityBeanPlot1.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/densityBeanPlot2.jpg"><img class="gpt"  src="{{ group }}/densityBeanPlot2.jpg" width="500" height="500"/></a></td>
 </tr>
 <tr>
-<td><a href="{{ out }}/{{ group }}/mdsPlot1.jpg"><img class="gpt"  src="{{ out }}/{{ group }}/mdsPlot1.jpg" width="500" height="500"/></a></td>
-<td><a href="{{ out }}/{{ group }}/mdsPlot2.jpg"><img class="gpt"  src="{{ out }}/{{ group }}/mdsPlot2.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/mdsPlot1.jpg"><img class="gpt"  src="{{ group }}/mdsPlot1.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/mdsPlot2.jpg"><img class="gpt"  src="{{ group }}/mdsPlot2.jpg" width="500" height="500"/></a></td>
 </tr>
 </table>
 

@@ -11,8 +11,8 @@ Method : {{ method }}</br>
 Contrast matrix : {{ cmtx }}</br>
 fdr cutoff : {{ fdr }}</br>
 </br>
-<a href="{{ out }}/{{ process_id }}/toptable.txt">TopTable ({{ nbdmps }})</a><br/>
-<a href="{{ out }}/{{ process_id }}/annotated.txt">Complete annotation</a><br/>
+<a href="{{ process_id }}/toptable.txt">TopTable ({{ nbdmps }})</a><br/>
+<a href="{{ process_id }}/annotated.txt">Complete annotation</a><br/>
 Continue to R : <a href="{{ out }}/meth.rdata">RDATA</a><br/>
 </br>
 
@@ -22,9 +22,9 @@ Continue to R : <a href="{{ out }}/meth.rdata">RDATA</a><br/>
 <td><h3>Circus plot</h3></td>
 </tr>
 <tr>
-<td><a href="{{ out }}/{{ process_id }}/qqplot.jpg"  ><img src="{{ out }}/{{ process_id }}/qqplot.jpg" height=420 width=420 /></a></td>
-<td><a href="{{ out }}/{{ process_id }}/heatmap.jpg" ><img src="{{ out }}/{{ process_id }}/heatmap.jpg" height=420 width=420 /></a></td>
-<td><a href="{{ out }}/{{ process_id }}/circleplot.jpg" ><img src="{{ out }}/{{ process_id }}/circleplot.jpg" height=420 width=420 /></a></td>
+<td><a href="{{ process_id }}/qqplot.jpg"  ><img src="{{ process_id }}/qqplot.jpg" height=420 width=420 /></a></td>
+<td><a href="{{ process_id }}/heatmap.jpg" ><img src="{{ process_id }}/heatmap.jpg" height=420 width=420 /></a></td>
+<td><a href="{{ process_id }}/circleplot.jpg" ><img src="{{ process_id }}/circleplot.jpg" height=420 width=420 /></a></td>
 </tr>
 
 </table>
@@ -42,9 +42,9 @@ Tip 4 : Lambda inferior to 1, something wrong in the data or the model.</br></br
 <td><h3>Histone Mark</h3></td>
 </tr>
 <tr>
-<td><a href="{{ out }}/{{ process_id }}/cpgi_barplot.jpg"  ><img src="{{ out }}/{{ process_id }}/cpgi_barplot.jpg" height=420 width=420 /></a></td>
-<td><a href="{{ out }}/{{ process_id }}/genes_barplot.jpg" ><img src="{{ out }}/{{ process_id }}/genes_barplot.jpg" height=420 width=420 /></a></td>
-<td><a href="{{ out }}/{{ process_id }}/chromHMM_barplot.jpg" ><img src="{{ out }}/{{ process_id }}/chromHMM_barplot.jpg" height=420 width=420 /></a></td>
+<td><a href="{{ process_id }}/cpgi_barplot.jpg"  ><img src="{{ process_id }}/cpgi_barplot.jpg" height=420 width=420 /></a></td>
+<td><a href="{{ process_id }}/genes_barplot.jpg" ><img src="{{ process_id }}/genes_barplot.jpg" height=420 width=420 /></a></td>
+<td><a href="{{ process_id }}/chromHMM_barplot.jpg" ><img src="{{ process_id }}/chromHMM_barplot.jpg" height=420 width=420 /></a></td>
 </tr>
 </table>
 </br>

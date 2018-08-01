@@ -12,9 +12,9 @@ Contrast matrix : {{ cmtx }}</br>
 fdr cutoff : {{ fdr }}</br>
 pvalue cutoff : {{ pcutoff }}</br>
 </br>
-<a href="{{ out }}/{{ process_id }}/toptable.txt">TopTable ({{ nbdmrs }})</a><br/>
-<a href="{{ out }}/{{ process_id }}/annotated.txt">Complete annotation</a><br/>
-Continue to R : <a href="{{ out }}/meth.rdata">RDATA</a><br/>
+<a href="{{ process_id }}/toptable.txt">TopTable ({{ nbdmrs }})</a><br/>
+<a href="{{ process_id }}/annotated.txt">Complete annotation</a><br/>
+Continue to R : <a href="meth.rdata">RDATA</a><br/>
 </br>
 
 <table>
@@ -22,8 +22,8 @@ Continue to R : <a href="{{ out }}/meth.rdata">RDATA</a><br/>
 <td><h3>CpG Island annotation</h3></td>
 </tr>
 <tr>
-<td><a href="{{ out }}/{{ process_id }}/cpgi_barplot.jpg"  ><img src="{{ out }}/{{ process_id }}/cpgi_barplot.jpg" height=420 width=420 /></a></td>
-<td><a href="{{ out }}/{{ process_id }}/genes_barplot.jpg" ><img src="{{ out }}/{{ process_id }}/genes_barplot.jpg" height=420 width=420 /></a></td>
+<td><a href="{{ process_id }}/cpgi_barplot.jpg"  ><img src="{{ process_id }}/cpgi_barplot.jpg" height=420 width=420 /></a></td>
+<td><a href="{{ process_id }}/genes_barplot.jpg" ><img src="{{ process_id }}/genes_barplot.jpg" height=420 width=420 /></a></td>
 </tr>
 </table>
 </br>

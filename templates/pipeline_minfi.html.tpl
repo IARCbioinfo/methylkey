@@ -8,9 +8,10 @@ Excluded from list = {{ filteredFromList }} ( {{ filters }} )</br>
 Missing values : {{ missing }}<br/>
 Excluded because NA > 20% (<a href="removed.txt">{{ filteredNAprobes }}</a>)<br/>
 Cell mixture composition : {{ cell }} <br/>
-<a href="report.html_files/pdata.txt">pdata</a><br/>
-<a href="report.html_files/betas.txt">betas</a><br/>
-<a href="report.html_files/deltabetas.txt">DeltaBetas</a><br/>
+<a href="pdata.txt">pdata</a><br/>
+<a href="betas.txt">betas</a><br/>
+<a href="deltabetas.txt">DeltaBetas</a><br/>
+Continue to R : <a href="meth.rdata">RDATA</a><br/>
 
 </br></br>
 <HR>
@@ -28,8 +29,8 @@ Tip 2: Fresh Frozen tissus are often bad quality
 </td>
 </tr>
 <tr>
-<td><a href="{{ out }}/boxplot_colour1.jpg"><img src="{{ out }}/boxplot_colour1.jpg" width="500" height="500" /></a></td>
-<td><a href="{{ out }}/plotQC.jpg"><img src="{{ out }}/plotQC.jpg" width="500" height="500" /></a></td>
+<td><a href="boxplot_colour1.jpg"><img src="boxplot_colour1.jpg" width="500" height="500" /></a></td>
+<td><a href="plotQC.jpg"><img src="plotQC.jpg" width="500" height="500" /></a></td>
 </tr>
 <tr>
 <td><h2>Boxplot of Red (methylated) Color Channels :</h2></br>
@@ -38,8 +39,8 @@ Tip 2: Fresh Frozen tissus are often bad quality
 </td>
 </tr>
 <tr>
-<td><a href="{{ out }}/methylated1.jpg"><img src="{{ out }}/methylated1.jpg" width="500" height="500" /></a></td>
-<td><a href="{{ out }}/unmethylated1.jpg"><img src="{{ out }}/unmethylated1.jpg" width="500" height="500" /></a></td>
+<td><a href="methylated1.jpg"><img src="methylated1.jpg" width="500" height="500" /></a></td>
+<td><a href="unmethylated1.jpg"><img src="unmethylated1.jpg" width="500" height="500" /></a></td>
 </tr>
 </table>
 
@@ -56,16 +57,16 @@ Tip 2: Fresh Frozen tissus are often bad quality
 <td><h3>Raw</h3></td><td><h3>Filtered & Normalized</h3></td>
 </tr>
 <tr>
-<td><a href="{{ out }}/{{ group }}/densityPlot1.jpg"><img class="gpt" src="{{ out }}/{{ group }}/densityPlot1.jpg" width="500" height="500"/></a></td>
-<td><a href="{{ out }}/{{ group }}/densityPlot2.jpg"><img class="gpt"  src="{{ out }}/{{ group }}/densityPlot2.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/densityPlot1.jpg"><img class="gpt" src="{{ group }}/densityPlot1.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/densityPlot2.jpg"><img class="gpt"  src="{{ group }}/densityPlot2.jpg" width="500" height="500"/></a></td>
 </tr>
 <tr>
-<td><a href="{{ out }}/{{ group }}/densityBeanPlot1.jpg"><img class="gpt" src="{{ out }}/{{ group }}/densityBeanPlot1.jpg" width="500" height="500"/></a></td>
-<td><a href="{{ out }}/{{ group }}/densityBeanPlot2.jpg"><img class="gpt"  src="{{ out }}/{{ group }}/densityBeanPlot2.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/densityBeanPlot1.jpg"><img class="gpt" src="{{ group }}/densityBeanPlot1.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/densityBeanPlot2.jpg"><img class="gpt"  src="{{ group }}/densityBeanPlot2.jpg" width="500" height="500"/></a></td>
 </tr>
 <tr>
-<td><a href="{{ out }}/{{ group }}/mdsPlot1.jpg"><img class="gpt"  src="{{ out }}/{{ group }}/mdsPlot1.jpg" width="500" height="500"/></a></td>
-<td><a href="{{ out }}/{{ group }}/mdsPlot2.jpg"><img class="gpt"  src="{{ out }}/{{ group }}/mdsPlot2.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/mdsPlot1.jpg"><img class="gpt"  src="{{ group }}/mdsPlot1.jpg" width="500" height="500"/></a></td>
+<td><a href="{{ group }}/mdsPlot2.jpg"><img class="gpt"  src="{{ group }}/mdsPlot2.jpg" width="500" height="500"/></a></td>
 </tr>
 </table>
 

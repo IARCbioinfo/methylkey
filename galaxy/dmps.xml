@@ -1,0 +1,87 @@
+<?xml version="1.0"?>
+<tool id="dmps2" name="Methylkey:DMPs" version="0.0.1">
+<description>Differentially Methylated Probes</description>
+
+<command>
+
+	#import re
+	#set inputDir=$re.sub("\.dat","_files",str($input))
+	#set outputDir=$re.sub("\.dat","_files/",str($html))
+
+	Rscript $__tool_directory__/../R/dmps.r
+	--meth $inputDir/meth.rdata
+	--variables $variable
+	#for $i, $covariate in enumerate( $covariates )
+    	--variables ${covariate.column}
+	#end for
+	--case $case
+	--control $control
+	#if $model != ""
+	--model $model
+	#end if
+	--method $method	
+	--fdr $fdr
+	--nbpr2disp $nbpr2disp
+	--output $html.files_path;
+	
+	mv $html.files_path/* $inputDir/. ;
+	cp $inputDir/index.html $input;
+	mkdir $outputDir;
+	ln -sfvn $inputDir/* $outputDir/.;
+	cp $input $html; 
+	
+</command>
+
+<code file="getlevels.py"/>
+
+<inputs>
+	<param name="pdata" type="data" format="tabular" label="Sample Sheet (phenotypic data)"/>
+	<param name="input" type="data" format="html" label="methylkey analysis"/>
+
+	<param name="variable" type="data_column" data_ref="pdata" label="main variable" use_header_names="true" refresh_on_change="true"/>
+
+	<param name="case" type="select" label="compare" dynamic_options="getlevels(pdata, variable)" />
+	<param name="control" type="select" label="to" dynamic_options="getlevels(pdata, variable)" />
+
+	<repeat name="covariates" title="covariates">
+		<param name="column" type="data_column" data_ref="pdata" label="covariates" use_header_names="true"/>
+	</repeat>
+	
+	<param name="model" type="text" value="" label="advanced model" />
+	
+	<param name="method" type="select" label="Method">
+		<option value="ls">Least squares (Linear)</option>
+		<option value="robust">Robust</option>
+	</param>
+	
+	<param name="fdr" type="text" value="0.05" label="qvalue cutoff for toptable" />
+	<param name="nbpr2disp" type="text" value="50" label="Number of dmps to build the heatmap"/>
+
+	
+</inputs>
+
+<outputs>
+	<data name="html" format="html" label="DMPs" />
+</outputs>
+
+
+<stdio>
+<regex match="Warning message:"
+           source="both"
+           level="warning"
+           description="Warning message:" />
+    <regex match="error"
+           source="both"
+           level="fatal"
+           description="error encountered" />
+</stdio>
+
+
+<help>
+
+		
+</help>
+
+
+
+</tool>

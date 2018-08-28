@@ -1,3 +1,4 @@
+#!/usr/bin/Rscript
 #####################################################################################
 #
 # Title  : methylkey_load.r
@@ -8,8 +9,6 @@
 #####################################################################################
 
 suppressPackageStartupMessages(library(GetoptLong))
-suppressPackageStartupMessages(library(wateRmelon))
-suppressPackageStartupMessages(library(data.table))
 
 #######################
 #0- parsing options and inputs
@@ -46,6 +45,10 @@ GetoptLong(matrix(c(	"pdata=s", 	"pdata file",
 			"violin",	"draw violin plots"
 		), ncol=2, byrow=TRUE))
 
+
+suppressPackageStartupMessages(library(wateRmelon))
+suppressPackageStartupMessages(library(data.table))
+
 path <- dirname(strsplit(commandArgs()[4],"=")[[1]][2]) 
 templates<-paste0(path , "/../templates/")
 datadir<-paste0(path , "/../data/")
@@ -63,7 +66,7 @@ html=paste0(out,"/index.html")
 samples<-autoformat(samples)
 barcode<-autoformat(barcode)
 groups <-autoformat(groups)
-filters<-unlist(strsplit(filters,","))
+if( !is.null(filters) ){ filters<-unlist(strsplit(filters,",")) }
 
 process_id=idmaker(1)
 print(process_id)

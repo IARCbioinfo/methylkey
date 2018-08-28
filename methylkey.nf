@@ -19,12 +19,11 @@
 
 params.help          		= null
 params.pdata           		= null
-params.input      		= null
-params.html	  		= "./"
-params.out         		= "report_html"
+params.idat      		= null
+params.out         		= "methylkey"
 params.samples			= null
 params.groups       		= null
-params.barcode                  ="barcode"
+params.barcode                  = "barcode"
 params.platform			= ""
 params.pipeline   		= "minfi"
 params.missing			= "mean"
@@ -33,7 +32,9 @@ params.nalimit  		= "0.2"
 params.genome			= "hg19"
 params.filters           	= null
 params.regions			= ""
-params.violin			=FALSE
+params.violin			= false
+params.nbc                      = null
+params.cell                     = 6
 
 log.info ""
 log.info "-----------------------------------------------------------------------"
@@ -57,32 +58,32 @@ if (params.help) {
     log.info ""
     log.info "Mandatory arguments:"
     log.info "--pdata                FILE                 Sample sheet"
-    log.info "--input                FOLDER/FILE          Folder containing idat files (or file with beta values if platform=matrix)"
+    log.info "--idat                FOLDER/FILE          Folder containing idat files (or file with beta values if platform=matrix)"
     log.info "--samples              STRING/INTEGER       Column name or column index for samples names"
     log.info "--groups               FILE                 Column name or column index for samples groups (eg : Case/Control)"
     log.info ""
     log.info "--------------------------------------------------------"
     log.info "Optional arguments:"
     log.info "--html                 STRING               Name for output report (default=report.html)"
-    log.info "--out		     STRING               Name for output directory (default=report_files)"
+    log.info "--out                  STRING               Name for output directory (default=report_files)"
     log.info "--platform             STRING               IlluminaHumanMethylation450k, IlluminaHumanMethylationEPIC or matrix"
-    log.info "--genome		     STRING		  Reference genome (default hg19)
+    log.info "--genome               STRING               Reference genome (default hg19)"
     log.info "--barcode              STRING/INTEGER       Column name or column index for array barcodes (default=barcode)"
     log.info "--pipeline             STRING               minfi or methylumi (default=minfi)"
-    log.info "--normalize            STRING      	  Default is funnorm with minfi, bmiq with methylumi, use none to desactivate"
-    log.info "--filters		     FILE		  File containing list of probes to filter (one probe id by line)"
-    log.info "--nalimit		     DOUBLE               Maximum fraction of missing values for a probe"
-    log.info "--missing		     STRING               keep, mean (calculate mean of betas by group) or impute (with pamr)"
+    log.info "--normalize            STRING               Default is funnorm with minfi, bmiq with methylumi, use none to desactivate"
+    log.info "--filters              FILE                 File containing list of probes to filter (one probe id by line)"
+    log.info "--nalimit              DOUBLE               Maximum fraction of missing values for a probe"
+    log.info "--missing              STRING               keep, mean (calculate mean of betas by group) or impute (with pamr)"
     log.info ""
     log.info "--------------------------------------------------------"
     log.info "Flags:"
-    log.info "--violin					  Draw the violin plots of beta values by groups
+    log.info "--violin                                    Draw the violin plots of beta values by groups"
     log.info "--help                                      Display this message"
     log.info ""
     log.info "--------------------------------------------------------"
     log.info "Cell Mixture Composition:"
     log.info "--cell houseman                             Houseman, only with minfi package, only for blood cells"
-    log.info "--nbc		     INTEGER              Number of cell type (default=6)"
+    log.info "--nbc                  INTEGER              Number of cell type (default=6)"
     log.info ""
     log.info ""
     exit 1
@@ -90,28 +91,28 @@ if (params.help) {
 
 
 pdata = file(params.pdata)
+idatDir = file(params.idat)
 
 
 /* Software information */
 log.info ""
-log.info "pdata           	= ${params.pdata}"
-log.info "input		      	= ${params.input}"
-log.info "samples  		= ${params.samples}"
-log.info "groups	       	= ${params.groups}"
-log.info "barcode        	= ${params.barcode}"
-log.info "platform           	= ${params.platform}"
-log.info "genome           	= ${params.genome}"
-log.info "report                = ${params.html}"
-log.info "report files        	= ${params.out}"
-log.info "pipeline  		= ${params.pipeline}"
-log.info "normalize         	= ${params.normalize}"
-log.info "filters           	= ${params.filters}"
-log.info "NA cutoff    	  	= ${params.nalimit}"
-log.info "missing values 	= ${params.missing}"
-log.info "violin plot		= ${params.violin}"
+log.info "pdata                 = ${params.pdata}"
+log.info "idat                  = ${params.idat}"
+log.info "samples               = ${params.samples}"
+log.info "groups                = ${params.groups}"
+log.info "barcode               = ${params.barcode}"
+log.info "platform              = ${params.platform}"
+log.info "genome                = ${params.genome}"
+log.info "report files          = ${params.out}"
+log.info "pipeline              = ${params.pipeline}"
+log.info "normalize             = ${params.normalize}"
+log.info "filters               = ${params.filters}"
+log.info "NA cutoff             = ${params.nalimit}"
+log.info "missing values        = ${params.missing}"
+log.info "violin plot           = ${params.violin}"
 log.info ""
-log.info "CMC   		= ${cell}"
-log.info "number of cell type	= ${nbc}"
+log.info "CMC                   = ${params.cell}"
+log.info "number of cell type   = ${params.nbc}"
 log.info ""
 }
 
@@ -121,10 +122,12 @@ process run_strelka {
 	input:
 
 	file pdata
+	file idatDir
+	
 
      shell:
      '''
-     Rscript methylkey.r --pdata !{params.pdata} --idat !{params.idat} --html !{params.html} --out !{params.out} --samples !{params.samples} --groups !{params.groups} --pipeline !{params.pipeline} --nalimit !{params.nalimit} --filters !{params.filters}
+     methylkey.r --pdata !{pdata} --idat !{idatDir} --out !{params.out} --samples !{params.samples} --groups !{params.groups} --pipeline !{params.pipeline} --nalimit !{params.nalimit} 
      '''
 }
 

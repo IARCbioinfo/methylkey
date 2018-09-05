@@ -1,3 +1,4 @@
+#!/usr/bin/Rscript
 #####################################################################################
 #
 # Title  : Comet.r
@@ -7,7 +8,7 @@
 #####################################################################################
 
 library(GetoptLong)
-library(coMET)
+suppressPackageStartupMessages(library(coMET))
 
 dmps=c()
 max=0
@@ -38,15 +39,11 @@ print("load data")
 load(meth)
 if ( !is.null(output)  ) { out<-output; dir.create(out) ; html=paste0(out,"/index.html")}
 process_id=idmaker(1)
-print("0000")
 dir.create(paste0(out,"/",process_id))
-print("0001")
 txdb<-getTxdb(genome)
 load(paste0(datadir, "/cpgIslands.", genome, ".rda"))
 
 group<-groups[1]
-
-
 
 ###########################################
 #Functions for comet_plot
@@ -111,6 +108,7 @@ getSites<-function( info, betas, reg.start, reg.end, reg.chr ){
 	sites<- sites[start(sites) > reg.start, ]
 	sites<- sites[end(sites) < reg.end, ]
 	sites<- sites[sites$TargetID %in% rownames(betas),]
+	if (length(sites) < 2) { return(sites) }
 	sites$betas<-betas[match(sites$TargetID, rownames(betas)),]
 	sites<-sort(sites)
 	strand(sites)<-"*"
@@ -154,13 +152,9 @@ getCpgIslandsSites<-function(cpgIslands, reg.chr, reg.start, reg.end ){
 #comet plot
 cometCpg<-function(){
 
-	print(ref.cpg)
-	
 	configfile<-makeConfigFile( ref.cpg, reg.start, reg.end, reg.chr, configfile)
-
 	sites<-getSites( info, betas, reg.start, reg.end, reg.chr )
-	if (length(sites) < 2){ print(paste0(ref.cpg," : only two dmp in the region"), file=report, append=TRUE); next }
-	
+	if (length(sites) < 2){ return(paste0(ref.cpg," : not enough dmps in the region")); }
 	infofile<-makeInfofile(info,sites)
 
 	cormatrix<-makeCorMatrix(sites,betas)
@@ -246,6 +240,7 @@ for (dmp in dmps){
 	}
 }
 
+print(toptable$cpg)
 if (max > length(toptable$cpg) ) { max=length(toptable$cpg) }
 for (i in 1:max){
 	

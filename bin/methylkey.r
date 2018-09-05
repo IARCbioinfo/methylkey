@@ -63,9 +63,9 @@ print(out)
 dir.create(out)
 html=paste0(out,"/index.html")
 
-samples<-autoformat(samples)
-barcode<-autoformat(barcode)
-groups <-autoformat(groups)
+samples<-suppressWarnings( autoformat(samples) )
+barcode<-suppressWarnings( autoformat(barcode) )
+groups <-suppressWarnings( autoformat(groups) )
 if( !is.null(filters) ){ filters<-unlist(strsplit(filters,",")) }
 
 process_id=idmaker(1)
@@ -130,7 +130,7 @@ if (pipeline=="rnbeads"){
 }
 
 #readmeth pipeline change depending the loaded pipeline
-data<-readmeth(pdata=pdata, idat=idat, samples=samplesnames, groups=groups, normalize=normalize, filters=filters, nalimit=nalimit, out=out, cell=cell)
+data<-suppressPackageStartupMessages( readmeth(pdata=pdata, idat=idat, samples=samplesnames, groups=groups, normalize=normalize, filters=filters, nalimit=nalimit, out=out, cell=cell) )
 
 regions=data$regions
 platform=data$platform
@@ -144,7 +144,7 @@ filteredFromList=data$filteredFromList
 #######################
 #3- PCA
 print("running PCA")
-pca<-makepca( betas, pdata, out, colnames(pdata), nPC=10, id=process_id )
+pca<-suppressPackageStartupMessages( makepca( betas, pdata, out, colnames(pdata), nPC=10, id=process_id ) )
 pvalue<-pca$pvalue
 qvalue<-pca$qvalue
 
@@ -173,7 +173,7 @@ write.table(deltab, file=paste0(out, "/deltabetas.txt"), row.names=T, sep="\t")
 ########################
 #7- Create html report
 print("Create report")
-require(templates)
+library(templates)
 
 if (is.null(filters)){ filter="none"} else {filters<-paste0(basename(filters),collapse=", ")}
 correction = "on filtered/normalized betas"

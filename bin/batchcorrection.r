@@ -1,3 +1,4 @@
+#!/usr/bin/Rscript
 #####################################################################################
 #
 # Title  : batchcorrection.r
@@ -12,13 +13,13 @@ suppressPackageStartupMessages(library(wateRmelon))
 batch="no"
 what="betas"
 correction="sva"
-output=NULL
+out=NULL
 GetoptLong(matrix(c(	"meth=s", 	"meth.rdata file path",
 			"correction=s", "batch correction (sva, ssva or combat) , mandatory option",
-			"batch=i",	"batch variable, optional",
+			"batch=s",	"batch variable, optional",
 			"variables=s@",	"vector of variables, mandatory option",
 			"what=s",	"beta if new batch correction or mval if chained correction",
-			"output=s",	"output dir"
+			"out=s",	"out dir"
 		), ncol=2, byrow=TRUE))
 
 path <- dirname(strsplit(commandArgs()[4],"=")[[1]][2])
@@ -36,7 +37,8 @@ if (what=="mval"){
 	comment=paste0( "Correction chained from ", process_id )
 }
 process_id=idmaker(1)
-if ( !is.null(output)  ) { out<-output; dir.create(out) ; html=paste0(out,"/index.html")}
+if ( !is.null(out)  ) { out<-out; dir.create(out) ; html=paste0(out,"/index.html")}
+suppressWarnings( batch<-autoformat(batch) )
 
 ######################
 #2-check and reformat variables.

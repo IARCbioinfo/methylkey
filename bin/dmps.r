@@ -1,3 +1,4 @@
+#!/usr/bin/Rscript
 #####################################################################################
 #
 # Title		: dmps.r
@@ -9,7 +10,7 @@
 
 library(GetoptLong)
 library(limma)
-library(qqman)
+suppressPackageStartupMessages(library(qqman))
 
 #######################
 #parsing options and inputs
@@ -19,9 +20,9 @@ model="None"
 fdr="0.05"
 genome="hg19"
 method="ls"
-nbpr2disp=50
+hsize=50
 output=NULL
-celllines<-c("K562","Nhlf","Hsmm","Gm12878","Hmec","Hepg2","Huvec","Nhek","H1hesc")
+celllines<-"K562,Nhlf,Hsmm,Gm12878,Hmec,Hepg2,Huvec,Nhek,H1hesc"
 
 GetoptLong(matrix(c(	"meth=s", 	"meth.rdata file path",
 			"model=s",	"model",
@@ -30,7 +31,7 @@ GetoptLong(matrix(c(	"meth=s", 	"meth.rdata file path",
 			"control=s",	"level to compare",
 			"fdr=f",	"fdr cutoff for toptable",
 			"method=s",	"method : ls or robust",
-			"nbpr2disp=i",	"number of dmps to plot for heatmap",
+			"hsize=i",	"number of dmps to plot for heatmap",
 			"celllines=s@",  "cellines",
 			"output=s",	"output dir"
 		), ncol=2, byrow=TRUE))
@@ -44,7 +45,8 @@ source( paste0(path, "/plots.r")  )
 source( paste0(path, "/annot.r")  )
 
 case=gsub("__cn__","",case) #chomp endline when the class parameter is the last one 
-control=gsub("__cn__","",control) #chomp endline when the class parameter is the last one 
+control=gsub("__cn__","",control) #chomp endline when the class parameter is the last one
+celllines<-unlist(strsplit(celllines,","))
 
 
 ################################################
@@ -57,7 +59,7 @@ dir.create(paste0(out,"/",process_id))
 
 #############################################
 #2-Prepare variables
-variables<-autoformat(variables)
+variables<-suppressWarnings( autoformat(variables) )
 variables<-colnames(pdata[variables])
 pdata[ ,variables[1] ]<-as.factor(pdata[ ,variables[1] ])
 for (v in variables) {
@@ -152,10 +154,12 @@ write.table(toptable, file=paste(out, process_id, "toptable.txt",sep="/"), row.n
 #10- Plots
 
 #circusplot
+#save.image(file="debug.rdata")
+
 print("circus plot")
 gbm<-makeGRangesFromDataFrame(toptable)
 gbm$meth.diff<-toptable$deltaBetas*100
-p<-circusplot(gbm, genome=genome)
+suppressMessages ( p<-circusplot(gbm, genome=genome) )
 jpeg(paste(out, process_id, "circleplot.jpg", sep="/") , width=800, height=800)
 print(p)
 dev.off()
@@ -163,11 +167,11 @@ dev.off()
 #heatmap
 print("heatmap")
 require(NMF)
-if (nrow(toptable)<nbpr2disp){ nbpr2disp=nrow(toptable) }
+if (nrow(toptable)<hsize){ hsize=nrow(toptable) }
 
-if (nbpr2disp>1) {
-	cpgs<-toptable$cpg[1:nbpr2disp]
-	symbols<-toptable$annot.symbol[1:nbpr2disp]
+if (hsize>1) {
+	cpgs<-toptable$cpg[1:hsize]
+	symbols<-toptable$annot.symbol[1:hsize]
 	labrow<-paste0( cpgs, "(", symbols, ")")
 	jpeg(paste(out, process_id, "heatmap.jpg",sep="/"), width=1600, height=1600)
 	aheatmap(betas[cpgs,], annCol=pdata[,groups], labRow=labrow)
@@ -182,6 +186,7 @@ ggsave(file=paste(out, process_id, "cpgi_barplot.jpg", sep="/"), plot=p, width=2
 
 p<-mk_barplot(annotated_regions=dm_annotated, betafc=as.numeric(dm$logFC), what="genes" )
 ggsave(file=paste(out, process_id, "genes_barplot.jpg", sep="/"), plot=p, width=20, height=20, dpi = 300)
+
 
 ########################
 #12- histone mark

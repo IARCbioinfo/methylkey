@@ -50,8 +50,8 @@ multiplot<-function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 # violin plot
 violin_plot<-function(pdata,betas,group,samples,platform, path, out="./",genome="hg19",regions){
 
-	require(ggplot2)
-	require(annotatr)
+	suppressPackageStartupMessages( require(ggplot2) )
+	suppressPackageStartupMessages( require(annotatr) )
 	require(data.table)
 
 	if (!is.data.table(pdata)){ pdata<-data.table(pdata) }
@@ -108,34 +108,34 @@ violin_plot<-function(pdata,betas,group,samples,platform, path, out="./",genome=
 #plot a circus manhattan plot
 circusplot<-function(ranges, genome){
 
-	require(ggplot2)
-	require(ggbio)
+	suppressPackageStartupMessages( require(ggbio) )
 
 	if (genome=="hg38"){ require(BSgenome.Hsapiens.UCSC.hg38) ; species=BSgenome.Hsapiens.UCSC.hg38}
 	if (genome=="hg19"){ require(BSgenome.Hsapiens.UCSC.hg19) ; species=BSgenome.Hsapiens.UCSC.hg19}
-	print(genome)
-	print(species)
+
 	chr.len = seqlengths(species)
 	chr.len = chr.len[grep("_|M", names(chr.len), invert = T)]
 	myIdeo <- GRanges(seqnames = names(chr.len), ranges = IRanges(start = 1, chr.len))
-	seqlevels(myIdeo) = names(chr.len)
-	seqlevels(ranges) = names(chr.len)
 	seqlengths(myIdeo)<-myIdeo@ranges@width
+
+	seqlevels(ranges) = names(chr.len)
 	seqlengths(ranges)<-myIdeo@ranges@width
 
 	g.po <-ranges[ranges$meth.diff < 0 ]
 	g.per<-ranges[ranges$meth.diff > 0 ]
 
-	p <- ggplot() + layout_circle(myIdeo, geom = "ideo", fill = "gray70", radius = 39, trackWidth = 2)
+	p<- ggbio() + circle(myIdeo, geom = "ideo", fill = "gray70", radius = 39, trackWidth = 2)
+	
 	if (length(g.po) > 0){
 		values(g.po)$id = "hypo"
-		p <- p + layout_circle(g.po, geom = "point", size = 1, aes(x = midpoint, y = meth.diff, color = id), radius = 19, trackWidth = 20) + scale_colour_manual(values = c("magenta", "green")) 
+		p <- p + circle(g.po, geom = "point", size = 1, aes(x = midpoint, y = "meth.diff", color = id), radius = 19, trackWidth = 20) + scale_colour_manual(values = c("magenta", "green")) 
 	}
 	if (length(g.per) > 0){	
 		values(g.per)$id = "hyper"
-		p <- p + layout_circle(g.per, geom = "point", size = 1, aes(x = midpoint, y = meth.diff, color = id), radius = 41, trackWidth = 20)
+		p <- p + circle(g.per, geom = "point", size = 1, aes(x = midpoint, y = "meth.diff", color = id), radius = 41, trackWidth = 20)
 	}
-	p<- p + layout_circle(myIdeo, geom = "text", aes(label = seqnames), vjust = 0, radius = 55, trackWidth = 7)
+	# bug in ggbio waiting for fix
+	#p<- p + circle(ranges, geom = "text", aes(label = seqnames), vjust = 0, radius = 55, trackWidth = 7)
 	return(p)
 
 }
@@ -149,7 +149,7 @@ circusplot<-function(ranges, genome){
 
 mk_barplot<-function(annotated_regions, betafc, what=c("cpgi","genes") ){
 	
-	require(ggplot2)
+	suppressPackageStartupMessages( require(ggplot2) )
 	require(RColorBrewer)
 
 	annotated_regions$DM_Status[ betafc > 0 ] = "hyper"

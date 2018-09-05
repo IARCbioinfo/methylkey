@@ -1,3 +1,4 @@
+#!/usr/bin/Rscript
 #####################################################################################
 #
 # Title		: dmps.r
@@ -9,7 +10,7 @@
 
 library(GetoptLong)
 library(RColorBrewer)
-library(GenomicRanges)
+suppressPackageStartupMessages(library(GenomicRanges))
 
 
 dmrs=c()

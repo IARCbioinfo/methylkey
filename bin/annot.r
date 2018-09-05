@@ -17,7 +17,7 @@ getTxdb<-function(genome)
 	
 	suppressMessages(pkg<-paste("TxDb", species, "UCSC", genome ,"knownGene", sep="."))
 	print(pkg)
-	library(pkg, character.only = TRUE)
+	suppressPackageStartupMessages( library(pkg, character.only = TRUE) )
 	txdb=eval(parse(text = pkg))
 	return(txdb)
 }
@@ -27,7 +27,7 @@ getTxdb<-function(genome)
 # build annotation (annotatr)
 buildAnnot<-function(genome="hg19"){
 
-	require(annotatr)
+	suppressPackageStartupMessages(require(annotatr))
 	listOfAnnotations<-builtin_annotations()
 	annots<-listOfAnnotations[grep(genome, listOfAnnotations)]
 	annotations <- build_annotations(genome = genome, annotations = annots)
@@ -38,9 +38,9 @@ buildAnnot<-function(genome="hg19"){
 # read regions
 readRegions<-function(regions, genome){
 
-	require(annotatr)
+	suppressPackageStartupMessages(require(annotatr))
 	if (is.character(regions)){
-		cpg_regions <- read_regions(regions, genome=genome, format="BED")
+		suppressMessages( cpg_regions <- read_regions(regions, genome=genome, format="BED") )
 	} else { 
 		cpg_regions <- regions 
 	}
@@ -52,22 +52,22 @@ readRegions<-function(regions, genome){
 # annotation (annotatr)
 mk_annotate<-function(regions,genome="hg19"){
 	
-	require(annotatr)
+	suppressPackageStartupMessages(require(annotatr))
 	annotations=NULL
 	if (genome=="hg19"){ load(paste0(datadir,"/annotatr.hg19.rda")) }
 	else if (genome=="hg38"){ load(paste0(datadir,"/annotatr.hg38.rda")) }
 	else { annotations<-buildAnnot(genome=genome) }
-
+		
 	n<-length(annotations[annotations$type==paste0(genome,"_cpg_shores")])
 	shores<-rep(c(paste0(genome,"_cpg_southShores"), paste0(genome,"_cpg_northShores")), (n+1)/2)
-	suppressWarnings(annotations[annotations$type==paste0(genome,"_cpg_shores")]$type<-shores[1:n])
+	suppressWarnings( annotations[annotations$type==paste0(genome,"_cpg_shores")]$type<-shores[1:n] )
 
 	n<-length(annotations[annotations$type==paste0(genome,"_cpg_shelves")])
 	shelves<-rep(c(paste0(genome,"_cpg_southShelves"), paste0(genome,"_cpg_northShelves")), (n+1)/2)
-	suppressWarnings(annotations[annotations$type==paste0(genome,"_cpg_shelves")]$type<-shelves[1:n])
+	suppressWarnings( annotations[annotations$type==paste0(genome,"_cpg_shelves")]$type<-shelves[1:n] )
 
 	cpg_regions <- readRegions(regions, genome)
-	cpg_annotated <- annotate_regions(cpg_regions, annotations=annotations, minoverlap = 0L)
+	suppressMessages( cpg_annotated <- annotate_regions(cpg_regions, annotations=annotations, minoverlap = 0L) )
 	return(cpg_annotated)
 }
 

@@ -90,7 +90,7 @@ readmeth<-function(pdata, idat , samples, groups, out, filters, nalimit=0.2, nor
 		print("Funnorm")
 		
 		rawbetas=betas
-		RGset<-preprocessFunnorm(RGset, sex=estSex$predictedSex)
+		RGset<-suppressMessages( preprocessFunnorm(RGset, sex=estSex$predictedSex) )
 		betas=getBeta(RGset)
 		colnames(betas)<-samples
 

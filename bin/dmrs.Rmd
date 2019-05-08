@@ -1,0 +1,56 @@
+---
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    
+params:
+  project: "methylkey5"
+  model: "Case_vs_Control"
+  formula: "~variable"
+  method: "dmrcate"
+  
+title: "`r params$project`"
+---
+  
+  
+```{r include = FALSE}
+library(knitr)
+library(data.table)
+```
+
+#DMRs
+
+```{r}
+  print(paste0("Model = ", params$formula, " [", params$model, "]"))
+```
+
+## 1  {.tabset .tabset-fade .tabset-pills}
+
+### Toptable
+
+[ download ](`r params$project`/`r params$model`/dmrs/toptable.txt)
+
+```{r, results='asis'}
+toptable<-fread(paste0(params$project,"/",params$model,"/dmrs/toptable.txt"), header=T,nrows=100)
+kable(toptable)
+
+```
+
+### Annotation
+
+[ download ](`r params$project`/`r params$model`/dmrs/annotated.txt)
+
+```{r, results='asis'}
+annotation<-fread(paste0(params$project,"/",params$model,"/dmrs/annotated.txt"), header=T,nrows=100)
+kable(annotation)
+
+```
+
+### Barplots
+
+[ ![](`r params$project`/`r params$model`/dmrs/genes_barplot.jpg){ width=50% } ](`r params$project`/`r params$model`/dmrs/genes_barplot.jpg)
+
+[ ![](`r params$project`/`r params$model`/dmrs/cpgi_barplot.jpg){ width=50% } ](`r params$project`/`r params$model`/dmrs/cpgi_barplot.jpg)
+
+

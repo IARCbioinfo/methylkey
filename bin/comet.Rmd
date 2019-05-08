@@ -1,0 +1,30 @@
+---
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+    
+params:
+  project: "methylkey5"
+  model: "Case_vs_Control"
+---
+  
+  
+```{r include = FALSE}
+library(knitr)
+library(data.table)
+```
+
+###Comet
+
+```{r, results='asis'}
+
+  cpgs<-list.files( paste0(params$project, "/", params$model, "/dmps/"), "comet.jpg")
+	for (cpg in cpgs) {
+
+	  #cat("###",cpg)
+	  fig<-paste0( params$project, "/", params$model, "/dmps/", cpg)
+	  cat("[ ![](", fig, "){width=100%} ](", fig ,")")
+	  cat('\n\n')
+	  
+	}
+	
+```

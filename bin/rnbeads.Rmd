@@ -1,0 +1,99 @@
+---
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    
+params:
+  project: "methylkey5"
+  groups: "Sample_Group"
+  
+title: "`r params$project`"
+---
+
+```{r include = FALSE}
+  library(knitr)
+  library(formattable)
+  library(data.table)
+  
+```
+
+# pdata
+
+[ Sample Sheet ](`r params$project`/pdata.txt)
+
+```{r echo=FALSE, results ='asis'}
+pdata<-fread(paste0(params$project,"/pdata.txt"))
+kable(pdata)
+
+```
+
+# betas
+
+[ Betas Normalized ](`r params$project`/betas.txt)
+
+```{r echo=FALSE, results ='asis', warning=FALSE}
+betas<-fread(paste0(params$project,"/betas.txt"),nrows=100)
+kable(betas)
+
+```
+
+# delta betas
+
+[ Delta Betas ](`r params$project`/deltabetas.txt)
+
+```{r echo=FALSE, results ='asis', warning=FALSE}
+deltabetas<-fread(paste0(params$project,"/deltabetas.txt"),nrows=100)
+kable(deltabetas)
+
+```
+
+# Groups
+
+## Groups {.tabset .tabset-fade .tabset-pills}
+
+```{r, results='asis'}
+
+	for (group in params$groups) {
+	  
+	  cat("### ", group, "\n\n")
+	  
+	  cat("[ ![](", params$project, "/", group, "/densityPlot2.jpg) ](", params$project, "/", group, "/densityPlot2.jpg) \n", sep = "")
+	  
+	  cat("[ ![](", params$project, "/", group, "/densityBeanPlot2.jpg) ](", params$project, "/", group, "/densityBeanPlot2.jpg) \n", sep = "")
+	  
+	  cat("[ ![](", params$project, "/", group, "/mdsPlot2.jpg) ](", params$project, "/", group, "/mdsPlot2.jpg) \n", sep = "")
+	  
+	  cat('\n\n')
+	  
+	}
+	
+	
+```
+
+# PCA 
+
+## 1 {.tabset .tabset-fade .tabset-pills}
+
+### Contributions
+
+[ ![](`r params$project`/pca_contributions_0001.jpg) ](`r params$project`/pca_contributions_0001.jpg)
+
+### [ pvalues ](`r params$project`/pvalue_0001.txt)
+
+```{r, results='asis'}
+    pvalue<-fread(paste0(params$project,"/pvalue_0001.txt"), header=F)
+    sig_pvalue_bold <- formatter("span", style = x ~ style("background-color" = ifelse(x <= 1e-5, "pink", ifelse(x <= 0.05, "palegoldenrod", "transparent"))))
+    formattable(pvalue, list(area(col = names(pvalue)[-1]) ~ sig_pvalue_bold ))
+    
+```
+
+### [ qvalues ](`r params$project`/qvalue_0001.txt)
+
+```{r, results='asis'}
+    qvalue<-fread(paste0(params$project,"/qvalue_0001.txt"), header=F)
+    sig_qvalue_bold <- formatter("span", style = x ~ style("background-color" = ifelse(x <= 1e-5, "pink", ifelse(x <= 0.05, "palegoldenrod", "transparent"))))
+    formattable(qvalue, list(area(col = names(qvalue)[-1]) ~ sig_qvalue_bold ))
+    
+```
+

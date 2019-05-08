@@ -1,0 +1,29 @@
+---
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+    
+params:
+  project: "methylkey5"
+  model: "Case_vs_Control"
+---
+  
+```{r include = FALSE}
+library(knitr)
+library(data.table)
+```
+
+###DMR.plot
+
+```{r, results='asis'}
+
+  dmrs<-list.files( paste0(params$project, "/", params$model, "/dmrs/"), "dmrplot.jpg")
+	for (dmr in dmrs) {
+  
+	  #cat("###",cpg)
+	  fig<-paste0( params$project, "/", params$model, "/dmrs/", dmr)
+	  cat("[ ![](", fig, "){width=100%} ](", fig ,")")
+	  cat('\n\n')
+	  
+	}
+	
+```

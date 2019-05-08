@@ -1,0 +1,32 @@
+---
+title: "Methylkey"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+params:
+  project: "methylkey5"
+  model: "Case_vs_Control"
+---
+
+```{r include = FALSE}
+  library(knitr)
+  library(formattable)
+  library(data.table)
+```
+
+
+
+```{r child = 'minfi.Rmd'}
+```
+
+```{r child = 'dmps.Rmd'}
+```
+
+```{r child = 'comet.Rmd'}
+```
+
+```{r child = 'dmrs.Rmd'}
+```
+
+```{r child = 'plot_dmrs.Rmd'}
+```

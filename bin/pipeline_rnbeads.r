@@ -20,9 +20,13 @@ readmeth<-function(pdata, idat , samples, groups, normalize="funnorm", filters=f
 	print("pipeline for rnbeads data")
 
 	#1-read idat files
-	betas_1<- read.table(gzfile(idat), header=T, sep=",")
-	regions<-betas_1[,1:5]
-	betas<-as.matrix(betas_1[,6:ncol(betas_1)])
+  betas<-fread(cmd=paste0("zcat < '", idat, "'") , header=T, sep=",")
+	regions<-betas[,1:5, with=F]
+	#betas<-as.matrix(betas_1[,6:ncol(betas_1), with=F])
+	pdata<-pdata[ pdata$sample_name %in% colnames(betas),]
+	betas<-betas[, colnames(betas) %in% pdata$sample_name, with=F]
+	betas<-as.matrix(betas)
+	nbprobes1=nrow(betas)
 	rownames(betas)<-regions$ID
 	platform<-"RRBS"
 
@@ -35,10 +39,7 @@ readmeth<-function(pdata, idat , samples, groups, normalize="funnorm", filters=f
 	naprobes<-CpGNAexcl( betas,nalimit )
 	filteredNAprobes<-length(naprobes)
 	write.table(paste(naprobes, collapse="\n"), file=paste0(out, "/removed.txt"), row.names=F, sep="\t")
-
-	#3- remove selected probes
-	betas<-betas[ ! rownames(betas) %in% naprobes,]
-
+	
 	#4- remove remaining missing values
 	print("Remove missing values")
 	if ( sum(is.na(betas)) > 0 ) {
@@ -55,7 +56,7 @@ readmeth<-function(pdata, idat , samples, groups, normalize="funnorm", filters=f
 	#5- QC after processing
 	print("QC after processing")
 	for (group in groups) {
-
+	  
 		jpeg(paste(out, group, "densityPlot2.jpg", sep="/"), width=800, height=800)
 		densityPlot(betas, sampGroups = pdata[,group])
 		dev.off()
@@ -75,6 +76,6 @@ readmeth<-function(pdata, idat , samples, groups, normalize="funnorm", filters=f
 	}
 	nbprobes2=nrow(betas)
 
-	return( list(betas=betas, pdata=pdata, platform=platform, nbprobes1=nbprobes1, nbprobes2=nbprobes2, filteredFromList=filteredFromList, filteredNAprobes=c(), regions="") )
+	return( list(betas=betas, pdata=pdata, platform=platform, nbprobes1=nbprobes1, nbprobes2=nbprobes2, filteredFromList=c(), filteredNAprobes=filteredNAprobes, regions=regions) )
 
 }

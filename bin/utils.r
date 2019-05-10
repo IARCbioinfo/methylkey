@@ -57,7 +57,7 @@ autoformat<-function(params){
 #format chr name to numeric
 ChrNameToNumeric<-function(chr){
 	
-	chr<-gsub("chr","",reg.chr)
+	chr<-gsub("chr","",chr)
 	chr<-gsub("X","23",chr)
 	chr<-gsub("Y","24",chr)
 	return(as.numeric(chr))

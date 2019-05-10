@@ -48,7 +48,7 @@ replaceByMean<-function(betas,groups){
 	}
 
 	#replace missing values by means
-	for(group in groups){
+	for(group in levels(groups)){
 		sel<-groups==group
 		betas[probNAcont,sel]<-meanBetas(betas[probNAcont,sel])
 	}

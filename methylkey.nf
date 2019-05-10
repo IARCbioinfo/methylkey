@@ -303,6 +303,9 @@ if (params.tool == "methylkey"){
       pdata = file(params.pdata)
       idatDir = file(params.idat)
 
+      flags=""
+      if (params.violin){ flags = flags + " --violin" }
+
       process run_methylkey {
 
             publishDir params.out, mode: 'copy'
@@ -317,7 +320,7 @@ if (params.tool == "methylkey"){
 
             shell:
             '''
-            methylkey.r --pdata !{pdata} --idat !{idatDir} --out . --samples !{params.samples} --groups !{params.groups} --pipeline !{params.pipeline} --nalimit !{params.nalimit} 
+            methylkey.r --pdata !{pdata} --idat !{idatDir} --out . --samples !{params.samples} --groups !{params.groups} --pipeline !{params.pipeline} --nalimit !{params.nalimit} !{flags}
             '''
       }
 

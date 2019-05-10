@@ -8,6 +8,11 @@
 #####################################################################################
 
 
+#gset <- getGEO("GSE92378", GSEMatrix =TRUE, getGPL=FALSE)
+#gset <- gset[[1]]
+#betas<-exprs(gset)
+#pdata<-pData(gset)
+
 
 #######################################################
 #        MINFI PIPELINE                               #
@@ -15,7 +20,7 @@
 #
 
 readmeth<-function(pdata, idat , samples, groups, out, filters, nalimit=0.2, normalize="funnorm", cell="None"){
-	
+    
 	print("minfi pipeline")
 	require(minfi)
 	require(wateRmelon)
@@ -31,10 +36,10 @@ readmeth<-function(pdata, idat , samples, groups, out, filters, nalimit=0.2, nor
 
 	#2-check gender
 	GMsetEx <- mapToGenome(RGset) 
-	estSex <- getSex(GMsetEx)
+	suppressWarnings( estSex <- getSex(GMsetEx) )
 	pdata$predictedSex <- estSex$predictedSex
 	pdata$predictedage <- agep(betas)
-	
+
 	#3- QC before processing
 	nsamp<-nrow(pdata)
 
@@ -78,7 +83,6 @@ readmeth<-function(pdata, idat , samples, groups, out, filters, nalimit=0.2, nor
 			mdsPlot(betas,numPositions=1000,sampGroups=pdata[,group])
 		}
 		dev.off()
-	
 	}
 
 	#4-Houseman
@@ -90,7 +94,7 @@ readmeth<-function(pdata, idat , samples, groups, out, filters, nalimit=0.2, nor
 		print("Funnorm")
 		
 		rawbetas=betas
-		RGset<-suppressMessages( preprocessFunnorm(RGset, sex=estSex$predictedSex) )
+		RGset<-suppressWarnings( suppressMessages( preprocessFunnorm(RGset, sex=estSex$predictedSex) ) )
 		betas=getBeta(RGset)
 		colnames(betas)<-samples
 

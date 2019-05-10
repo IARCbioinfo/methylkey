@@ -11,13 +11,14 @@
 
 ### Estimate correlation covs vs. PCA axes
 
-makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=ncol(betas), id="_raw" ){
+makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=ncol(betas) ){
 
 	require(data.table)
 	require(reshape2)
-	require(xtable)
 	require(ggplot2)
 
+  npC=max(nPC,10)
+  
 	invtbetas = 1/t(betas) # n x p required for prcomp
 	#mval<-t(beta2m(as.matrix(betas)))
 	invtbetas[!is.finite(invtbetas)]<-min(invtbetas[is.finite(invtbetas)])
@@ -46,9 +47,9 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 	}
 
 	p<-plot_PCA_contribution(pca, nPC)
-	jpeg(paste0(out, "/pca_contributions_", id, ".jpg"))
-	plot(p)
-	dev.off()
+	#jpeg(paste0(out, "/pca0.jpg"))
+	#plot(p)
+	#dev.off()
 
 	###########################
 	#estimate correlation variables vs PCs
@@ -57,7 +58,7 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 		tab<-data.table( cbind( pdata, as.data.table( pca$x[,1:nPC] ) ))
 		PCs = paste0( "PC", 1:nPC )
 		dt_pval <- data.table( PCA_dim = unlist( lapply( PCs, rep, length( variables ) ) ), Variables = rep( variables, length( PCs ) ), p_val= rep( 2, length(PCs ) ) )
-
+    
 		for (PC in PCs){
 			for ( variable in variables ){
 				if ( tab[ , is.factor( get(variable) ) ]  ){
@@ -90,11 +91,9 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 	dt_pval<-estimate_PCA_corr(pca, pdata, nPC, variables)
 	
 	mt_pval<-acast(dt_pval, Variables~PCA_dim, value.var="p_val")
-	html_pval<-print( xtable(mt_pval), type="html", print.results=FALSE)
 	
 	mt_qval<-acast(dt_pval, Variables~PCA_dim, value.var="adj_pval")
-	html_qval<-print( xtable(mt_qval), type="html", print.results=FALSE)
 	
-	return( list(pvalue=html_pval, qvalue=html_qval))
+	return( list(pvalue=mt_pval, qvalue=mt_qval, contrib=p))
 }
 

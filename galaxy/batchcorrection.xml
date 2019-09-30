@@ -1,34 +1,67 @@
 <?xml version="1.0"?>
-<tool id="batchcorrection2" name="Batch correction" version="0.2.1">
+<tool id="batchcorrection" name="Batch correction" version="0.2.1">
 <description>Correct batch effects</description>
 
-<command>
+<requirements>
+    <requirement type="package" version="2.0" >r-methylkey</requirement>
+</requirements>
+
+<command><![CDATA[ 
 	#import re
 	#set inputDir=$re.sub("\.dat","_files",str($input))
 	#set outputDir=$re.sub("\.dat","_files/",str($html))
 
-	Rscript $__tool_directory__/../R/batchcorrection.r
-	--meth $inputDir/meth.rdata
-	--variables $variables 
-	--output $html.files_path;
+	cp $__tool_directory__/../bin/methylkey_batchcorrection.Rmd index.Rmd;
 
-	mv $html.files_path/* $inputDir/. ;
-	cp $inputDir/index.html $input;
-	mkdir $outputDir;
-	ln -sfvn $inputDir/* $outputDir/.;
-	cp $input $html; 
+	mkdir $html.files_path;
 
-</command>
+	Rscript -e "rmarkdown::render('index.Rmd', params=list( 
+
+	path='$__tool_directory__/../bin' ,
+ 	meth='$inputDir/report/meth.rdata' ,
+	#if $covariates
+        variables=c($main ,$covariates) ,
+	#else
+	    variables=$main ,
+    #end if
+	out='report' ,
+	correction='$correction.algorithm' ,
+	#if $correction.algorithm == 'combat'
+	batch='$correction.batch' ,
+	#end if
+	nalimit='$advanced.nalimit' ,
+	missing='$advanced.missing'))";
+	
+        mv report $html.files_path/.;
+]]></command>
 
 <inputs>
 	<param name="pdata" type="data" format="tabular" label="Sample Sheet (phenotypic data)"/>
 	<param name="input" type="data" format="html" label="methylkey analysis"/>
-	<param name="variables" type="data_column" data_ref="pdata" label="Variables to protect" use_header_names="true" force_select="true" multiple="true"
-		help="The fist variable is your main variable"/>
+	<param name="main"  type="data_column" data_ref="pdata" label="Main variable to protect" use_header_names="true" optional="false" />
+	<param name="covariates" type="data_column" data_ref="pdata" label="Covariates" use_header_names="true" multiple="true" optional="true"/>
+	<conditional name="correction">
+		<param name="algorithm" type="select" label="Algorithm">
+			<option value="sva" selected="true">SVA</option>
+			<option value="ssva">SmartSVA</option>
+			<option value="combat">Combat</option>
+		</param>
+		<when value="combat">
+			<param name="batch" type="data_column"  data_ref="pdata" label="Correct for" use_header_names="true" force_select="true"/>
+		</when>
+	</conditional>
+	<section name="advanced" title="Advanced Options" expanded="false">
+		<param name="nalimit" type="text" value="0.05" label="Maximum NA fraction for a probe" 
+                help="Remove a probe if its beta value is NA for more than xx% of sample (0.05 = 5%)" />
+	        <param name="missing" type="select" label="How to deal with missing values">
+        	        <option value="mean">Replace by mean of betas</option>
+               		<option value="impute">Impute values with pamr</option>
+        	</param>
+	</section>
 </inputs>
 
 <outputs>
-    <data name="html" format="html" label="batch correction" />
+    <data name="html" format="html" label="${correction.algorithm} on ${on_string}" from_work_dir="index.html" />
 </outputs>
 
 <stdio>

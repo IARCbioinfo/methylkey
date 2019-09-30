@@ -22,8 +22,8 @@ def getlevels(dataset,column):
 
     for level in levels:
         #option = {'name':level,'value':level,'options':[],'selected':0}
-        option = (level,level,False)
-        options.append( option )
+	options.append((level,level, False))
     file.close()
     
     return options
+

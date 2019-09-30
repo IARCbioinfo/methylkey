@@ -1,0 +1,176 @@
+---
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+title: "methylkey"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+params:
+  path: "~/git/methylkey/bin/"
+  meth: "methylkey/meth.rdata"
+  variables: "var"
+  batch: "None"
+  correction: "sva"
+  nalimit: 0.2
+  missing: "mean"
+  separator: "\t"
+  out: "methylkey"
+---
+
+```{r setup, include=FALSE}
+#params<-list(path="/home/cahaisv/git/methylkey/bin/",  meth="methylkey/meth.rdata",  variables="tissue",  batch="None",  correction="sva",  nalimit=0.2,  missing="mean", separator=",", out="methylkey")
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(wateRmelon)
+source( paste0(params$path, "/utils.r") )
+source( paste0(params$path, "/pca.r") )
+if ( !file.exists(params$out)) { dir.create(params$out) }
+message(paste0("variables:", params$variables))
+message(paste0("correction:", params$correction))
+message(paste0("nalimit:", params$nalimit))
+message(paste0("missing:", params$missing))
+```
+
+
+```{r load, include=FALSE}
+write("1- Loading",file=paste0(params$out,"/log"))
+if ( !file.exists(params$meth)) { 
+  stop("Meth file is required. Use 'methylkey -T loader' to create meth file.")
+}
+if (length(params$variables)==0){
+  stop("You must provide at least one variable to protect, usually the sample group ( --variables )")
+}
+load(params$meth)
+batch<-suppressWarnings( autoformat(params$batch) )
+```
+
+```{r checkvariables, include=FALSE}
+write("2- Check variables",file=paste0(params$out,"/log"))
+#variables<-autoformat(params$variables)
+variables<-colnames(pdata[params$variables])
+for (v in variables) {
+  pdata[ ,v ]<-gsub(" ",".",pdata[ ,v ] )
+  pdata[ ,v ]<-gsub("-","_",pdata[ ,v ] )
+}
+```
+
+```{r createmodel, include=FALSE}
+write("3- Create Model",file=paste0(params$out,"/log"))
+formula1 <- as.formula(paste("~ " ,paste(variables,collapse="+")))
+design<-model.matrix(formula1,data=pdata)
+```
+
+```{r mvalues, include=FALSE}
+#3-check mvalues
+write("3- Check mvalues",file=paste0(params$out,"/log"))
+mval[!is.finite(mval)]<-min(mval[is.finite(mval)])
+  
+# Remove a probe when sum of betas is 0.
+iszero<-which(rowSums(mval) == 0 )
+if(length(iszero) > 0){
+  mval<-mval[-which(rowSums(mval) == 0 ),]
+}
+```
+
+```{r sva, eval=(params$correction=="sva"), include=FALSE}
+ #4-Batch correction
+write("4- SVA correction",file=paste0(params$out,"/log"))
+  
+if(nrow(design) > ncol(mval)){ stop("Missing samples in betas ! ") }
+if(nrow(design) < ncol(mval)){ stop("Missing samples in pdata ! ") }
+    
+require(sva)
+  	
+if (length(variables)==1){ 
+  sva<-sva(mval,design)
+}else{
+  formula0 <- as.formula(paste("~ 1+", paste(variables[-1],collapse="+")))
+  model0<-model.matrix(formula0, data=pdata)
+  sva<-sva(mval,design,model0)
+}
+#design<-cbind(design,sva$sv)
+mval = t(residuals(lm(t(mval)~sva$sv)))
+  
+formula1<-paste(formula1, collapse="")
+correction=paste0("on SVA corrected mvalues with model ", formula1)
+```
+
+```{r ssva, eval=(params$correction=="ssva"), include=FALSE}
+ #4-Batch correction
+write("4- Smart SVA correction",file=paste0(params$out,"/log"))
+require(SmartSVA)
+  
+#estimate number of surrogates
+formula <- as.formula(paste("t(betas) ~ " ,paste(variables,collapse="+")))
+Y.r <- t(resid(lm(formula, data=pdata)))
+n.sv <- EstDimRMT(Y.r, FALSE)$dim
+  	
+if (length(variables)==1){ 
+  ssva<-smartsva.cpp(mval, design, n.sv=n.sv)
+}else{
+  formula0 <- as.formula(paste("~ 1+", paste(variables[-1],collapse="+")))
+  model0<-model.matrix(formula0, data=pdata)
+  ssva<-smartsva.cpp(mval, design, model0, n.sv=n.sv)
+}
+#design<-cbind(design,sva$sv)
+mval = t(residuals(lm(t(mval)~sva$sv)))
+  	
+formula0<-paste(formula1, collapse="")
+correction=paste0("on SSVA corrected mvalues with model ", formula1)
+```
+
+```{r combat, eval=(params$correction=="combat"), include=FALSE}
+write("4- Combat correction",file=paste0(params$out,"/log"))
+require(sva)
+mval<-ComBat(dat=mval, batch=pdata[,batch], mod=design, par.prior=TRUE, prior.plots=TRUE)
+correction=paste0("on combat corrected mvalues for batch ", colnames(pdata)[batch] )
+```
+
+```{r PCA, include=FALSE}
+write("5- running PCA",file=paste0(params$out,"/log"))
+pca<-makepca( mval, pdata, params$out, colnames(pdata), nPC=10 )
+qvalue<-pca$qval
+pvalue<-pca$pval
+  
+jpeg(paste0(params$out, "/pca_contributions_0002.jpg"))
+plot(pca$contrib)
+dev.off()
+```
+
+```{r save, include=FALSE}
+write("6- Save results",file=paste0(params$out,"/log"))
+write.table(pvalue, file=paste0(params$out, "/pvalue_0002.txt"), row.names=T, sep="\t")
+write.table(qvalue, file=paste0(params$out, "/qvalue_0002.txt"), row.names=T, sep="\t")
+write.table(mval, file=paste0(params$out, "/mval_batchcorrected.txt"), row.names=T, sep="\t")
+save(betas, mval, pdata, groups, samples, design, platform, genome, regions, file=paste0(params$out, "/meth.rdata") )
+```
+
+```{r report, include=FALSE}
+library(knitr)
+library(formattable)
+```
+
+# Batch Correction
+
+## 1 {.tabset .tabset-fade .tabset-pills}
+
+### Contributions
+
+[ ![](`r params$out`/pca_contributions_0002.jpg) ](`r params$out`/pca_contributions_0002.jpg)
+
+### [ pvalues ](`r params$out`/pvalue_0002.txt)
+
+```{r, echo=FALSE, results='asis'}
+pvalue<-fread(paste0(params$out,"/pvalue_0002.txt"), header=F)
+sig_pvalue_bold <- formatter("span", style = x ~ style("background-color" = ifelse(x <= 1e-5, "pink", ifelse(x <= 0.05, "palegoldenrod", "transparent"))))
+formattable(pvalue, list(area(col = names(pvalue)[-1]) ~ sig_pvalue_bold ))
+```
+
+
+### [ qvalues ](`r params$out`/qvalue_0002.txt)
+
+```{r, echo=FALSE, results='asis'}
+qvalue<-fread(paste0(params$out,"/qvalue_0002.txt"), header=F)
+sig_qvalue_bold <- formatter("span", style = x ~ style("background-color" = ifelse(x <= 0.05, "pink", ifelse(x <= 0.1, "palegoldenrod", "transparent"))))
+formattable(qvalue, list(area(col = names(pvalue)[-1]) ~ sig_pvalue_bold ))
+```
+

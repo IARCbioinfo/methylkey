@@ -1,52 +1,60 @@
 <?xml version="1.0"?>
-<tool id="methylkey2" name="Methylkey2" version="0.2.1">
-<description>Methylation analysis pipeline</description> 
+<tool id="methylkey" name="Load Data" version="0.2.2">
+<description>into methylkey pipeline</description> 
 
-<command>
+<requirements>
+    <requirement type="package" version="2.0" >r-methylkey</requirement>
+</requirements>
 
-	#if $data.platform != "matrix":
-		mkdir idat_rep;
-		#for $f in $data.idat_collection
-			ln -s $f idat_rep/${f.name};
-		#end for
-	#end if
+<command><![CDATA[ 
 
-	Rscript $__tool_directory__/../R/methylkey.r
-
-	--pdata $pdata
-	--out $html.files_path 
-	--samples $sample
-	--nalimit $nalimit
-	--missing $missing
-	--platform $data.platform
-	$violin
-	
-    	--groups $groups
-
-	#if $data.platform == "matrix":
-	--idat $data.idat
-	--genome $data.genome
+	#if $data.platform == "rnbeads":
+		cp $__tool_directory__/../bin/methylkey_${data.platform}.Rmd index.Rmd;
 	#else
-	--idat idat_rep
-	--barcode $data.barcode
-	--pipeline $data.pipeline.name
-	--normalize $data.pipeline.normalize
+                mkdir idat_rep;
+                #for $f in $data.idat_collection
+        	        ln -s $f idat_rep/${f.name};
+                #end for
+		cp $__tool_directory__/../bin/methylkey_${data.pipeline.name}.Rmd index.Rmd;
+	#end if
 	
-	--filters $data.filters
-	--filters $data.custom
+	mkdir $html.files_path;
 
-	#if $data.pipeline.name == "minfi"
-		#if $data.pipeline.estimate.cell == "houseman"
-		--cell $data.pipeline.estimate.cell
-		--nbc $data.pipeline.estimate.nbc
+	Rscript -e "rmarkdown::render('index.Rmd', params=list( 
+	path='$__tool_directory__/../bin' ,
+	pdata='$pdata' ,
+
+	#if $data.platform == "rnbeads":
+		idat='$data.idat' ,
+		genome='$data.genome' ,
+	#else
+		idat='idat_rep' ,
+		barcode='$data.barcode' ,
+		pipeline='$data.pipeline.name' ,
+		normalize='$data.pipeline.normalize' ,
+		filters='$data.filters' ,
+		filters='$data.custom' ,
+		pval='$data.pval' ,
+		#if $data.pipeline.name == "minfi"
+			#if $data.pipeline.estimate.cell == "houseman"
+				cell='$data.pipeline.estimate.cell' ,
+				nbc='$data.pipeline.estimate.nbc' ,
+			#end if
 		#end if
 	#end if
 
-	#end if
-	
-	; cp $html.files_path/index.html $html
+	samples='$sample' ,
+	groups='$groups' ,
+	nalimit=$nalimit ,
+	missing='$missing' ,
+	out='report' ,
+	violin=$violin ,
+	badsamples='$badsamples'
+	))";
 
-</command>
+	mv report $html.files_path/.;
+
+]]></command>
 
 <macros>
 
@@ -75,8 +83,12 @@
 				
 		<when value="minfi">
 		    	<param name="normalize" type="select" display="radio" label="Normalisation" >
-		    		<option value="funnorm">FunNorm</option>
-		    		<option value="none">Don't do that</option>
+		    		<option value="Funnorm">FunNorm</option>
+				<option value="Illumina">Illumina</option>
+				<option value="Noob">Noob</option>
+				<option value="Quantile">Quantile</option>
+				<option value="SWAN">SWAN</option>
+		    		<option value="Raw">Raw</option>
 		    	</param>
 		    
 			<conditional name="estimate">
@@ -85,7 +97,9 @@
 				    	<option value="Houseman">Houseman (blood only)</option>
 				</param>
 				<when value="no"/>
-				<when value="houseman"/>
+				<when value="houseman">
+					<param name="nbc" type="text" value="?" label="nbc" />
+				</when>
 			</conditional>
 		</when>
 
@@ -97,6 +111,8 @@
 		</when>
 	</conditional>
 
+	<param name="pval" type="text" value="0.02" label="Filter failed probes using a pvalue threshold" />
+
 </xml>
 
 </macros>
@@ -105,10 +121,10 @@
 <inputs>
 	<param name="pdata" type="data" format="tabular" label="Sample Sheet (phenotypic data)"/>
 	
-	<param name="sample" type="data_column" data_ref="pdata" label="Sample Names" use_header_names="true" force_select="true"
+	<param name="sample" type="data_column" data_ref="pdata" label="Sample Names" use_header_names="true" force_select="true" numerical="false"
 		help="Warning: if you have space in the name of your column replace it by a dot or an underscore" value="1"/>
 
-	<param name="groups" type="data_column" data_ref="pdata" label="Sample Groups" use_header_names="true" force_select="true" multiple="true"
+	<param name="groups" type="data_column" data_ref="pdata" label="Sample Groups" use_header_names="true" force_select="true" multiple="true" numerical="false"
 		help="Warning: if you have space in the name of your column replace it by a dot or an underscore" value="2"/>
 
 	<param name="nalimit" type="text" value="0.05" label="Maximum NA fraction for a probe" 
@@ -120,11 +136,13 @@
 		<option value="keep">Keep it</option>
 	</param>
 	
+	<param name="badsamples" optional="true" type="data" format="txt" label="Samples to remove" help="text file with one sample name by line" />
+
 	<conditional name="data">
 		<param name="platform" type="select" label="Platform" >
 			<option value="IlluminaHumanMethylationEPIC">Illummina 850K (EPIC)</option>
 		    	<option value="IlluminaHumanMethylation450k">Illumina 450k </option>
-			<option value="matrix">Beta file from RNBeads (with coordinate values)</option>		    
+			<option value="rnbeads">Beta file from RNBeads (with coordinate values)</option>		    
 		</param>
 		<when value="IlluminaHumanMethylationEPIC">
 			<expand macro="illumina" plt="IlluminaHumanMethylationEPIC"/>
@@ -132,21 +150,21 @@
 		<when value="IlluminaHumanMethylation450k">
 			<expand macro="illumina" plt="IlluminaHumanMethylation450k"/>
 		</when>
-		<when value="matrix">
-			<param name="idat" type="data" format="tabular" label="betas file from rnbeads (with coordinate)"/>
+		<when value="rnbeads">
+			<param name="idat" type="data" format="txt" label="betas file from rnbeads (with coordinate)"/>
 			<param name="genome" type="select" label="Genome" >
 				<option value="hg19">GRCH38/HG38</option>
 			    	<option value="hg38">GRCH37/HG19</option>
 			</param>
-		</when>		
+		</when>	
 	</conditional>
-	  
-	<param name="violin" type="boolean" label="Draw violin plot with betas values" truevalue="--violin" falsevalue="" checked="true" />
+
+	<param name="violin" type="boolean" label="Draw violin plot with betas values" truevalue="TRUE" falsevalue="FALSE" checked="true" />
 	
 </inputs>
 
 <outputs>
-	<data name="html" format="html" label="${pdata.name} report" />
+	<data name="html" format="html" label="${pdata.name} QC" from_work_dir="index.html"/>
 </outputs>
 
 
@@ -203,6 +221,17 @@ Collection of idat files from a 450k or Epic analysis.
 
 minfi : http://git.iarc.lan/EGE/methylkey/blob/master/minfi.r
 methylumi : http://git.iarc.lan/EGE/methylkey/blob/master/methylumi.r
+
+
+**Cross reactive probes**
+
+***450k***
+
+Chen YA, Lemire M, Choufani S, Butcher DT, Grafodatskaya D, Zanke BW, Gallinger S, Hudson TJ, Weksberg R. Discovery of cross-reactive probes and polymorphic CpGs in the Illumina Infinium HumanMethylation450 microarray. Epigenetics. 2013 Jan 11;8(2) : https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3592906/
+
+***EPIC***
+
+Pidsley R., et al., Critical evaluation of the Illumina MethylationEPIC BeadChip microarray for whole-genome DNA methylation profiling. Genome Biol, 2016. 17(1): p. 208 10.1186/s13059-016-1066-1 : https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5055731/
 
 **The methylkey pipeline**
 

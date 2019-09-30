@@ -1,0 +1,305 @@
+---
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+title: "methylkey"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+params:
+  path: "/home/cahaisv/git/methylkey/bin/"
+  meth: "methylkey/meth.rdata"
+  genome: "hg19"
+  variables: "var"
+  formula: "None"
+  case:	"Tumor"
+  control: "normal"
+  fdr: "0.05"
+  method: "ls"
+  logistic: FALSE
+  hsize: 50
+  celllines: "None"
+  type: "differential"
+  niter: 25
+  out: "methylkey"
+---
+
+
+```{r setup, include=FALSE}
+#params<-list(path="/home/cahaisv/git/methylkey/bin/", meth="genes/meth.rdata", variables="cell_type", formula="None", case="BC", control="cBC", fdr="0.99", method="ls", hsize=50, celllines="None", type="differential", niter=25, out="genes", genome="hg38")
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(limma)
+library(qqman)
+library(GenomicRanges)
+library(NMF)
+library(wateRmelon)
+library(knitr)
+source( paste0(params$path, "/utils.r")  )
+source( paste0(params$path, "/plots.r")  )
+source( paste0(params$path, "/annot.r")  )
+source( paste0(params$path, "/logistic.r")  )
+datadir=paste0( params$path, "/../data/" )
+if ( !file.exists(params$out)) { dir.create(params$out) }
+nbdmps1=0
+nbdmps2=0
+info=NULL
+```
+
+```{r load, include=FALSE}
+write("1- Loading",file=paste0(params$out,"/log"))
+load(params$meth)
+```
+
+```{r prepare variables, include=FALSE}
+write("2- prepare variables",file=paste0(params$out,"/log"), append = TRUE)
+#variables<-suppressWarnings( autoformat(params$variables) )
+variables<-colnames(pdata[params$variables])
+pdata[ ,variables[1] ]<-as.factor(pdata[ ,variables[1] ])
+for (v in variables) {
+  if (is.factor(v)){
+  	pdata[ ,variables[v] ]<-make.names(pdata[ ,variables[v] ])
+  }
+}
+```
+
+```{r order levels, include=FALSE}
+write("3- order levels",file=paste0(params$out,"/log"), append = TRUE)
+case<-make.names(params$case)
+control<-make.names(params$control)
+pdata[,variables[1]] <- relevel(pdata[,variables[1]], case)
+pdata[,variables[1]] <- relevel(pdata[,variables[1]], control)
+```
+
+
+```{r create_model, include=FALSE}
+write("4- create model",file=paste0(params$out,"/log"), append = TRUE)
+formula1 <- as.formula(paste("~ " ,paste(variables,collapse="+")))
+if (params$formula!="None"){ formula1 <- as.formula(paste("~ " ,formula, collapse="") ) }
+model=paste0(case,"_vs_",control)
+if ( !file.exists(paste0(params$out,"/",model))) { dir.create(paste0(params$out,"/",model)) }
+if ( !file.exists(paste0(params$out,"/",model,"/dmps"))) { dir.create(paste0(params$out,"/",model,"/dmps")) }
+  
+design<-model.matrix(formula1,data=pdata)
+colnames(design)<-make.names(colnames(design))
+cmtx <- makeContrasts( contrasts=colnames(design)[2] , levels=colnames(design) )
+```
+
+```{r folder, include=FALSE}
+rpath<-paste0(params$out,"/",model,"/dmps/") #result path
+if ( !file.exists(paste0(params$out,"/",model))) { dir.create(paste0(params$out,"/",model)) }
+if ( !file.exists(rpath)) { dir.create(rpath) }
+header<-"logFC\tAveExpr\tt\tP.Value adj.P.Val\tB"
+write.table(header, file=paste(rpath, "annotated.txt",sep="/"), row.names=F, col.names=F, sep="\t")
+write.table(header, file=paste(rpath, "toptable.txt",sep="/"), row.names=F, col.names=F, sep="\t")
+write.table(header, file=paste(rpath, "annotated2.txt",sep="/"), row.names=F, col.names=F, sep="\t")
+write.table(header, file=paste(rpath, "toptable2.txt",sep="/"), row.names=F, col.names=F, sep="\t")
+```
+
+```{r sumOfBetas, include=FALSE}
+#5-remove cpgs when sum of its betas is 0
+#it can produce a BUG when it is the case
+write("5- Remove zero sum CpGs",file=paste0(params$out,"/log"), append = TRUE)
+iszero<-which(rowSums(mval) == 0 )
+if(length(iszero) > 0){
+  mval<-mval[-which(rowSums(mval) == 0 ),]
+}
+```
+
+```{r lmfit, include=FALSE}
+write("6- lmFit",file=paste0(params$out,"/log"), append = TRUE)
+fit<-lmFit(mval,design, pdata, ndups=1, method=params$method)
+rownames(cmtx)<-colnames(fit)
+fitContrasts=contrasts.fit(fit,cmtx)
+eb=eBayes(fitContrasts)
+lmPvals = eb$p.value
+chisq <- qchisq(1-eb$p.value,1)
+lambda<-median(chisq)/qchisq(0.5,1)
+#qqplot
+jpeg(paste0(rpath, "/qqplot.jpg"))
+suppressWarnings( qq(lmPvals,main=paste("QQ plot: ","lambda=",lambda,sep="")) )
+dev.off()
+```
+
+```{r logisticReg, eval=params$logistic, include=FALSE}
+#TODO change sample Name
+#6.5-run logistic regression
+write("7- logistic regression",file=paste0(params$out,"/log"), append = TRUE)
+toptable2<-logistic(mval,pdata,samples,variables,params$fdr)
+lmPvals2 = toptable2$P.Value
+chisq2 <- qchisq(1-toptable2$P.Value,1)
+lambda2<-median(chisq2)/qchisq(0.5,1)
+toptable2=toptable2[toptable2$adj.P.Val<params$fdr,]
+nbdmps2<-nrow(toptable2)
+```
+
+```{r logisticReg4, eval=params$logistic, include=FALSE}
+#qqplot
+jpeg(paste0(rpath, "/qqplot2.jpg"))
+suppressWarnings( qq(lmPvals2,main=paste("QQ plot: ","lambda=",lambda2,sep="")) )
+dev.off()
+```
+
+```{r logisticReg2, evel=(nbdmps2>0), include=FALSE}
+deltabetas2<-getDeltaBetas(betas[rownames(toptable2),],pdata[,variables[1]])
+toptable2$deltaBetas<-deltabetas2[,1]
+anno<-annoTable(getRegionsAsGenomicRanges(regions,platform),toptable2,params$genome)
+toptable2<-anno$toptable
+write.table(anno$full, file=paste0(rpath, "/annotated2.txt"), row.names=F, sep="\t")
+write.table(toptable2, file=paste0(rpath, "/toptable2.txt"), row.names=F, sep="\t")
+```
+
+```{r toptable, include=FALSE}
+#8-get top dmps
+write("8- toptable",file=paste0(params$out,"/log"), append = TRUE)
+toptable<-topTable(eb, adjust="BH", number=Inf, p=params$fdr, sort.by="P")
+nbdmps=nrow(toptable)
+print( paste0("you get ", nbdmps, " DMPS"))
+```
+  
+```{r deltabetas, eval=(nbdmps>0), include=FALSE}
+#9-delta betas
+write("9- delta betas",file=paste0(params$out,"/log"), append = TRUE)
+deltabetas<-getDeltaBetas(betas[rownames(toptable),],pdata[,variables[1]])
+toptable$deltaBetas<-deltabetas[,1]
+``` 
+
+```{r annotation, eval=(nbdmps>0), include=FALSE}
+#10-annotation
+write(paste0("10- Annotation : ", params$genome),file=paste0(params$out,"/log"), append = TRUE)
+anno<-annoTable(getRegionsAsGenomicRanges(regions,platform),toptable,params$genome)
+toptable<-anno$toptable
+write.table(anno$full, file=paste0(rpath, "/annotated.txt"), row.names=F, sep="\t")
+write.table(toptable, file=paste0(rpath, "/toptable.txt"), row.names=F, sep="\t")
+``` 
+
+```{r circosplots, eval=(nbdmps>0), include=FALSE}
+#circosplot
+write("11- circus plot",file=paste0(params$out,"/log"), append = TRUE)
+gbm<-makeGRangesFromDataFrame(toptable)
+gbm$meth.diff<-toptable$deltaBetas*100
+#suppressMessages ( p<-circusplot(gbm, genome=genome) )
+jpeg(paste0(rpath, "/circleplot.jpg") , width=800, height=800)
+#print(p)
+dev.off()
+``` 
+  
+```{r heatmap, eval=(nbdmps>0), include=FALSE}
+#heatmap
+write("12- heatmap",file=paste0(params$out,"/log"), append = TRUE)
+hsize<-min( params$hsize, nrow(toptable) )
+if (hsize>1) {
+  	cpgs<-toptable$cpg[1:hsize]
+  	symbols<-toptable$annot.symbol[1:hsize]
+  	labrow<-paste0( cpgs, "(", symbols, ")")
+  	jpeg(paste0(rpath, "/heatmap.jpg"), width=1600, height=1600)
+  	aheatmap(betas[cpgs,], annCol=pdata[,groups], labRow=labrow)
+  	dev.off()
+}
+``` 
+
+```{r barplots, eval=(nbdmps>0), include=FALSE}
+#11- barplots
+write("13- barplots",file=paste0(params$out,"/log"), append = TRUE)
+  
+p<-mk_barplot(annotated_regions=anno$gr, betafc=as.numeric(anno$full$logFC), what="cpgi", genome=params$genome )
+ggsave(file=paste0(rpath, "/cpgi_barplot.jpg"), plot=p, width=20, height=20, dpi = 300)
+  
+p<-mk_barplot(annotated_regions=anno$gr, betafc=as.numeric(anno$full$logFC), what="genes", genome=params$genome )
+ggsave(file=paste0(rpath,  "/genes_barplot.jpg"), plot=p, width=20, height=20, dpi = 300)
+```
+
+```{r histonemark, eval=(nbdmps>0), include=FALSE}
+#14- histone mark
+write("14- histone mark",file=paste0(params$out,"/log"), append = TRUE)
+if(params$genome=="hg19"){
+  p<-mk_hmplot(anno$full, params$out, model, params$celllines)
+  ggsave(file=paste0(rpath, "/chromHMM_barplot.jpg"), plot=p, width=20, height=20, dpi = 300)
+}
+```
+
+```{r createINFO, eval=(nbdmps>0), include=FALSE}
+#15-create INFO file
+write("15- Create info file",file=paste0(params$out,"/log"), append = TRUE)
+info<-unique(data.frame(anno$cpg_annotated)[,c(1,2,6)])
+info<-merge(info, eb$p.value, by.x="name", by.y="row.names")
+#info<-info[,c(1,2,3,8)]
+colnames(info)<-c("TargetID", "CHR", "MAPINFO", "Pval")
+#rownames(info)<-seq(1:nrow(info))
+```
+
+```{r save, include=FALSE}
+#16 save objects
+write("16- Save",file=paste0(params$out,"/log"), append = TRUE)
+formula1<-paste(formula1, collapse=" ")
+method=params$method
+genome=params$genome
+save(betas, mval, pdata, groups, samples, design, platform, method, genome, regions, toptable, model, info, file=paste0(params$out, "/meth.rdata") )
+write("17- Create report",file=paste0(params$out,"/log"), append = TRUE)
+``` 
+
+```{r listfiles, include=FALSE}
+files<-list.files(rpath)
+```
+
+# DMPs Linear regression
+
+## 1  {.tabset .tabset-fade .tabset-pills}
+
+### Summary
+
+  Method : `r params$method`
+  
+  Betas  = `r formula1`
+  
+  Number of DMPS : `r nbdmps`
+  
+  Genome : `r params$genome`
+
+[ ![](`r rpath`/qqplot.jpg) ](`r rpath`/qqplot.jpg)
+
+```{r, eval=("heatmap.jpg" %in% files), results='asis', echo=FALSE}
+cat("\n\n### Heatmap\n\n")
+cat("[ ![](", rpath, "/heatmap.jpg){ width=50% } ](", rpath, "/heatmap.jpg)\n\n", sep="")
+```
+
+### toptable
+
+[ download ](`r rpath`/toptable.txt)
+
+```{r, results='asis', echo=FALSE, echo=FALSE}
+toptable<-fread(paste0(rpath,"/toptable.txt"), header=T,nrows=100)
+kable(toptable)
+```
+
+### Annotation
+
+[ download ](`r rpath`/annotated.txt)
+
+```{r, results='asis', echo=FALSE}
+annotation<-fread(paste0(rpath,"/annotated.txt"), header=T,nrows=100)
+kable(annotation)
+```
+
+```{r, eval = ("genes_barplot.jpg" %in% files), results='asis', echo=FALSE}
+cat("\n\n### Barplots \n\n")
+cat("[ ![](", rpath, "/genes_barplot.jpg){ width=50% } ](" ,rpath, "/genes_barplot.jpg)", sep="")
+cat("[ ![](", rpath, "/cpgi_barplot.jpg){ width=50% } ](" ,rpath, "/cpgi_barplot.jpg)", sep="")
+```
+
+```{r, eval = ("chromHMM_barplot.jpg" %in% files), results='asis', echo=FALSE}
+cat("\n\n### Histone marker\n\n")
+cat("[ ![](", rpath, "/chromHMM_barplot.jpg){ width=50% } ]", sep="")
+cat("(", rpath, "/chromHMM_barplot.jpg)\n\n", sep="")
+```
+
+```{r, eval=params$logistic, results='asis', echo=FALSE}
+cat("# DMPs Logistic regression \n\n")
+cat("## 1 {.tabset .tabset-fade .tabset-pills}\n\n")
+cat("### Summary\n\n")
+cat("[ download ](", rpath, "/toptable2.txt)\n\n", sep="")
+cat("[ ![](", rpath, "/qqplot2.jpg) ](", rpath, "/qqplot2.jpg)", sep="")
+
+toptable2<-fread(paste0(rpath,"/toptable2.txt"), header=T,nrows=100)
+kable(toptable2)
+```
+
+

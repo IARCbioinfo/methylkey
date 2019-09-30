@@ -1,35 +1,42 @@
 <?xml version="1.0"?>
-<tool id="dmps2" name="Methylkey:DMPs" version="0.0.1">
-<description>Differentially Methylated Probes</description>
+<tool id="dmps" name="DMPs" version="0.1.2">
+<description>Meth analysis by position</description>
+
+<requirements>
+    <requirement type="package" version="2.0" >r-methylkey</requirement>
+</requirements>
 
 <command>
-
 	#import re
-	#set inputDir=$re.sub("\.dat","_files",str($input))
-	#set outputDir=$re.sub("\.dat","_files/",str($html))
+        #set inputDir=$re.sub("\.dat","_files",str($input))
+        #set outputDir=$re.sub("\.dat","_files/",str($html))	
 
-	Rscript $__tool_directory__/../R/dmps.r
-	--meth $inputDir/meth.rdata
-	--variables $variable
-	#for $i, $covariate in enumerate( $covariates )
-    	--variables ${covariate.column}
-	#end for
-	--case $case
-	--control $control
-	#if $model != ""
-	--model $model
-	#end if
-	--method $method	
-	--fdr $fdr
-	--nbpr2disp $nbpr2disp
-	--output $html.files_path;
-	
-	mv $html.files_path/* $inputDir/. ;
-	cp $inputDir/index.html $input;
-	mkdir $outputDir;
-	ln -sfvn $inputDir/* $outputDir/.;
-	cp $input $html; 
-	
+	cp $__tool_directory__/../bin/methylkey_dmps.Rmd index.Rmd;
+
+	mkdir $html.files_path;
+
+	Rscript -e "rmarkdown::render('index.Rmd', params=list( 
+
+	path='$__tool_directory__/../bin' ,
+	meth='$inputDir/report/meth.rdata' ,
+    #if $covariates
+        variables=c($main ,$covariates) ,
+	#else
+	    variables=$main ,
+    #end if
+    case='$case' ,
+    control='$control' ,
+	#if $custom.model
+          model='$custom.model' ,
+        #end if
+        method='$advanced.method' ,
+        fdr=$advanced.fdr ,
+        hsize=$advanced.hsize ,
+	logistic=$advanced.logistic ,
+        out='report'))";
+
+	mv report $html.files_path/.;
+
 </command>
 
 <code file="getlevels.py"/>
@@ -37,31 +44,34 @@
 <inputs>
 	<param name="pdata" type="data" format="tabular" label="Sample Sheet (phenotypic data)"/>
 	<param name="input" type="data" format="html" label="methylkey analysis"/>
-
-	<param name="variable" type="data_column" data_ref="pdata" label="main variable" use_header_names="true" refresh_on_change="true"/>
-
-	<param name="case" type="select" label="compare" dynamic_options="getlevels(pdata, variable)" />
-	<param name="control" type="select" label="to" dynamic_options="getlevels(pdata, variable)" />
-
-	<repeat name="covariates" title="covariates">
-		<param name="column" type="data_column" data_ref="pdata" label="covariates" use_header_names="true"/>
-	</repeat>
 	
-	<param name="model" type="text" value="" label="advanced model" />
-	
-	<param name="method" type="select" label="Method">
-		<option value="ls">Least squares (Linear)</option>
-		<option value="robust">Robust</option>
-	</param>
-	
-	<param name="fdr" type="text" value="0.05" label="qvalue cutoff for toptable" />
-	<param name="nbpr2disp" type="text" value="50" label="Number of dmps to build the heatmap"/>
 
+	<param name="main" type="data_column" data_ref="pdata" label="main variable" use_header_names="true" refresh_on_change="true"/>
+
+	<param name="case" type="select" label="compare" dynamic_options="getlevels(pdata, main)" />
+	<param name="control" type="select" label="to" dynamic_options="getlevels(pdata, main)" />
+
+	<param name="covariates" type="data_column" data_ref="pdata" label="covariates" use_header_names="true" multiple="true" optional="true"/>
+	
+	<section name="custom" title="Advanced Model" expanded="false">	
+		<param name="model" type="text" value="" label="Type your custom model" />
+	</section>
+	
+	<section name="advanced" title="Advanced Options" expanded="true">
+		<param name="method" type="select" label="Method">
+			<option value="ls">Least squares (Linear)</option>
+			<option value="robust">Robust</option>
+		</param>
+	
+		<param name="fdr" type="text" value="0.05" label="qvalue cutoff for toptable" />
+		<param name="hsize" type="text" value="50" label="Number of dmps to use for the heatmap"/>
+		<param name="logistic" type="boolean" truevalue="TRUE" falsevalue="FALSE" checked="false" label="Run logistic regression with the same model"/>
+	</section>
 	
 </inputs>
 
 <outputs>
-	<data name="html" format="html" label="DMPs" />
+	<data name="html" format="html" label="DMPs on ${on_string}" from_work_dir="index.html"/>
 </outputs>
 
 

@@ -48,7 +48,7 @@ multiplot<-function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 #######################
 # violin plot
-violin_plot<-function(pdata,betas,group,samples,platform, path, out="./",genome="hg19",regions){
+violin_plot<-function(pdata,betas,group,samples,platform, path, out="./",genome="hg19",regions=""){
 
 	suppressPackageStartupMessages( require(ggplot2) )
 	suppressPackageStartupMessages( require(annotatr) )
@@ -147,7 +147,7 @@ circusplot<-function(ranges, genome){
 #######################
 #mk_barplot
 
-mk_barplot<-function(annotated_regions, betafc, what=c("cpgi","genes") ){
+mk_barplot<-function(annotated_regions, betafc, what=c("cpgi","genes"), genome="hg19" ){
 	
 	suppressPackageStartupMessages( require(ggplot2) )
 	require(RColorBrewer)

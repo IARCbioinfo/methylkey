@@ -1,26 +1,27 @@
 <?xml version="1.0"?>
-<tool id="dmrs_plot2" name="Plot DMRs" version="0.0.1">
-<description>plot DMRs</description>
+<tool id="dmrplot" name="DMR plot" version="0.2.1">
+<description>plot DMRs with DMRcate</description>
+
+<requirements>
+    <requirement type="package" version="2.0" >r-methylkey</requirement>
+</requirements>
 
 <command>
 	#import re
 	#set inputDir=$re.sub("\.dat","_files",str($input))
-	#set outputDir=$re.sub("\.dat","_files/",str($html))
 
-	Rscript $__tool_directory__/../R/dmrs_plot.r 
-	--meth $inputDir/meth.rdata
-	--max $max
+	cp $__tool_directory__/../bin/methylkey_plotDMRs.Rmd index.Rmd;
+
+	mkdir $html.files_path;
+
+	Rscript -e "rmarkdown::render('index.Rmd', params=list( 
+
+	meth='$inputDir/report/meth.rdata' ,
+	max=$max ,
+	dmrs='$dmrs' ,
+	out='report'))";
 	
-	#if $dmrs != ""
-	--dmrs $dmrs
-	#end if
-	--output $html.files_path;
-	
-	mv $html.files_path/* $inputDir/. ;
-	cp $inputDir/index.html $input;
-	mkdir $outputDir;
-	ln -sfvn $inputDir/* $outputDir/.;
-	cp $input $html; 
+	mv report $html.files_path/.;
 </command>
 
 <inputs>
@@ -30,7 +31,7 @@
 </inputs>
 
 <outputs>
-	<data name="html" format="html" label="DMRs plots" />
+	<data name="html" format="html" label="DMRplot on ${on_string}" from_work_dir="index.html"/>
 </outputs>
 
 <stdio>

@@ -1,0 +1,153 @@
+---
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+title: "methylkey"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+params:
+  path: "~/git/methylkey/bin/"
+  meth: "methylkey/meth.rdata"
+  fdr: 0.05
+  type: "differential"
+  pval: 0.05
+  out: "methylkey"
+---
+
+
+```{r setup, include=FALSE}
+#params<-list(path="/home/cahaisv/git/methylkey/bin/", meth="genes/meth.rdata", variables="cell_type", formula="None", case="BC", control="cBC", fdr="0.99", method="ls", hsize=50, celllines="None", type="differential", niter=25, out="genes", genome="hg38")
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(knitr)
+library(limma)
+library(DMRcate)
+library(data.table)
+source( paste0(params$path, "/utils.r")  )
+source( paste0(params$path, "/plots.r")  )
+source( paste0(params$path, "/annot.r")  )
+source( paste0(params$path, "/dmrcate.r")  )
+```
+
+```{r load, include=FALSE}
+load(params$meth)
+datadir=paste0( params$path, "/../data/" )
+rpath<-paste0(params$out, "/", model, "/dmrs/")
+if ( !file.exists(params$out)) { dir.create(params$out) }
+if ( !file.exists(paste0(params$out,"/",model))) { dir.create(paste0(params$out,"/",model)) }
+if ( !file.exists(rpath)) { dir.create(rpath) }
+```
+  
+```{r prepare, include=FALSE}
+cmtx <- makeContrasts(colnames(design)[2], levels= colnames(design))
+colnames(design)[1] <- "(Intercept)"
+if (method=="robust"){ niter=200 }
+header<-"stat\tChr\tPos\tdiff\tfdr"
+write.table(header, file=paste(rpath, "annotated.txt",sep="/"), row.names=F, col.names=F, sep="\t")
+write.table(header, file=paste(rpath, "toptable.txt",sep="/"), row.names=F, col.names=F, sep="\t")
+```
+  
+```{r dmrcate_array, include=FALSE}
+if (platform=="IlluminaHumanMethylationEPIC" | platform=="IlluminaHumanMethylation450k"){ 
+    arannot=NULL
+    if (platform=="IlluminaHumanMethylationEPIC"){ 
+        arraytype="EPIC"; arannot=c(array = "IlluminaHumanMethylationEPIC", annotation ="ilm10b2.hg19")
+    }
+    if (platform=="IlluminaHumanMethylation450k"){ 
+        arraytype="450K"; arannot=c(array = "IlluminaHumanMethylation450k", annotation ="ilm10b2.hg19")
+    }
+  	myannotation<-cpg.annotate(object=mval, analysis.type=params$type, design=design, coef=2, datatype="array", arraytype=arraytype, what="M", fdr=params$fdr, annotation=arannot,  method=method, maxiter=niter, cont.matrix=cmtx)	
+  	#dmrcoutput<-dmrcate(myannotation,lambda=1000,C=2,pcutoff=pcutoff)
+  	dmrcoutput<-dmrcate(object=myannotation, C=2, pcutoff=params$pval)
+  	results.ranges <- extractRanges(dmrcoutput, genome=genome)
+}
+```
+  
+```{r dmrcate_rrbs, include=FALSE}
+if (platform=="RRBS" | platform=="sequencing"){
+    
+  	final<-cbind(toptable$t, toptable$chr, toptable$start, toptable$logFC, toptable$adj.P.Val)
+  	colnames(final)<-c('stat', 'chr', 'pos', 'diff', 'fdr')
+  	myannotation<-cpg.annotate( as.data.frame(final), datatype="sequencing", analysis.type="differential", method=method, maxiter=niter)	
+  	#suppressWarnings(suppressMessages(dmrcoutput<-dmrcate(myannotation,lambda=1000,C=50,pcutoff=0.05)))
+  	myannotation$CHR<-paste0("chr",myannotation$CHR)
+  	myannotation$CHR<-sub("chr23", "chrX", myannotation$CHR )
+  	myannotation$CHR<-sub("chr24", "chrY", myannotation$CHR )
+  	dmrcoutput<-dmrcate(myannotation,C=50)
+  	#dmrcoutput$results$coord<-paste("chr",dmrcoutput$results$coord,sep="")	
+  	#$results$coord<-sub("chr23", "chrX", dmrcoutput$results$coord )	
+  	#dmrcoutput$results$coord<-sub("chr24", "chrY", dmrcoutput$results$coord )	
+  	results.ranges <- extractRanges(dmrcoutput, genome = genome)
+}
+nbdmrs<-length(results.ranges)
+```
+  
+```{r annotation, include=FALSE}
+dmrs_annotated<-mk_annotate(results.ranges,genome=genome)
+  
+#overlapping.probes
+locs <- GRanges(myannotation$CHR, IRanges(myannotation$pos, myannotation$pos, names=myannotation$ID))
+overlap <- findOverlaps(dmrs_annotated,locs)
+overlap <- data.table( cbind( query=queryHits(overlap), subject=subjectHits(overlap) ) )
+dmrs_annotated$overlapping.probes<-overlap[ , paste( names(locs)[subject], collapse="," ) , by=query ]$V1
+```
+  
+```{r make_dmrs_table, include=FALSE}  
+#dmrs
+dmrs<-data.frame(dmrs_annotated, row.names=NULL)
+colnames(dmrs)[1]<-"chr"
+dmrs$dmrs<-paste(dmrs$chr, dmrs$start, dmrs$end, sep=":")
+```
+  
+```{r remove_dup, include=FALSE}  
+#remove duplicated lines
+dmrs<-dmrs[order(dmrs$annot.symbol),]
+dup<-duplicated(dmrs$dmrs)
+table<-dmrs[!dup,c(23,1:10,20,11,22)]
+```
+  
+```{r barplot, include=FALSE}    
+p<-mk_barplot(annotated_regions=data.frame(dmrs_annotated), betafc=as.numeric(dmrs_annotated$meanbetafc), what="cpgi" )
+ggsave(file=paste0(rpath, "/cpgi_barplot.jpg"), plot=p, width=20, height=20, dpi = 300, units=)
+
+p<-mk_barplot(annotated_regions=data.frame(dmrs_annotated), betafc=as.numeric(dmrs_annotated$meanbetafc), what="genes" )
+ggsave(file=paste0(rpath, "/genes_barplot.jpg"), plot=p, width=20, height=20, dpi = 300)
+```
+  
+```{r save, include=FALSE}
+#save files	
+dmrs<-dmrs[order(dmrs$minfdr),]
+table<-table[order(table$minfdr),]
+write.table(dmrs, file=paste0(rpath, "/annotated.txt"), row.names=F, sep="\t")
+write.table(table, file=paste0(rpath, "/toptable.txt"), row.names=F, sep="\t")
+save(betas, mval, pdata, groups, samples, design, platform, method, genome, regions, toptable, model, info, table, file=paste0(params$out, "/meth.rdata") )
+```
+
+#DMRs
+
+## 1  {.tabset .tabset-fade .tabset-pills}
+
+### Toptable
+
+[ download ](`r rpath`/toptable.txt)
+
+```{r, results='asis', echo=FALSE}
+toptable<-fread(paste0(rpath,"/toptable.txt"), header=T,nrows=100)
+kable(toptable)
+```
+
+### Annotation
+
+[ download ](`r rpath`/annotated.txt)
+
+```{r, results='asis', echo=FALSE}
+annotation<-fread(paste0(rpath,"/annotated.txt"), header=T,nrows=100)
+kable(annotation)
+```
+
+### Barplots
+
+[ ![](`r rpath`/genes_barplot.jpg){ width=50% } ](`r rpath`/genes_barplot.jpg)
+
+[ ![](`r rpath`/cpgi_barplot.jpg){ width=50% } ](`r rpath`/cpgi_barplot.jpg)
+
+

@@ -1,0 +1,91 @@
+---
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+    
+params:
+  path: "~/git/methylkey/bin/"
+  meth: "methylkey/meth.rdata"
+  max: "differential"
+  dmrs: "d0000"
+  out: "methylkey"
+---
+  
+```{r setup, include = FALSE}
+#params<-list(path="/home/cahaisv/git/methylkey/bin/", meth="genes/meth.rdata", variables="cell_type", formula="None", case="BC", control="cBC", fdr="0.99", method="ls", hsize=50, celllines="None", type="differential", niter=25, out="genes", genome="hg38")
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(data.table)
+library(RColorBrewer)
+library(GenomicRanges)
+library(DMRcate)
+```
+
+```{r load, include=FALSE}
+load(params$meth)
+datadir<-paste0( params$path, "/../data/" )
+rpath<-paste0( params$out, "/", model, "/dmrs/" )
+dir.create( rpath, recursive=T )
+```
+
+
+```{r platform, include = FALSE}
+if (platform=="sequencing"){ }
+if (platform=="IlluminaHumanMethylationEPIC"){ arraytype="EPIC"; require(IlluminaHumanMethylationEPICanno.ilm10b2.hg19) }
+if (platform=="IlluminaHumanMethylation450k"){ arraytype="450K"; require(IlluminaHumanMethylation450kanno.ilmn12.hg19) }
+```
+
+```{r color, include = FALSE}
+lvl<-levels(as.factor(pdata[,groups[1]]))
+myColors <- brewer.pal(max(length(lvl),3),"Set1")
+names(myColors)<-lvl
+myColors<-myColors[as.character(pdata[,groups[1]])]
+```
+
+```{r ranges, include = FALSE}
+gdmr<-makeGRangesFromDataFrame(table)
+gdmr$dmrs<-table$dmrs
+```
+
+```{r dmrplot1, include = FALSE}  
+dmrplots<-list()
+for (dmrname in params$dmrs){
+  
+  if (dmrname %in% table$dmrs){
+    dmr=which(table$dmrs == dmr)
+    img<-paste0( rpath, dmrname, ".dmrplot.jpg")
+    jpeg(img, width=800, height=800)
+    DMR.plot(ranges=gdmr, dmr=dmr, CpGs=betas, phen.col=myColors, genome=genome, pch=20, toscale=T, plotmedians=T, arraytype=arraytype)
+    dev.off()
+  }
+}
+```
+
+```{r dmrplot2, include = FALSE}    
+max<-min(length(table$dmrs),params$max)
+for (dmr in 1:max){
+  	
+    dmrname=table$dmrs[dmr]
+    img<-paste0( rpath, dmrname, ".dmrplot.jpg")
+    jpeg(img, width=800, height=800)
+    DMR.plot(ranges=gdmr, dmr=dmr, CpGs=betas, phen.col=myColors, genome=genome, pch=20, toscale=T, plotmedians=T, arraytype=arraytype)
+    dev.off()	
+}
+```
+
+# DMRs fig
+
+## 1
+
+```{r, results='asis', echo=FALSE}
+dmrs<-list.files(rpath, "dmrplot.jpg")
+for (dmr in dmrs) {
+  
+  cat("### ", dmr , "\n\n", sep="")
+  #fig<-paste0( rpath, dmr)
+  cat("[ ![](", rpath, dmr, "){width=100%} ](", rpath, dmr ,")\n\n", sep="")
+  #cat("[ ![](", fig, "){width=100%} ](", fig ,")")
+}
+```
+
+
+

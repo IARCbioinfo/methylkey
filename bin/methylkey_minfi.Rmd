@@ -1,0 +1,528 @@
+---
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+title: "methylkey"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+params:
+  path: "~/git/methylkey/bin/"
+  pdata: "pdata.csv"
+  idat: "data.csv.gz"
+  pipeline: "minfi"
+  normalize: "funnorm"
+  samples: "sample_name"
+  barcode: "barcode"
+  groups: "group"
+  nalimit: 0.2
+  missing: "mean"
+  filters: "default"
+  separator: "\t"
+  out: "methylkey"
+  violin: TRUE
+  badsamples: "None"
+  genome: "hg19"
+  cell: "no"
+  pval: 0.02
+---
+
+```{r setup, echo=FALSE, include=FALSE}
+#params=list(path="~/git/methylkey/bin/,  pdata="pdata.csv",  idat="data.csv.gz",  pipeline="rnbeads",  samples="sample_name",  groups="group", nalimit=0.2,  missing="mean",  separator=",",  out="methylkey",  violin=FALSE,  badsamples="None",  bed="None")
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(formattable)
+library(data.table)
+library(wateRmelon)
+library(minfi)
+library(wateRmelon)
+library(IlluminaHumanMethylationEPICmanifest)
+library(IlluminaHumanMethylation450kmanifest)
+source( paste0(params$path, "/loader.r")  )
+source( paste0(params$path, "/utils.r")  )
+source( paste0(params$path, "/plots.r")  )
+source( paste0(params$path, "/annot.r")  )
+source( paste0(params$path, "/pca.r")  )
+source( paste0(params$path, "/houseman.r")  )
+source( paste0(params$path, "/missingValues.r")  )
+
+#path <- dirname(strsplit(commandArgs()[4],"=")[[1]][2])
+datadir<-paste0(params$path , "/../data/")
+if ( !file.exists(params$out)) { dir.create(params$out) }
+sink(paste0(params$out,"/log2"))
+print("parameters:")
+for (param in params){print(param)}
+```
+
+```{r autoformat, include=FALSE}
+samples<-suppressWarnings( autoformat(params$samples) )
+barcode<-suppressWarnings( autoformat(params$barcode) )
+groups <-suppressWarnings( autoformat(params$groups) )
+```
+
+```{r filters, include=FALSE}
+#default filters
+filters<-params$filters
+if (filters[1]=="default"){
+  filters<-paste0(datadir,c("Crossreactive_probes_EPIC.csv","SNP_EPIC.csv","SNP_EPIC_single_base.csv"))
+}else{
+  filters<-unlist(strsplit(params$filters,",")) 
+}
+```
+
+```{r loading, echo=FALSE, results ='asis'}
+#1- load pdata
+write("1- Loading data",file=paste0(params$out,"/log"),append = TRUE)
+pdata<-read.table(params$pdata, sep=params$separator, header=T)
+if( ncol(pdata)<2 ){ stop(paste0("Check if your separator in pdata is really '", params$separator, "'")) }
+if(file.exists(params$badsamples)){
+  bad<-read.table(params$badsamples)$V1
+  pdata<-pdata[ !pdata[,samples] %in% bad, ]
+  write(paste0(length(bad), " samples listed in ", params$badsamples, " are removed !"),file=paste0(params$out,"/log"),append = TRUE)
+}
+pdata[,barcode]<-as.character(pdata[,barcode]) 
+pdata$Basename<-pdata[,barcode]
+```
+
+```{r v2factor, include=FALSE}
+#2- convert variables to factor
+write("2- Sanitize variables",file=paste0(params$out,"/log"),append = TRUE)
+for (variable in colnames(pdata)){ 
+  if (length(levels(factor(pdata[,variable]))) <= nrow(pdata)/8) 
+  { 
+  	pdata[,variable]<-as.factor(pdata[,variable]) 
+  }  
+}
+```
+
+```{r checkSamples, include=FALSE}
+#3- check samples
+write("3- Check samples",file=paste0(params$out,"/log"),append = TRUE)
+tryCatch({
+  samples<-pdata[samples]
+}, error = function(err) {
+  stop(paste0("Check if '", samples, "' is a column in your pdata. You can specify the column's name for samples names with --samples "))
+})
+if(length(unique(samples))!=length(samples)){ 
+  stop("Samples names must be uniques !")
+}
+for (sample in samples){
+  write(sample,file=paste0(params$out,"/log"),append = TRUE)
+}
+```
+
+```{r checkBarcodes, eval=(params$pipeline!="rnbeads"), include=FALSE}
+#check barcode
+write("4- Check barcode",file=paste0(params$out,"/log"),append = TRUE)
+tryCatch({
+  barcode<-colnames(pdata[barcode])
+}, error = function(err) {
+  stop(paste0("Check if '", barcode, "' is a column in your pdata. You can specify the column's name for barcodes with --barcode "))
+})
+```
+
+```{r checkGroups, include=FALSE}
+#5- check groups
+write("5- Check groups",file=paste0(params$out,"/log"),append = TRUE)
+for (group in groups) {
+  tryCatch({
+    write(group,file=paste0(params$out,"/log"),append = TRUE)
+    if ( !is.factor(pdata[,group] )){
+      groups<-groups[-which(groups==group)]
+      print(paste0("warning : ", group, " removed from groups because it is numeric." )) 
+    }else{
+      dir.create(paste(params$out, colnames(pdata[group]), sep="/"))
+    }
+  }, error = function(err) {
+    stop(paste0("Check if '", group, "' is a column in your pdata. You can specify the columns' names for groups with --groups "))
+  })
+}
+groups<-colnames(pdata[groups])
+```
+
+```{r minfi, include=FALSE}
+#6- read idat
+write("6- Read idat", file=paste0(params$out,"/log"), append=TRUE)
+RGset<-read.metharray.exp(base = params$idat, targets=pdata, force=TRUE)
+betas<-getBeta(RGset)
+colnames(betas)<-samples[[1]]
+platform<-RGset@annotation["array"]
+nbprobes1<-nrow(betas)
+pvalues<-minfi::detectionP(RGset)
+```
+
+```{r checkgender, include=FALSE}
+#7-check gender
+write("7- Check gender",file=paste0(params$out,"/log"),append = TRUE)
+GMsetEx <- mapToGenome(RGset) 
+estSex <- getSex(GMsetEx)
+pdata$predictedSex <- estSex$predictedSex
+pdata$predictedage <- agep(betas)
+```
+
+```{r boxplots1, include=FALSE}
+#8- QC before processing : boxplots1
+write("8- QC before processing : boxplots1",file=paste0(params$out,"/log"),append = TRUE)
+nsamp<-nrow(pdata)
+jpeg(paste0(params$out, "/boxplot_colour1.jpg"), width=800, height=800)
+ylab<-"log2 intensity of both methylated and unmethylated probes"
+par(xaxt='n')
+boxplot(log2(RGset@assays$data$Red+1), col = "red", boxwex = 0.25, at= 1:nsamp - 0.175, ylab=ylab, labels=samples[[1]], cex=0.5)
+boxplot(log2(RGset@assays$data$Green+1), col = "green", boxwex = 0.25, at= 1:nsamp + 0.175, axis=F , add=T, cex=0.5)
+par(xaxt='s')
+axis(1, at=1:nsamp, labels=samples[[1]], tick=TRUE, las=2, cex.axis=0.8)
+dev.off()
+
+jpeg(paste0(params$out, "/methylated1.jpg"), width=800, height=800)
+boxplot(log2(RGset@assays$data$Red+1), main="methylated (Red channel)", col = "red", las=2, cex.axi=0.8, labels=samples[[1]])
+dev.off()
+
+jpeg(paste0(params$out, "/unmethylated1.jpg"), width=800, height=800)
+boxplot(log(RGset@assays$data$Green+1), main="unmethylated (Green channel)", col = "green", las=2, cex.axi=0.8, labels=samples[[1]])
+dev.off()
+```
+
+```{r plotQC1, include=FALSE}
+#9- QC before processing : plotQC1
+write("9- QC before processing : plotQC1",file=paste0(params$out,"/log"),append = TRUE)
+MSet <- preprocessRaw(RGset)
+qc <- getQC(MSet)
+jpeg(paste0(params$out, "/plotQC1.jpg"), width=800, height=800)
+plotQC(qc)
+dev.off()
+```
+
+```{r groupPlots, include=FALSE}
+#10- QC before processing : densityPlot, densityBeanPlot, mdsPlot
+write("10- QC before processing : densityPlot, densityBeanPlot, mdsPlot",file=paste0(params$out,"/log"),append = TRUE)
+	
+for (group in groups) {
+		
+	jpeg(paste(params$out, group, "densityPlot1.jpg", sep="/"), width=800, height=800)
+	densityPlot(betas, sampGroups =pdata[,group])
+	dev.off()
+
+	jpeg(paste(params$out, group, "densityBeanPlot1.jpg", sep="/"), width=800, height=800)
+	densityBeanPlot(betas, sampGroups = pdata[,group])
+	dev.off()
+
+	jpeg(paste(params$out, group, "mdsPlot1.jpg", sep="/"), width=800, height=800)
+	if (nrow(pdata) < 200 ){
+		mdsPlot(betas,numPositions=1000,sampGroups=pdata[,group], legendPos = "bottomleft")
+	}else{
+		mdsPlot(betas,numPositions=1000,sampGroups=pdata[,group])
+	}
+	dev.off()
+}
+```
+
+```{r Houseman, eval=(params$cell=="houseman"), include=FALSE}
+#11- Houseman
+write("11- Houseman",file=paste0(params$out,"/log"),append = TRUE)
+pdata<-houseman(RGset, data, platform, params$out)
+```
+
+```{r normalization, include=FALSE}
+#12- Normalization
+write("12- Normalization",file=paste0(params$out,"/log"),append = TRUE)
+rawbetas=betas
+if(params$normalize=="Funnorm") {	MSet<-suppressWarnings( suppressMessages( preprocessFunnorm(RGset, sex=estSex$predictedSex) ) )   }
+if(params$normalize=="Illumina"){	MSet<-suppressWarnings( suppressMessages( preprocessIllumina(RGset) ) )                           }
+if(params$normalize=="Noob")    {	MSet<-suppressWarnings( suppressMessages( preprocessNoob(RGset) ) )	                              }
+if(params$normalize=="Quantile"){	MSet<-suppressWarnings( suppressMessages( preprocessQuantile(RGset, sex=estSex$predictedSex ) ) )	}
+if(params$normalize=="SWAN")    { MSet<-suppressWarnings( suppressMessages( preprocessSWAN(RGset, MSet ) ) )                        }
+
+betas=getBeta(MSet)
+colnames(betas)<-samples[[1]]
+```
+
+```{r filterbypvalue, include=FALSE}
+#12- Filter by pvalue
+write("12- Filterbypvalue",file=paste0(params$out,"/log"),append = TRUE)
+pvalues<-pvalues[ rownames(betas) , ]
+betas[ pvalues>params$pval ] <- NA
+```	
+
+```{r restaureNAstatus, include=FALSE}
+#13- Restaure NA status
+#After normalization NA values are replace by values close to 0. This restore the NA status.
+write("13- Restaure NA status",file=paste0(params$out,"/log"),append = TRUE)
+probNAcont<-which(apply(rawbetas,1,function(i) sum(is.na(i)))>0)
+for (i in names(probNAcont)){
+	betas[i,is.na(rawbetas[i,])]<-NA
+}
+```
+
+```{r probesfromlist, include=FALSE}
+#14- select probes from list
+write("13- Filter probes from list",file=paste0(params$out,"/log"),append = TRUE)
+probes=c()
+for (file in filters){
+  if(file.exists(file)){
+	  probes <- unique( c(probes, fread(file)[[1]] ))
+	}
+}
+filteredFromList<-length(probes)
+write(filteredFromList,file=paste0(params$out,"/log"),append = TRUE)
+```
+
+```{r navalues, include=FALSE}
+#15- Select probes with percentage of NA values > nalimit
+write(paste0("15- Filter NA values : ", params$nalimit),file=paste0(params$out,"/log"),append = TRUE)
+naprobes<-CpGNAexcl( betas,params$nalimit )
+filteredNAprobes<-length(naprobes)
+write.table(paste(naprobes, collapse="\n"), file=paste0(params$out, "/removed.txt"), row.names=F, sep="\t")
+```
+
+```{r removeprobes, include=FALSE}
+#16- remove selected probes
+write(paste0("16- remove selected probes : ", params$nalimit),file=paste0(params$out,"/log"),append = TRUE)
+probes<-unique( c(probes, naprobes) )
+totalFilteredProbes<-length(probes)
+betas<-betas[ ! rownames(betas) %in% probes,]
+```
+
+```{r missingvalues, include=FALSE}
+#17- remove remaining missing values
+write(paste0("17- Remove missing values : ", params$missing),file=paste0(params$out,"/log"),append = TRUE)
+if ( sum(is.na(betas)) > 0 ) {
+	if (params$missing=="mean"){
+		betas<-replaceByMean(betas,pdata[,groups[1]])
+	}
+	if (params$missing=="impute"){
+		betas<-imputeNA(betas,nalimit)
+	}
+}
+```
+
+```{r plotQC2, include=FALSE}
+#18- QC before processing : plotQC1
+write("18- QC After processing : plotQC2",file=paste0(params$out,"/log"),append = TRUE)
+qc <- getQC(MSet)
+jpeg(paste0(params$out, "/plotQC2.jpg"), width=800, height=800)
+plotQC(qc)
+dev.off()
+```
+
+```{r QC, include=FALSE}
+#19- QC after processing
+write("19- QC after processing : density plot, densitybeanplot, mdsplot" ,file=paste0(params$out,"/log"),append = TRUE)
+for (group in groups) {
+	  
+	jpeg(paste(params$out, group, "densityPlot2.jpg", sep="/"), width=800, height=800)
+	densityPlot(betas, sampGroups = pdata[,group])
+	dev.off()
+
+	jpeg(paste(params$out, group, "densityBeanPlot2.jpg", sep="/"), width=800, height=800)
+	if(nrow(betas)>200){ #sample function need at least 200 records.
+	  densityBeanPlot(betas, sampGroups = pdata[,group])
+	}
+	dev.off()
+
+	jpeg(paste(params$out, group, "mdsPlot2.jpg", sep="/"), width=800, height=800)
+	if (nrow(pdata) < 200 ){
+		mdsPlot(betas,numPositions=1000,sampGroups=pdata[,group],
+					legendPos = "bottomleft",sampNames=samples[[1]])
+	}else{
+		mdsPlot(betas,numPositions=1000,sampGroups=pdata[,group])
+	}
+	dev.off()
+}
+nbprobes2=nrow(betas)
+```
+
+```{r PCA, include=FALSE}
+#20- PCA
+write("20- PCA" ,file=paste0(params$out,"/log"),append = TRUE)
+pca<-suppressPackageStartupMessages( makepca( betas, pdata, params$out, colnames(pdata), nPC=10 ) )
+pvalue<-pca$pvalue
+qvalue<-pca$qvalue
+jpeg(paste0(params$out, "/pca_contributions_0001.jpg"))
+plot(pca$contrib)
+dev.off()
+```
+
+```{r deltabetas, include=FALSE}
+#21- DeltaBetas
+write("21- Calculate Delta Betas" ,file=paste0(params$out,"/log"),append = TRUE)
+deltab<-""
+deltab<-getDeltaBetas(betas,pdata[,groups[1]])
+```
+
+```{r violinplot, eval = params$violin, include=FALSE}
+#22-violin plot
+write("22- Draw violin plots" ,file=paste0(params$out,"/log"),append = TRUE)
+violin_plot(pdata=pdata, betas=betas, group=groups[1], samples=colnames(samples), platform=platform, path=path, out=params$out, regions="")
+```
+
+```{r mval, include=FALSE}
+#23- mvalues
+write("23- Calculate mvalues" ,file=paste0(params$out,"/log"),append = TRUE)
+mval=beta2m(betas)
+mval[!is.finite(mval)]<-min(mval[is.finite(mval)])
+# Remove a probe when sum of betas is 0.
+iszero<-which(rowSums(mval) == 0 )
+if(length(iszero) > 0){
+  mval<-mval[-which(rowSums(mval) == 0 ),]
+}
+```
+
+```{r save, include=FALSE}
+#24- Save and Create report
+write("24- Save results" ,file=paste0(params$out,"/log"),append = TRUE)
+write.table(pdata, file=paste0(params$out, "/pdata.txt"), row.names=F, sep="\t")
+write.table(betas, file=paste0(params$out, "/betas.txt"), row.names=T, sep="\t")
+write.table(deltab, file=paste0(params$out, "/deltabetas.txt"), row.names=T, sep="\t")
+write.table(pvalue, file=paste0(params$out, "/pvalue_0001.txt"), row.names=T, sep="\t")
+write.table(qvalue, file=paste0(params$out, "/qvalue_0001.txt"), row.names=T, sep="\t")
+
+regions=""
+save(betas, pdata, samples, groups, platform, genome, regions, mval, file=paste0(params$out, "/meth.rdata") )
+write("25- Markdown report" ,file=paste0(params$out,"/log"),append = TRUE)
+```
+
+<!-- --------------------------------Report Section-------------------------------------------- -->
+
+# pdata
+
+[ Sample Sheet ](`r params$out`/pdata.txt)
+
+```{r echo=FALSE, results ='asis'}
+pdata<-fread(paste0(params$out,"/pdata.txt"))
+kable(pdata)
+
+```
+
+# betas
+
+[ Betas Normalized ](`r params$out`/betas.txt)
+
+```{r echo=FALSE, results ='asis', warning=FALSE}
+betas<-fread(paste0(params$out,"/betas.txt"),nrows=100)
+kable(betas)
+
+```
+
+# delta betas
+
+[ Delta Betas ](`r params$out`/deltabetas.txt)
+
+```{r echo=FALSE, results ='asis', warning=FALSE}
+deltabetas<-fread(paste0(params$out,"/deltabetas.txt"),nrows=100)
+kable(deltabetas)
+
+```
+
+# Minfi QC
+
+## Channels
+
+### [ log2 intensity of both methylated and unmethylated probes ](`r params$out`/boxplot_colour1.jpg)
+
+```{r, echo=FALSE}
+  knitr::include_graphics(paste0(params$out,"/boxplot_colour1.jpg"))
+```
+	
+### [ Red Channel ](`r params$out`/methylated1.jpg)
+
+```{r, echo=FALSE}
+  knitr::include_graphics(paste0(params$out,"/methylated1.jpg"))
+```
+
+### [ Green Channel ](`r params$out`/unmethylated1.jpg)
+
+```{r, echo=FALSE, results='asis'}
+  knitr::include_graphics(paste0(params$out,"/unmethylated1.jpg"))
+```
+
+## QC	
+	
+### [ QC ](`r params$out`/plotQC1.jpg)
+	
+```{r, echo=FALSE}
+  knitr::include_graphics(paste0(params$out,"/plotQC1.jpg"))
+```	
+
+### [ QC after normalization ](`r params$out`/plotQC2.jpg)
+
+```{r, echo=FALSE}
+  knitr::include_graphics(paste0(params$out,"/plotQC2.jpg"))
+```
+
+## Violin plots
+
+```{r, echo=FALSE, results='asis'}
+if ( file.exists(paste0(params$out,"/violin1.jpg" )) ){
+  cat( "### [ case control ](",params$out,"/violin1.jpg)\n" )
+  knitr::include_graphics(paste0(params$out,"/violin1.jpg"))
+}
+```
+
+```{r, echo=FALSE, results='asis'}
+if ( file.exists(paste0(params$out,"/violin2.jpg" )) ){
+  cat( "### [ CPG regions ](",params$out,"/violin2.jpg)\n" )
+  knitr::include_graphics(paste0(params$out,"/violin2.jpg"))
+}
+```
+
+```{r, echo=FALSE, results='asis'}
+if ( file.exists(paste0(params$out,"/violin3.jpg" )) ){
+  cat( "### [ Genes regions ](",params$out,"/violin3.jpg)\n" )
+  knitr::include_graphics(paste0(params$out,"/violin3.jpg"))
+}
+```
+
+# Groups
+
+## Groups {.tabset .tabset-fade .tabset-pills}
+
+```{r, echo=FALSE, results='asis'}
+
+	for (group in groups) {
+	  
+	  cat("### ", group, "\n\n")
+	  
+	  if (file.exists(paste0(params$out, "/",group, "/densityPlot2.jpg"))){
+	   cat("[ ![](", params$out, "/", group, "/densityPlot2.jpg) ](", params$out, "/", group, "/densityPlot2.jpg) \n", sep = "")
+	  }
+	  
+	  if (file.exists(paste0(params$out, "/",group, "/densityBeanPlot2.jpg"))){
+	   cat("[ ![](", params$out, "/",group, "/densityBeanPlot2.jpg) ](", params$out, "/", group, "/densityBeanPlot2.jpg) \n", sep = "")
+	  }
+	  
+	  if (file.exists(paste0(params$out, "/",group, "/mdsPlot2.jpg"))){
+	   cat("[ ![](", params$out, "/",group, "/mdsPlot2.jpg) ](", params$out, "/", group, "/mdsPlot2.jpg) \n", sep = "")
+	  }
+	  
+	  cat('\n\n')
+	  
+	}
+	
+	
+```
+
+# PCA 
+
+## 1 {.tabset .tabset-fade .tabset-pills}
+
+### Contributions
+
+[ ![](`r params$out`/pca_contributions_0001.jpg) ](`r params$out`/pca_contributions_0001.jpg)
+
+### [ pvalues ](`r params$out`/pvalue_0001.txt)
+
+```{r, echo=FALSE, results='asis'}
+    pvalue<-fread(paste0(params$out,"/pvalue_0001.txt"), header=F)
+    sig_pvalue_bold <- formatter("span", style = x ~ style("background-color" = ifelse(x <= 1e-5, "pink", ifelse(x <= 0.05, "palegoldenrod", "transparent"))))
+    formattable(pvalue, list(area(col = names(pvalue)[-1]) ~ sig_pvalue_bold ))
+    
+```
+
+### [ qvalues ](`r params$out`/qvalue_0001.txt)
+
+```{r, echo=FALSE, results='asis'}
+    qvalue<-fread(paste0(params$out,"/qvalue_0001.txt"), header=F)
+    sig_qvalue_bold <- formatter("span", style = x ~ style("background-color" = ifelse(x <= 1e-5, "pink", ifelse(x <= 0.05, "palegoldenrod", "transparent"))))
+    formattable(qvalue, list(area(col = names(qvalue)[-1]) ~ sig_qvalue_bold ))
+    
+```
+
+

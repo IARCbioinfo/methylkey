@@ -1,31 +1,42 @@
 <?xml version="1.0"?>
-<tool id="dmrs2" name="get DMRs" version="0.0.1">
-<description>Deferentially methylated Regions</description>
+<tool id="dmrs" name="DMRs" version="0.1.2">
+<description>Meth analysis by region</description>
 
-<code file="getlevels.py"/>
+<requirements>
+    <requirement type="package" version="2.0" >r-methylkey</requirement>
+</requirements>
 
 <command>
 	#import re
 	#set inputDir=$re.sub("\.dat","_files",str($input))
 	#set outputDir=$re.sub("\.dat","_files/",str($html))
 
-	Rscript $__tool_directory__/../R/$dmr.package 
-	--meth $inputDir/meth.rdata
+	cp $__tool_directory__/../bin/methylkey_dmrcate.Rmd index.Rmd;
 
-	#if $dmr.package=="dmrcate.r"
-		--type $dmr.analysis_type --fdr $dmr.fdr --pcutoff $dmr.pcutoff	
-	#elif $dmr.package=="bumphunter.r"
-		--cpu $dmr.nbcor --test $dmr.method --mval $dmr.mval --minNumOfCpgs $dmr.minNumOfCpgs
+	mkdir $html.files_path;
+
+	Rscript -e "rmarkdown::render('index.Rmd', params=list( 
+
+	meth='$inputDir/report/meth.rdata' ,
+
+	#if $dmr.package=="dmrcate"
+		type='$dmr.analysis_type' ,
+                fdr=$dmr.fdr ,
+	        pval=$dmr.pcutoff ,
+	#elif $dmr.package=="bumphunter"
+		cpu=$dmr.nbcor ,
+	        test=$dmr.method ,
+                mval=$dmr.mval ,
+                minNumOfCpgs=$dmr.minNumOfCpgs ,
 	#else
-	    --min $dmr.minProbeNum --pcutoff $dmr.pValueTh --window $dmr.winsize --fdr $dmr.fdr
+	        min=$dmr.minProbeNum ,
+                pval=$dmr.pValueTh ,
+                window=$dmr.winsize ,
+                fdr=$dmr.fdr ,
 	#end if
-	--output $html.files_path;
+	out='report'))";
 
-	mv $html.files_path/* $inputDir/. ;
-	cp $inputDir/index.html $input;
-	mkdir $outputDir;
-	ln -sfvn $inputDir/* $outputDir/.;
-	cp $input $html;
+	mv report $html.files_path/.;
 </command>
 
 <inputs>
@@ -34,10 +45,10 @@
 	
 	<conditional name="dmr">
 		<param name="package" type="select" label="Method">
-			<option value="dmrcate.r">DMRcate</option>
-			<option value="bumphunter.r">Bumphunter</option>
+			<option value="dmrcate">DMRcate</option>
+			<option value="bumphunter">Bumphunter</option>
 		</param>
-		<when value="dmrcate.r">
+		<when value="dmrcate">
 			<param name="analysis_type" type="select" label="Type of Analysis">
 				<option value="differential">differential (DMRs)</option>
 				<option value="variability">variability (VMRs)</option>
@@ -45,7 +56,7 @@
 			<param name="fdr" type="text" value="0.05" label="FDR cutoff" help="FDR cutoff (Benjamini-Hochberg) for which CpG sites are individually called as  significant.   Used  only  to  determine  effect  size,  and  not  for  downstream thresholding."/>
 			<param name="pcutoff" type="text" value="0.2" label="pcutoff" help="p-value cutoff to determine DMRs."/>
 		</when>
-		<when value="bumphunter.r">
+		<when value="bumphunter">
 			<param name="method" type="select" label="Test" help="The use of the permutation test is not recommended with multiple covariates, (ncol(design)>2).">
 				<option value="permutation">permutation</option>
 				<option value="bootstrap">bootstrap</option>
@@ -61,7 +72,7 @@
 </inputs>
 
 <outputs>
-    <data name="html" format="html" label="${dmr.package}" />
+    <data name="html" format="html" label="${dmr.package} on ${on_string}" from_work_dir="index.html"/>
 </outputs>
 
 <stdio>

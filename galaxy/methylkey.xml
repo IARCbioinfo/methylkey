@@ -3,7 +3,8 @@
 <description>into methylkey pipeline</description> 
 
 <requirements>
-    <requirement type="package" version="2.0" >r-methylkey</requirement>
+    <container type="docker">iarcbioinfo/bioc-epigenetic:latest</container>
+<!--    <requirement type="package" version="2.0" >r-methylkey</requirement> -->
 </requirements>
 
 <command><![CDATA[ 
@@ -44,7 +45,11 @@
 	#end if
 
 	samples='$sample' ,
-	groups='$groups' ,
+	#if $groups
+        groups=c($group ,$groups) ,
+	#else
+	    groups=$group ,
+    #end if
 	nalimit=$nalimit ,
 	missing='$missing' ,
 	out='report' ,
@@ -122,10 +127,13 @@
 	<param name="pdata" type="data" format="tabular" label="Sample Sheet (phenotypic data)"/>
 	
 	<param name="sample" type="data_column" data_ref="pdata" label="Sample Names" use_header_names="true" force_select="true" numerical="false"
-		help="Warning: if you have space in the name of your column replace it by a dot or an underscore" value="1"/>
+		help="" value="1"/>
 
-	<param name="groups" type="data_column" data_ref="pdata" label="Sample Groups" use_header_names="true" force_select="true" multiple="true" numerical="false"
-		help="Warning: if you have space in the name of your column replace it by a dot or an underscore" value="2"/>
+	<param name="group" type="data_column" data_ref="pdata" label="Main Group" use_header_names="true" force_select="true" multiple="false" numerical="false"
+		help="Used to calculate missing values by means" value="2"/>
+
+	<param name="groups" type="data_column" data_ref="pdata" label="Sample Groups" use_header_names="true" force_select="false" multiple="true" numerical="false"
+		help="" value="2"/>
 
 	<param name="nalimit" type="text" value="0.05" label="Maximum NA fraction for a probe" 
 		help="Remove a probe if its beta value is NA for more than xx% of sample (0.05 = 5%)" />
@@ -160,7 +168,7 @@
 	</conditional>
 
 	<param name="violin" type="boolean" label="Draw violin plot with betas values" truevalue="TRUE" falsevalue="FALSE" checked="true" />
-	
+
 </inputs>
 
 <outputs>

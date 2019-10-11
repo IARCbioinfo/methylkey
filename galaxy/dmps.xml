@@ -27,13 +27,14 @@
     case='$case' ,
     control='$control' ,
 	#if $custom.model
-          model='$custom.model' ,
-        #end if
-        method='$advanced.method' ,
-        fdr=$advanced.fdr ,
-        hsize=$advanced.hsize ,
+        model='$custom.model' ,
+    #end if
+    method='$advanced.method' ,
+    fdr=$advanced.fdr ,
+    hsize=$advanced.hsize ,
 	logistic=$advanced.logistic ,
-        out='report'))";
+	bed='$advanced.regions' ,
+    out='report'))";
 
 	mv report $html.files_path/.;
 
@@ -63,8 +64,15 @@
 			<option value="robust">Robust</option>
 		</param>
 	
+		<param name="genome" type="select" label="genome">
+			<option value="hg19" selected="true" >HG19</option>
+			<option value="hg38">HG38</option>
+			<option value="mm10">MM10</option>
+		</param>
+
 		<param name="fdr" type="text" value="0.05" label="qvalue cutoff for toptable" />
 		<param name="hsize" type="text" value="50" label="Number of dmps to use for the heatmap"/>
+		<param name="regions" type="data" optional="true" format="interval" label="Use only positions in defined regions"/>
 		<param name="logistic" type="boolean" truevalue="TRUE" falsevalue="FALSE" checked="false" label="Run logistic regression with the same model"/>
 	</section>
 	

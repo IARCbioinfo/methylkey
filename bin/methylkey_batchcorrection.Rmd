@@ -30,9 +30,7 @@ message(paste0("nalimit:", params$nalimit))
 message(paste0("missing:", params$missing))
 ```
 
-
 ```{r load, include=FALSE}
-write("1- Loading",file=paste0(params$out,"/log"))
 if ( !file.exists(params$meth)) { 
   stop("Meth file is required. Use 'methylkey -T loader' to create meth file.")
 }
@@ -44,7 +42,6 @@ batch<-suppressWarnings( autoformat(params$batch) )
 ```
 
 ```{r checkvariables, include=FALSE}
-write("2- Check variables",file=paste0(params$out,"/log"))
 #variables<-autoformat(params$variables)
 variables<-colnames(pdata[params$variables])
 for (v in variables) {
@@ -54,14 +51,12 @@ for (v in variables) {
 ```
 
 ```{r createmodel, include=FALSE}
-write("3- Create Model",file=paste0(params$out,"/log"))
 formula1 <- as.formula(paste("~ " ,paste(variables,collapse="+")))
 design<-model.matrix(formula1,data=pdata)
 ```
 
 ```{r mvalues, include=FALSE}
 #3-check mvalues
-write("3- Check mvalues",file=paste0(params$out,"/log"))
 mval[!is.finite(mval)]<-min(mval[is.finite(mval)])
   
 # Remove a probe when sum of betas is 0.
@@ -73,8 +68,6 @@ if(length(iszero) > 0){
 
 ```{r sva, eval=(params$correction=="sva"), include=FALSE}
  #4-Batch correction
-write("4- SVA correction",file=paste0(params$out,"/log"))
-  
 if(nrow(design) > ncol(mval)){ stop("Missing samples in betas ! ") }
 if(nrow(design) < ncol(mval)){ stop("Missing samples in pdata ! ") }
     
@@ -96,7 +89,6 @@ correction=paste0("on SVA corrected mvalues with model ", formula1)
 
 ```{r ssva, eval=(params$correction=="ssva"), include=FALSE}
  #4-Batch correction
-write("4- Smart SVA correction",file=paste0(params$out,"/log"))
 require(SmartSVA)
   
 #estimate number of surrogates
@@ -119,14 +111,12 @@ correction=paste0("on SSVA corrected mvalues with model ", formula1)
 ```
 
 ```{r combat, eval=(params$correction=="combat"), include=FALSE}
-write("4- Combat correction",file=paste0(params$out,"/log"))
 require(sva)
 mval<-ComBat(dat=mval, batch=pdata[,batch], mod=design, par.prior=TRUE, prior.plots=TRUE)
 correction=paste0("on combat corrected mvalues for batch ", colnames(pdata)[batch] )
 ```
 
 ```{r PCA, include=FALSE}
-write("5- running PCA",file=paste0(params$out,"/log"))
 pca<-makepca( mval, pdata, params$out, colnames(pdata), nPC=10 )
 qvalue<-pca$qval
 pvalue<-pca$pval
@@ -137,7 +127,6 @@ dev.off()
 ```
 
 ```{r save, include=FALSE}
-write("6- Save results",file=paste0(params$out,"/log"))
 write.table(pvalue, file=paste0(params$out, "/pvalue_0002.txt"), row.names=T, sep="\t")
 write.table(qvalue, file=paste0(params$out, "/qvalue_0002.txt"), row.names=T, sep="\t")
 write.table(mval, file=paste0(params$out, "/mval_batchcorrected.txt"), row.names=T, sep="\t")

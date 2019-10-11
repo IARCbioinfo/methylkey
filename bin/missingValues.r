@@ -50,6 +50,7 @@ replaceByMean<-function(betas,groups){
 	#replace missing values by means
 	for(group in levels(groups)){
 		sel<-groups==group
+		if(!sum(sel)>1){ stop("You should have at least 2 samples by group !") }
 		betas[probNAcont,sel]<-meanBetas(betas[probNAcont,sel])
 	}
 	return(betas)

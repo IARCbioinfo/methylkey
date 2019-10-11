@@ -12,7 +12,11 @@
 # get Delta Betas
 getDeltaBetas<-function(betas,group){
 
-	means<-by(t(betas), group, colMeans)
+	if( is.null(nrow(betas)) ){
+		means<-by( as.matrix(betas,ncol=1), group, colMeans)
+	} else {
+		means<-by(t(betas), group, colMeans)
+	}
 
 	delta=list()
 	for( level1 in levels(group) ) {

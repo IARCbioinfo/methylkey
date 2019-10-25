@@ -25,7 +25,6 @@ library(data.table)
 source( paste0(params$path, "/utils.r")  )
 source( paste0(params$path, "/plots.r")  )
 source( paste0(params$path, "/annot.r")  )
-source( paste0(params$path, "/dmrcate.r")  )
 ```
 
 ```{r load, include=FALSE}

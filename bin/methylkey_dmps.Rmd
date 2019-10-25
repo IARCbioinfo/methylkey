@@ -128,7 +128,7 @@ dev.off()
 ```{r logisticReg1, eval=params$logistic, include=FALSE}
 #TODO change sample Name
 #6.5-run logistic regression
-toptable2<-logistic(mval,pdata,samples,variables,params$fdr)
+toptable2<-logistic2(mval,pdata,samples,variables,params$fdr)
 lmPvals2 = toptable2$P.Value
 chisq2 <- qchisq(1-toptable2$P.Value,1)
 lambda2<-median(chisq2)/qchisq(0.5,1)
@@ -175,8 +175,8 @@ write.table(toptable, file=paste0(rpath, "/toptable.txt"), row.names=F, sep="\t"
 
 ```{r circosplots, eval=(nbdmps>0), include=FALSE}
 #circosplot
-gbm<-makeGRangesFromDataFrame(toptable)
-gbm$meth.diff<-toptable$deltaBetas*100
+#gbm<-makeGRangesFromDataFrame(toptable)
+#gbm$meth.diff<-toptable$deltaBetas*100
 #suppressMessages ( p<-circusplot(gbm, genome=genome) )
 jpeg(paste0(rpath, "/circleplot.jpg") , width=800, height=800)
 #print(p)

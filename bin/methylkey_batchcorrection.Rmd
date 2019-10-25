@@ -10,14 +10,12 @@ params:
   variables: "var"
   batch: "None"
   correction: "sva"
-  nalimit: 0.2
-  missing: "mean"
   separator: "\t"
   out: "methylkey"
 ---
 
 ```{r setup, include=FALSE}
-#params<-list(path="/home/cahaisv/git/methylkey/bin/",  meth="methylkey/meth.rdata",  variables="tissue",  batch="None",  correction="sva",  nalimit=0.2,  missing="mean", separator=",", out="methylkey")
+#params<-list(path="/home/cahaisv/git/methylkey/bin/",  meth="methylkey/meth.rdata",  variables="tissue",  batch="None",  correction="sva", separator=",", out="methylkey")
 knitr::opts_chunk$set(echo = TRUE)
 library(data.table)
 library(wateRmelon)
@@ -26,8 +24,6 @@ source( paste0(params$path, "/pca.r") )
 if ( !file.exists(params$out)) { dir.create(params$out) }
 message(paste0("variables:", params$variables))
 message(paste0("correction:", params$correction))
-message(paste0("nalimit:", params$nalimit))
-message(paste0("missing:", params$missing))
 ```
 
 ```{r load, include=FALSE}

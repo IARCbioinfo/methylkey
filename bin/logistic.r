@@ -12,10 +12,10 @@
 # logistic regression, return direcly a toptable
 logistic<-function(mval,pdata,samples,variables,fdr){
 
-	pdata$samples<-samples
+	pdata$samples<-samples[[1]]
 	tmpval<-merge( pdata[,c("samples",variables) ], t(mval), by.x="samples", by.y="row.names" )
 	bcol<-length(c("samples",variables))+1
-	
+
 	logreg<-sapply( c(bcol:ncol(tmpval)), function(x) {
 		coef(summary( glm( eval(parse( text=makeFormula(x, variables) )), family='binomial' ) ))
 	}[2,] )
@@ -29,9 +29,9 @@ logistic<-function(mval,pdata,samples,variables,fdr){
 		        P.Value=logreg$Pr, 
 		        adj.P.Val=p.adjust(logreg$Pr ,"fdr"), 
 		        zvalue=logreg$zvalue )
-	  
 	return(toptable)
 }
+
 
 #######################
 # makeFormula
@@ -39,13 +39,51 @@ makeFormula<-function(x, variables){
 	
 	formule="y~x"
 	if( length(variables) > 1){ 
-		formule=paste0( "tmpval[,2] ~ tmpval[,",x,"] + " , paste( paste0("tmpval[,'",variables[-1], "']"), collapse="+" ))
+		formule=paste0( "tmpval[,'", variables[1], "'] ~ tmpval[,",x,"] + " , paste( paste0("tmpval[,'",variables[-1], "']"), collapse="+" ))
 	}
 	if( length(variables) ==1 ) {
-		formule=paste0( "tmpval[,2] ~ tmpval[,", x, "]" )
+		formule=paste0( "tmpval[,'", variables[1], "'] ~ tmpval[,", x, "]" )
 	}  
 	return(formule)
 }
 
+#######################
+# logistic regression, return direcly a toptable
+logistic2<-function(mval,pdata,samples,variables,fdr){
+
+	require(survival)
+
+	pdata$samples<-samples[[1]]
+	tmpval<-merge( pdata[,c("samples",variables) ], t(mval), by.x="samples", by.y="row.names" )
+	bcol<-length(c("samples",variables))+1
+
+	logreg<-sapply( c(bcol:ncol(tmpval)), function(x) {
+		coef(summary( clogit( eval(parse( text=makeFormula2(x, variables) )) ) ))
+	} )
+
+	rownames(logreg)<-c("Coeff","odds","StdError","zvalue", "Pr")
+	colnames(logreg)<-colnames(tmpval[bcol:ncol(tmpval)])
+	logreg<-as.data.frame(t(logreg))
+	toptable<-data.frame( Odds=logreg$odds,
+		        AveExpr=log2( colMeans( m2beta(tmpval[,-c(1:(bcol-1))]) ) ), 
+		        t=logreg$zvalue, 
+		        P.Value=logreg$Pr, 
+		        adj.P.Val=p.adjust(logreg$Pr ,"fdr"), 
+		        zvalue=logreg$zvalue )
+	return(toptable)
+}
 
 
+#######################
+# makeFormula
+makeFormula2<-function(x, variables){
+	
+	formule="y~x"
+	if( length(variables) > 1){ 
+		formule=paste0( "as.numeric(tmpval[,'", variables[1], "']) ~ tmpval[,",x,"] + strata(" , paste( paste0("tmpval[,'",variables[-1], "']"), collapse="+" ), ")")
+	}
+	if( length(variables) ==1 ) {
+		formule=paste0( "as.numeric(tmpval[,'", variables[1],"']) ~ tmpval[,", x, "]" )
+	}  
+	return(formule)
+}

@@ -111,7 +111,7 @@ annoTable<-function(regions=NULL, toptable=NULL, genome="hg19")
   #toptable
   dm_annotated<-makeGRangesFromDataFrame(dm, keep.extra.columns=TRUE)
   dm<-dm[order(dm$annot.symbol),]
-  toptable<-dm[!duplicated(dm$cpg),c(9:11,1,13,2:8,24)] 
+  toptable<-dm[!duplicated(dm$cpg),c(9:11,1,13,2:8,23,24)] 
   toptable<-toptable[order(toptable$P.Value),]
   
   return(list(full=dm,toptable=toptable,gr=dm_annotated,cpg_annotated=cpg_annotated))

@@ -55,9 +55,10 @@ groups <-params$groups
 #1- load pdata
 pdata<-read.table(params$pdata, sep=params$separator, header=T)
 if( ncol(pdata)<2 ){ stop(paste0("Check if your separator in pdata is really '", params$separator, "'")) }
+colnames(pdata)[ which(colnames(pdata)==samples) ] <-"sample_name"
 if(file.exists(params$badsamples)){
   bad<-read.table(params$badsamples)$V1
-  pdata<-pdata[ !pdata[,samples] %in% bad, ]
+  pdata<-pdata[ !pdata$sample_name %in% bad, ]
   message(paste0(length(bad), " samples listed in ", params$badsamples, " are removed !"))
 }
 ```
@@ -75,7 +76,7 @@ for (variable in colnames(pdata)){
 ```{r checkSamples, include=FALSE}
 #3- check samples
 tryCatch({
-  samples<-pdata[,samples]
+  samples<-pdata$sample_name
 }, error = function(err) {
   stop(paste0("Check if '", samples, "' is a column in your pdata. You can specify the column's name for samples names with --samples "))
 })

@@ -16,7 +16,7 @@ params:
   nalimit: 0.2
   missing: "mean"
   filters: "default"
-  separator: "\t"
+  separator: ","
   out: "methylkey"
   violin: TRUE
   badsamples: "None"
@@ -56,9 +56,11 @@ message(paste0("filter regions:", params$bed))
 ```
 
 ```{r autoformat, include=FALSE}
-samples<-suppressWarnings( autoformat(params$samples) )
-barcode<-suppressWarnings( autoformat(params$barcode) )
+#samples<-suppressWarnings( autoformat(params$samples) )
+#barcode<-suppressWarnings( autoformat(params$barcode) )
 #groups <-suppressWarnings( autoformat(params$groups) )
+samples<-params$samples
+barcode<-params$barcode
 groups<-params$groups
 ```
 

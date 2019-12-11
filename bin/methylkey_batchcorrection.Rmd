@@ -34,7 +34,7 @@ if (length(params$variables)==0){
   stop("You must provide at least one variable to protect, usually the sample group ( --variables )")
 }
 load(params$meth)
-batch<-suppressWarnings( autoformat(params$batch) )
+#batch<-suppressWarnings( autoformat(params$batch) )
 ```
 
 ```{r checkvariables, include=FALSE}
@@ -76,6 +76,10 @@ if (length(variables)==1){
   model0<-model.matrix(formula0, data=pdata)
   sva<-sva(mval,design,model0)
 }
+
+message(paste0("number of surrogate variables", sva$n.sv))
+if(sva$n.sv) { stop( "0 surrogate variables have been found, batchcorrection is useless !" )  }
+
 #design<-cbind(design,sva$sv)
 mval = t(residuals(lm(t(mval)~sva$sv)))
   

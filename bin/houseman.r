@@ -5,7 +5,8 @@
 
 houseman<-function(RGset=RGset, pdata=pdata, referencePlatform="IlluminaHumanMethylation450k", out){
 	
-	library(FlowSorted.Blood.450k)
+	if( referencePlatform=="IlluminaHumanMethylation450k" ){ require(FlowSorted.Blood.450k) }
+	if( referencePlatform=="IlluminaHumanMethylationEPIC" ){ require(FlowSorted.Blood.epic) }
 
 	jpeg(paste0(out, "/ebcc.jpg"))
 	wbc<-estimateCellCounts(RGset, returnAll=T, meanPlot=T, sex=as.factor(pdata$predictedSex))

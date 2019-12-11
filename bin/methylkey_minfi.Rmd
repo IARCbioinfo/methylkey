@@ -7,17 +7,17 @@ output:
 params:
   path: "~/git/methylkey/bin/"
   pdata: "pdata.csv"
-  idat: "data.csv.gz"
+  idat: "idat"
   pipeline: "minfi"
-  normalize: "funnorm"
-  samples: "sample_name"
-  barcode: "barcode"
-  groups: "group"
+  normalize: "Funnorm"
+  samples: "Sample_ID"
+  barcode: NULL
+  groups: "Sentrix_ID"
   nalimit: 0.2
   missing: "mean"
   filters: "default"
-  separator: ","
-  out: "methylkey"
+  separator: "\t"
+  out: "methylkey_minfi"
   violin: TRUE
   badsamples: "None"
   genome: "hg19"
@@ -33,17 +33,18 @@ library(formattable)
 library(data.table)
 library(wateRmelon)
 library(minfi)
-library(wateRmelon)
-library(IlluminaHumanMethylationEPICmanifest)
-library(IlluminaHumanMethylation450kmanifest)
+library(annotatr)
+
+#library(IlluminaHumanMethylationEPICmanifest)
+#library(IlluminaHumanMethylation450kmanifest)
 source( paste0(params$path, "/utils.r")  )
+source( paste0(params$path, "/sampleSheet.r")  )
 source( paste0(params$path, "/plots.r")  )
 source( paste0(params$path, "/annot.r")  )
 source( paste0(params$path, "/pca.r")  )
 source( paste0(params$path, "/houseman.r")  )
 source( paste0(params$path, "/missingValues.r")  )
 
-#path <- dirname(strsplit(commandArgs()[4],"=")[[1]][2])
 datadir<-paste0(params$path , "/../data/")
 if ( !file.exists(params$out)) { dir.create(params$out) }
 message(paste0("samples:", params$samples))
@@ -53,15 +54,6 @@ message(paste0("missing:", params$missing))
 message(paste0("violin:", params$violin))
 message(paste0("badsamples:", params$badsamples))
 message(paste0("filter regions:", params$bed))
-```
-
-```{r autoformat, include=FALSE}
-#samples<-suppressWarnings( autoformat(params$samples) )
-#barcode<-suppressWarnings( autoformat(params$barcode) )
-#groups <-suppressWarnings( autoformat(params$groups) )
-samples<-params$samples
-barcode<-params$barcode
-groups<-params$groups
 ```
 
 ```{r filters, include=FALSE}
@@ -76,65 +68,23 @@ if (filters[1]=="default"){
 
 ```{r loading, echo=FALSE, results ='asis'}
 #1- load pdata
-pdata<-read.table(params$pdata, sep=params$separator, header=T)
-if( ncol(pdata)<2 ){ stop(paste0("Check if your separator in pdata is really '", params$separator, "'")) }
+pdata<-readSampleSheet(params$pdata, samples=params$samples, barcode=params$barcode, groups=params$groups, sep=params$separator)
 if(file.exists(params$badsamples)){
-  bad<-read.table(params$badsamples)$V1
-  pdata<-pdata[ !pdata[,samples] %in% bad, ]
-  write(paste0(length(bad), " samples listed in ", params$badsamples, " are removed !"),file=paste0(params$out,"/log"),append = TRUE)
+  pdata<-removeBadSamples(pdata,params$bad)
 }
-pdata[,barcode]<-as.character(pdata[,barcode]) 
-pdata$Basename<-pdata[,barcode]
-```
-
-```{r v2factor, include=FALSE}
-#2- convert variables to factor
-for (variable in colnames(pdata)){ 
-  if (length(levels(factor(pdata[,variable]))) <= nrow(pdata)/8) 
-  { 
-  	pdata[,variable]<-as.factor(pdata[,variable]) 
-  }  
-}
-```
-
-```{r checkSamples, include=FALSE}
-#3- check samples
-tryCatch({
-  samples<-pdata[samples]
-}, error = function(err) {
-  stop(paste0("Check if '", samples, "' is a column in your pdata. You can specify the column's name for samples names with --samples "))
-})
-if(length(unique(samples))!=length(samples)){ 
-  stop("Samples names must be uniques !")
-}
-for (sample in samples){
-  write(sample,file=paste0(params$out,"/log"),append = TRUE)
-}
-```
-
-```{r checkBarcodes, eval=(params$pipeline!="rnbeads"), include=FALSE}
-#check barcode
-tryCatch({
-  barcode<-colnames(pdata[barcode])
-}, error = function(err) {
-  stop(paste0("Check if '", barcode, "' is a column in your pdata. You can specify the column's name for barcodes with --barcode "))
-})
+nsamp<-nrow(pdata)
 ```
 
 ```{r checkGroups, include=FALSE}
 #5- check groups
+groups<-params$groups
 for (group in groups) {
-  tryCatch({
-    write(group,file=paste0(params$out,"/log"),append = TRUE)
-    if ( !is.factor(pdata[,group] )){
-      groups<-groups[-which(groups==group)]
-      print(paste0("warning : ", group, " removed from groups because it is numeric." )) 
-    }else{
+  if ( !is.factor(pdata[,group] )){
+        groups<-groups[-which(groups==group)]
+        print(paste0("warning : ", group, " removed from groups because it is numeric." )) 
+  }else{
       dir.create(paste(params$out, colnames(pdata[group]), sep="/"))
-    }
-  }, error = function(err) {
-    stop(paste0("Check if '", group, "' is a column in your pdata. You can specify the columns' names for groups with --groups "))
-  })
+  }
 }
 groups<-colnames(pdata[groups])
 ```
@@ -143,9 +93,11 @@ groups<-colnames(pdata[groups])
 #6- read idat
 RGset<-read.metharray.exp(base = params$idat, targets=pdata, force=TRUE)
 betas<-getBeta(RGset)
-colnames(betas)<-samples[[1]]
+colnames(betas)<-pdata$samples
 platform<-RGset@annotation["array"]
+message(paste0("reading idat : " , platform ) )
 nbprobes1<-nrow(betas)
+message(paste0("reading idat : " , nbprobes1, " probes" ) )
 pvalues<-minfi::detectionP(RGset)
 ```
 
@@ -159,22 +111,21 @@ pdata$predictedage <- agep(betas)
 
 ```{r boxplots1, include=FALSE}
 #8- QC before processing : boxplots1
-nsamp<-nrow(pdata)
 jpeg(paste0(params$out, "/boxplot_colour1.jpg"), width=800, height=800)
-ylab<-"log2 intensity of both methylated and unmethylated probes"
+ylab<-"log2 intensity of both green and red channel"
 par(xaxt='n')
-boxplot(log2(RGset@assays$data$Red+1), col = "red", boxwex = 0.25, at= 1:nsamp - 0.175, ylab=ylab, labels=samples[[1]], cex=0.5)
-boxplot(log2(RGset@assays$data$Green+1), col = "green", boxwex = 0.25, at= 1:nsamp + 0.175, axis=F , add=T, cex=0.5)
+boxplot(log2(getRed(RGset)+1), col = "red", boxwex = 0.25, at= 1:nsamp - 0.175, ylab=ylab, labels=pdata$samples, cex=0.5)
+boxplot(log2(getGreen(RGset)+1), col = "green", boxwex = 0.25, at= 1:nsamp + 0.175, axis=F , add=T, cex=0.5)
 par(xaxt='s')
-axis(1, at=1:nsamp, labels=samples[[1]], tick=TRUE, las=2, cex.axis=0.8)
+axis(1, at=1:nsamp, labels=pdata$samples, tick=TRUE, las=2, cex.axis=0.8)
 dev.off()
 
-jpeg(paste0(params$out, "/methylated1.jpg"), width=800, height=800)
-boxplot(log2(RGset@assays$data$Red+1), main="methylated (Red channel)", col = "red", las=2, cex.axi=0.8, labels=samples[[1]])
+jpeg(paste0(params$out, "/redchannel.jpg"), width=800, height=800)
+boxplot(log2(getRed(RGset)+1), main="Red channel", col = "red", las=2, cex.axi=0.8, labels=pdata$samples)
 dev.off()
 
-jpeg(paste0(params$out, "/unmethylated1.jpg"), width=800, height=800)
-boxplot(log(RGset@assays$data$Green+1), main="unmethylated (Green channel)", col = "green", las=2, cex.axi=0.8, labels=samples[[1]])
+jpeg(paste0(params$out, "/greenchannel.jpg"), width=800, height=800)
+boxplot(log(getGreen(RGset)+1), main="Green channel", col = "green", las=2, cex.axi=0.8, labels=pdata$samples)
 dev.off()
 ```
 
@@ -211,20 +162,20 @@ for (group in groups) {
 
 ```{r Houseman, eval=(params$cell=="houseman"), include=FALSE}
 #11- Houseman
-pdata<-houseman(RGset, data, platform, params$out)
+pdata<-houseman(RGset, pdata, platform, params$out)
 ```
 
 ```{r normalization, include=FALSE}
 #12- Normalization
 rawbetas=betas
-if(params$normalize=="Funnorm") {	MSet<-suppressWarnings( suppressMessages( preprocessFunnorm(RGset, sex=estSex$predictedSex) ) )   }
-if(params$normalize=="Illumina"){	MSet<-suppressWarnings( suppressMessages( preprocessIllumina(RGset) ) )                           }
-if(params$normalize=="Noob")    {	MSet<-suppressWarnings( suppressMessages( preprocessNoob(RGset) ) )	                              }
-if(params$normalize=="Quantile"){	MSet<-suppressWarnings( suppressMessages( preprocessQuantile(RGset, sex=estSex$predictedSex ) ) )	}
-if(params$normalize=="SWAN")    { MSet<-suppressWarnings( suppressMessages( preprocessSWAN(RGset, MSet ) ) )                        }
+if(params$normalize=="Funnorm") {	MSet<-preprocessFunnorm(RGset, sex=estSex$predictedSex)   }
+if(params$normalize=="Illumina"){	MSet<-preprocessIllumina(RGset)                           }
+if(params$normalize=="Noob")    {	MSet<-preprocessNoob(RGset)	                              }
+if(params$normalize=="Quantile"){	MSet<-preprocessQuantile(RGset, sex=estSex$predictedSex )	}
+if(params$normalize=="SWAN")    { MSet<-preprocessSWAN(RGset, MSet )                        }
 
 betas=getBeta(MSet)
-colnames(betas)<-samples[[1]]
+colnames(betas)<-pdata$samples
 ```
 
 ```{r filterbypvalue, include=FALSE}
@@ -258,7 +209,7 @@ write(filteredFromList,file=paste0(params$out,"/log"),append = TRUE)
 #15- Select probes with percentage of NA values > nalimit
 naprobes<-CpGNAexcl( betas,params$nalimit )
 filteredNAprobes<-length(naprobes)
-message(paste0(filteredNAprobes, "probes removed beacause of percentage of NA values > ", params$nalimit))
+message(paste0(filteredNAprobes, " probes removed because percentage of NA values > ", params$nalimit))
 write.table(paste(naprobes, collapse="\n"), file=paste0(params$out, "/removed.txt"), row.names=F, sep="\t")
 ```
 
@@ -281,14 +232,6 @@ if ( sum(is.na(betas)) > 0 ) {
 }
 ```
 
-```{r plotQC2, include=FALSE}
-#18- QC before processing : plotQC2
-#qc <- getQC(MSet)
-#jpeg(paste0(params$out, "/plotQC2.jpg"), width=800, height=800)
-#plotQC(qc)
-#dev.off()
-```
-
 ```{r QC, include=FALSE}
 #19- QC after processing
 for (group in groups) {
@@ -306,7 +249,7 @@ for (group in groups) {
 	jpeg(paste(params$out, group, "mdsPlot2.jpg", sep="/"), width=800, height=800)
 	if (nrow(pdata) < 200 ){
 		mdsPlot(betas,numPositions=1000,sampGroups=pdata[,group],
-					legendPos = "bottomleft",sampNames=samples[[1]])
+					legendPos = "bottomleft",sampNames=pdata$samples)
 	}else{
 		mdsPlot(betas,numPositions=1000,sampGroups=pdata[,group])
 	}
@@ -318,22 +261,14 @@ nbprobes2=nrow(betas)
 ```{r PCA, include=FALSE}
 #20- PCA
 pca<-suppressPackageStartupMessages( makepca( betas, pdata, params$out, colnames(pdata), nPC=10 ) )
-pvalue<-pca$pvalue
-qvalue<-pca$qvalue
 jpeg(paste0(params$out, "/pca_contributions_0001.jpg"))
 plot(pca$contrib)
 dev.off()
 ```
 
-```{r deltabetas, include=FALSE}
-#21- DeltaBetas
-deltab<-""
-deltab<-getDeltaBetas(betas,pdata[,groups[1]])
-```
-
 ```{r violinplot, eval = params$violin, include=FALSE}
 #22-violin plot
-violin_plot(pdata=pdata, betas=betas, group=groups[1], samples=colnames(samples), platform=platform, path=path, out=params$out, regions="")
+violin_plot(pdata=pdata, betas=betas, group=groups[1], samp="samples", platform=platform, datadir=datadir, out=params$out, regions="")
 ```
 
 ```{r mval, include=FALSE}
@@ -351,9 +286,8 @@ if(length(iszero) > 0){
 #24- Save and Create report
 write.table(pdata, file=paste0(params$out, "/pdata.txt"), row.names=F, sep="\t")
 write.table(betas, file=paste0(params$out, "/betas.txt"), row.names=T, sep="\t")
-write.table(deltab, file=paste0(params$out, "/deltabetas.txt"), row.names=T, sep="\t")
-write.table(pvalue, file=paste0(params$out, "/pvalue_0001.txt"), row.names=T, sep="\t")
-write.table(qvalue, file=paste0(params$out, "/qvalue_0001.txt"), row.names=T, sep="\t")
+write.table(pca$pvalue, file=paste0(params$out, "/pvalue_0001.txt"), row.names=T, sep="\t")
+write.table(pca$qvalue, file=paste0(params$out, "/qvalue_0001.txt"), row.names=T, sep="\t")
 
 regions=""
 save(betas, pdata, samples, groups, platform, genome, regions, mval, file=paste0(params$out, "/meth.rdata") )
@@ -381,16 +315,6 @@ kable(betas)
 
 ```
 
-# delta betas
-
-[ Delta Betas ](`r params$out`/deltabetas.txt)
-
-```{r echo=FALSE, results ='asis', warning=FALSE}
-deltabetas<-fread(paste0(params$out,"/deltabetas.txt"),nrows=100)
-kable(deltabetas)
-
-```
-
 # Minfi QC
 
 ## Channels
@@ -401,16 +325,16 @@ kable(deltabetas)
   knitr::include_graphics(paste0(params$out,"/boxplot_colour1.jpg"))
 ```
 	
-### [ Red Channel ](`r params$out`/methylated1.jpg)
+### [ Red Channel ](`r params$out`/redchannel.jpg)
 
 ```{r, echo=FALSE}
-  knitr::include_graphics(paste0(params$out,"/methylated1.jpg"))
+  knitr::include_graphics(paste0(params$out,"/redchannel.jpg"))
 ```
 
-### [ Green Channel ](`r params$out`/unmethylated1.jpg)
+### [ Green Channel ](`r params$out`/greenchannel.jpg)
 
 ```{r, echo=FALSE, results='asis'}
-  knitr::include_graphics(paste0(params$out,"/unmethylated1.jpg"))
+  knitr::include_graphics(paste0(params$out,"/greenchannel.jpg"))
 ```
 
 ## QC	
@@ -423,25 +347,19 @@ kable(deltabetas)
 
 ## Violin plots
 
-```{r, echo=FALSE, results='asis'}
-if ( file.exists(paste0(params$out,"/violin1.jpg" )) ){
-  cat( "### [ case control ](",params$out,"/violin1.jpg)\n" )
+```{r, echo=FALSE, eval = file.exists(paste0(params$out,"/violin1.jpg")), results ='asis' }
+  cat( "### [ case control ](",params$out,"/violin1.jpg)\n\n", sep="")
   knitr::include_graphics(paste0(params$out,"/violin1.jpg"))
-}
 ```
 
-```{r, echo=FALSE, results='asis'}
-if ( file.exists(paste0(params$out,"/violin2.jpg" )) ){
-  cat( "### [ CPG regions ](",params$out,"/violin2.jpg)\n" )
+```{r, echo=FALSE, eval = file.exists(paste0(params$out,"/violin2.jpg")), results ='asis' }
+  cat( "### [ CPG regions ](",params$out,"/violin2.jpg)\n\n", sep="")
   knitr::include_graphics(paste0(params$out,"/violin2.jpg"))
-}
 ```
 
-```{r, echo=FALSE, results='asis'}
-if ( file.exists(paste0(params$out,"/violin3.jpg" )) ){
-  cat( "### [ Genes regions ](",params$out,"/violin3.jpg)\n" )
+```{r, echo=FALSE, eval = file.exists(paste0(params$out,"/violin3.jpg")), results ='asis' }
+  cat( "### [ Genes regions ](",params$out,"/violin3.jpg)\n\n", sep="")
   knitr::include_graphics(paste0(params$out,"/violin3.jpg"))
-}
 ```
 
 # Groups

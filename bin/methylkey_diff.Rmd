@@ -1,0 +1,312 @@
+---
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+title: "methylkey"
+output: 
+  flexdashboard::flex_dashboard: 
+    orientation: rows
+params:
+  path: "~/git/methylkey/bin/"
+  meth: "methylkey/meth.rdata"
+  genome: "hg19"
+  variables: "var"
+  case:	"Tumor"
+  control: "normal"
+  fdr: 0.05
+  pval: 0.1
+  regression: "ls"
+  hsize: 50
+  celllines: "None"
+  type: "differential"
+  niter: 25
+  ncore: 4
+  out: "methylkey"
+  bed: "None"
+  dmrcate: FALSE
+  overwrite: FALSE 
+---
+
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+#params<-list(path="/home/cahaisv/git/methylkey/bin/", meth="genes/meth.rdata", variables="cell_type", formula="None", case="BC", control="cBC", fdr="0.99", method="ls", hsize=50, celllines="None", type="differential", niter=25, out="genes", genome="hg38")
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(limma)
+library(qqman)
+library(GenomicRanges)
+library(wateRmelon)
+library(knitr)
+library(DMRcate)
+library(NMF)
+source( paste0(params$path, "/utils.r")  )
+source( paste0(params$path, "/plots.r")  )
+source( paste0(params$path, "/annot.r")  )
+source( paste0(params$path, "/regression.r")  )
+datadir=paste0( params$path, "/../data/" )
+if ( !file.exists(params$out)) { dir.create(params$out) }
+nbdmps=0
+lambda=0
+info=NULL
+```
+
+```{r load, include=FALSE}
+method=params$method
+genome=params$genome
+load(params$meth)
+
+#TOREMOVE
+pdata$samples<-pdata$Sample_Name
+```
+
+```{r sumOfBetas, include=FALSE}
+#remove cpgs when sum of its betas is 0
+#it can produce a BUG when it is the case
+iszero<-which(rowSums(mval) == 0 )
+if(length(iszero) > 0){
+  mval<-mval[-which(rowSums(mval) == 0 ),]
+}
+```
+
+```{r filterByRegion, eval=(params$bed != "None"), include=FALSE}
+if (!file.exists(params$bed)){ stop(paste0("Error : File ", params$bed, " do not exist !"))}
+bed<-makeGRangesFromDataFrame(fread(params$bed))
+keep<-overlapsAny(regions,bed)
+message("Filter by Region : ", sum(keep) , " positions are in regions and used for the analysis")
+cat("Filter by Region : ", sum(keep) , " positions are in regions and used for the analysis")
+regions<-regions[keep,]
+betas<-betas[keep,]
+mval<-mval[ rownames(mval) %in% rownames(betas), ]
+```
+
+```{r prepare_variables, include=FALSE}
+#variables<-suppressWarnings( autoformat(params$variables) )
+variables<-colnames(pdata[params$variables])
+pdata[ ,variables[1] ]<-as.factor(pdata[ ,variables[1] ])
+for (v in variables) {
+  if (is.factor(v)){
+  	pdata[ ,variables[v] ]<-make.names(pdata[ ,variables[v] ])
+  }
+}
+```
+
+```{r prepare_levels, include=FALSE}
+case<-make.names(params$case)
+control<-make.names(params$control)
+pdata[,variables[1]] <- relevel(pdata[,variables[1]], case)
+pdata[,variables[1]] <- relevel(pdata[,variables[1]], control)
+model=paste0(case,"_vs_",control)
+```
+
+```{r create_model, include=FALSE}
+formula1 <- as.formula(paste("~ " ,paste(variables,collapse="+")))
+model=paste0(case,"_vs_",control)
+design<-model.matrix(formula1,data=pdata)
+colnames(design)<-make.names(colnames(design))
+cmtx <- makeContrasts( contrasts=colnames(design)[2] , levels=colnames(design) )
+```
+
+```{r create_folder, include=FALSE}
+rpath<-paste0(params$out,"/",model, "/", params$regression, "/dmps/") #result path
+dir.create(rpath,recursive=TRUE)
+log<-paste0(rpath,"/log")
+cat(paste0("method:",params$regression),  append=TRUE, file=log)
+cat(paste0("genome:",params$genome),      append=TRUE, file=log)
+```
+
+```{r regression, eval=(!file.exists(paste0(rpath,"/regression.Rdata")) | params$overwrite), include=FALSE}
+#6.5-run regression analysis fof dmps
+regression<-m_regression(mval,pdata,variables,method=params$regression,niter=params$niter,ncore=params$ncore)
+```
+
+```{r deltabetas, eval=(!file.exists(paste0(rpath,"/regression.Rdata")) | params$overwrite), include=FALSE}
+#6.6- Calcul Delta Betas
+regression$table$deltaBetas<-getDeltaBetas(betas[rownames(regression$table),],pdata[,variables[1]],case,control)*100
+```
+
+```{r annotation, eval=(!file.exists(paste0(rpath,"/regression.Rdata")) | params$overwrite), include=FALSE}
+#6.7- Annotation of positions
+    #TODO treat sequencing case
+regions<-read.table(paste0(datadir, "/", platform, ".bed"), sep="\t", header=F)
+colnames(regions)<-c("chr","start","end","id","score","strand")
+regression$table<-annotateSites(regression$table,regions)
+save(file=paste0(rpath, "regression.Rdata"),regression)
+```
+
+```{r resume, include=FALSE}
+load(paste0(rpath,"/regression.Rdata")) # load table
+table<-makeGRangesFromDataFrame(regression$table, keep.extra.columns=TRUE)
+```
+
+```{r qqplot, eval=(!file.exists(paste0(rpath,"/qqplot.Rdata")) | params$overwrite), include=FALSE}
+cat(paste0("\nlambda:",regression$lambda),  append=TRUE, file=log)
+jpeg(paste0(rpath, "/qqplot.jpg"))
+try(
+  qq(regression$pvals,main=paste("QQ plot: ","lambda=", regression$lambda,sep=""))
+, silent=TRUE)
+dev.off()
+```
+
+```{r dmrcate1, eval=(params$dmrcate), include=FALSE}
+#7.0- Dmrcate
+rpath<-paste0(params$out,"/",model, "/", params$regression, "/dmrs/") #Change result path
+dir.create(rpath,recursive=TRUE)
+```
+
+```{r dmrcate2, eval=((params$dmrcate & !file.exists(paste0(rpath,"/fulltable.txt"))) | params$overwrite), include=FALSE}
+annotated <- data.frame(chr=seqnames(table), start=start(table), end=end(table), strand=strand(table),
+    stat=table$t, diff= table$deltaBetas, ind.fdr=table$adj.P.Val, is.sig=(table$adj.P.Val<params$fdr) )
+annotated<-makeGRangesFromDataFrame(annotated, keep.extra.columns=TRUE)
+names(annotated)<-table$probe
+foo <- new("CpGannotated", ranges=annotated)
+dmrcoutput<-dmrcate(foo,C=50, pcutoff=params$pval)
+table <- extractRanges(dmrcoutput, genome = genome)
+
+#retrieve overlaping sites (probes)
+overlap <- findOverlaps(table,annotated)
+overlap <- data.table( cbind( query=queryHits(overlap), subject=subjectHits(overlap) ) )
+table$overlapping.sites<-overlap[ , paste( names(annotated)[subject], collapse="," ) , by=query ]$V1
+```
+
+```{r AnnotatR, eval=(!file.exists(paste0(rpath,"/fulltable.txt")) | params$overwrite), include=FALSE}
+#8.0- AnnotatR
+myannotation<-annoTable(table,genome=genome)
+if ( params$dmrcate ){
+  myannotation<-data.table(dmr = "dmr_names", myannotation)
+  myannotation[ , dmr:= paste0(seqnames,"_",start,"_",end)]
+}
+write.table(myannotation, file=paste0(rpath, "/fulltable.txt"), row.names=F, sep="\t")
+```
+
+```{r toptable, eval=(!file.exists(paste0(rpath,"/heatmap.jpg")) | params$overwrite), include=FALSE}
+#generate the toptable according to filters and draw the heatmap
+if(!exists("myannotation")){ myannotation<-fread(paste0(rpath, "/fulltable.txt")) }
+toptable<-myannotation[ annot.symbol!="NA", -c("annot.seqnames","annot.strand","annot.start","annot.end","annot.width","annot.id","annot.tx_id","annot.type"),]
+toptable<-unique(toptable)
+
+if(params$dmrcate){
+  toptable<-toptable[ HMFDR < params$fdr ][ order(HMFDR,meandiff,maxdiff) ]
+  nbdmrs=length(toptable[ HMFDR < params$fdr,])
+  message( paste0("you get ", nbdmrs, " significant DMRS with", params$regression))
+  cat(paste0("nbdmrs:",nbdmrs), append=TRUE, file=log)
+  cpgs<-unlist(strsplit(toptable$overlapping.sites,","))
+}else{
+  toptable<-toptable[ adj.P.Val < params$fdr ][ order(adj.P.Val,P.Value,deltaBetas) ]
+  nbdmps=length(toptable[ adj.P.Val < params$fdr,])
+  message( paste0("you get ", nbdmps, " significant DMPS with", params$regression))
+  cat(paste0("nbdmps:",nbdmps), append=TRUE, file=log)
+  cpgs<-toptable$probe
+}
+write.table(toptable, file=paste0(rpath, "/toptable.txt"), row.names=F, sep="\t")
+```
+
+```{r heatmap, eval=(!file.exists(paste0(rpath,"/heatmap.jpg")) | params$overwrite), include=FALSE}
+#heatmap
+hsize<-min( params$hsize, length(cpgs) )
+if (hsize>1) {
+  	cpgs<-na.omit(cpgs[1:hsize])
+  	symbols<-toptable$annot.symbol[1:hsize]
+  	labrow<-paste0( cpgs, "(", symbols, ")")
+  	jpeg(paste0(rpath, "/heatmap.jpg"), width=1600, height=1600)
+  	aheatmap(betas[cpgs,], annCol=pdata[,groups], labRow=labrow)
+  	dev.off()
+}
+```
+
+```{r circosplots, eval=(length(cpgs)>0 & (!file.exists(paste0(rpath,"/circleplot.jpg")) | params$overwrite)), include=FALSE}
+#circosplot
+#gbm<-makeGRangesFromDataFrame(toptable)
+#gbm$meth.diff<-toptable$deltaBetas*100
+#suppressMessages ( p<-circusplot(gbm, genome=genome) )
+jpeg(paste0(rpath, "/circleplot.jpg") , width=800, height=800)
+#print(p)
+dev.off()
+``` 
+
+```{r barplots, eval=(length(myannotation)>0 & (!file.exists(paste0(rpath,"/cpgi_barplot.jpg")) | params$overwrite)), include=FALSE}
+#11- barplots
+p<-mk_barplot(annotated_regions=myannotation, betafc=as.numeric(myannotation$deltaBetas), what="cpgi", genome=params$genome )
+ggsave(file=paste0(rpath, "/cpgi_barplot.jpg"), plot=p, width=20, height=20, dpi = 300)
+  
+p<-mk_barplot(annotated_regions=myannotation, betafc=as.numeric(myannotation$deltaBetas), what="genes", genome=params$genome )
+ggsave(file=paste0(rpath,  "/genes_barplot.jpg"), plot=p, width=20, height=20, dpi = 300)
+```
+
+```{r histonemark, eval=(length(myannotation)>0 & (!file.exists(paste0(rpath,"/cpgi_barplot.jpg")) | params$overwrite)), include=FALSE}
+#14- histone mark
+if(params$genome=="hg19" & params$celllines!="None"){
+  p<-mk_hmplot(table, params$out, model, params$celllines)
+  ggsave(file=paste0(rpath, "/chromHMM_barplot.jpg"), plot=p, width=20, height=20, dpi = 300)
+}
+```
+
+```{r createINFO, eval=(nbdmps>0), include=FALSE}
+#15-create INFO file
+#info<-unique(data.frame(anno$cpg_annotated)[,c(1,2,6)])
+#info<-merge(info, eb$p.value, by.x="name", by.y="row.names")
+#colnames(info)<-c("TargetID", "CHR", "MAPINFO", "Pval")
+```
+
+```{r save, eval=(!file.exists(paste0(rpath,"/meth.rdata")) | params$overwrite), include=FALSE}
+#16 save objects
+save(betas, mval, pdata, groups, samples, design, platform, method, genome, regions, toptable, model, info, file=paste0(params$out, "/meth.rdata") )
+``` 
+
+```{r log, results='asis', echo=FALSE}
+log<-paste0(rpath,"/log")
+models<-list.files(params$out)
+#library(kableExtra)
+
+for (model in models){
+
+  regressions<-list.files(paste0(params$out,"/",model))
+
+  for( regression in regressions){
+
+    cat("# ", model, regression, "\n\n")
+    analysis<-list.files(paste0(params$out,"/",model,"/",regression))
+
+    cat("## 1 {.tabset .tabset-fade .tabset-pills}\n\n")
+
+    for( analyses in analysis ){
+
+      rpath<-paste0(params$out,"/",model, "/", regression, "/" , analyses)
+
+      if(file.exists(paste0(rpath,"/qqplot.jpg"))){
+        cat("\n\n### QQplot", analyses,"\n\n")
+        cat("[ ![](", rpath, "/qqplot.jpg){ width=50% } ](" ,rpath, "/qqplot.jpg)", sep="")
+        cat("\n\n")
+      }
+
+      if(file.exists(paste0(rpath,"/toptable.txt"))){
+        cat("### Toptable", analyses, "\n\n")
+        cat("[ download ](", rpath, "/toptable.txt)\n\n", sep = "")
+        toptable<-fread(paste0(rpath,"/toptable.txt"), header=T,nrows=100)
+        print(kable(toptable))
+        cat("\n\n")
+      }
+
+      if(file.exists(paste0(rpath,"/fulltable.txt"))){
+        cat("\n\n### Annotation", analyses, "\n\n")
+        cat("[ download ](", rpath, "/fulltable.txt)\n\n", sep = "")
+        fulltable<-fread(paste0(rpath,"/fulltable.txt"), header=T,nrows=100)
+        print(kable(fulltable), caption="fulltable", digits=4, format=html)
+        cat("\n\n")
+      }
+
+      if(file.exists(paste0(rpath,"/genes_barplot.jpg"))){
+        cat("\n\n### Barplots", analyses,"\n\n")
+        cat("[ ![](", rpath, "/genes_barplot.jpg){ width=50% } ](" ,rpath, "/genes_barplot.jpg)", sep="")
+        cat("[ ![](", rpath, "/cpgi_barplot.jpg){ width=50% } ](" ,rpath, "/cpgi_barplot.jpg)", sep="")
+        cat("\n\n")
+      }
+
+      if(file.exists(paste0(rpath,"/chromHMM_barplot.jpg"))){
+        cat("\n\n### Histone marker", analyses,"\n\n")
+        cat("[ ![](", rpath, "/chromHMM_barplot.jpg){ width=50% } ]", sep="")
+        cat("(", rpath, "/chromHMM_barplot.jpg)\n\n", sep="")
+        cat("\n\n")
+      }
+
+    }
+  }
+}
+```

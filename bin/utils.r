@@ -10,24 +10,30 @@
 
 #######################
 # get Delta Betas
-getDeltaBetas<-function(betas,group){
 
-	if( is.null(nrow(betas)) ){
-		means<-by( as.matrix(betas,ncol=1), group, colMeans)
-	} else {
-		means<-by(t(betas), group, colMeans)
-	}
-
-	delta=list()
-	for( level1 in levels(group) ) {
-		for( level2 in levels(group) ) {
-			if (level1 != level2){
-				delta[[paste0(level1,"vs",level2)]]<-means[[level2]]-means[[level1]]
-			}
-		}
-	}
-	return(do.call(cbind, delta))
+getDeltaBetas<-function(betas,group, case="TT", control="NT"){
+	deltaBetas <- rowMeans(betas[,group==case]) - rowMeans(betas[,group==control])
+	return(deltaBetas)
 }
+
+#getDeltaBetas<-function(betas,group){
+
+#	if( is.null(nrow(betas)) ){
+#		means<-by( as.matrix(betas,ncol=1), group, colMeans)
+#	} else {
+#		means<-by(t(betas), group, colMeans)
+#	}
+
+#	delta=list()
+#	for( level1 in levels(group) ) {
+#		for( level2 in levels(group) ) {
+#			if (level1 != level2){
+#				delta[[paste0(level1,"vs",level2)]]<-means[[level2]]-means[[level1]]
+#			}
+#		}
+#	}
+#	return(do.call(cbind, delta))
+#}
 
 
 #######################

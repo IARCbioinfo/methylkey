@@ -175,7 +175,7 @@ nbprobes2=nrow(betas)
 
 ```{r PCA, include=FALSE}
 #10- PCA
-pca<-suppressPackageStartupMessages( makepca( betas, pdata, params$out, colnames(pdata), nPC=10 ) )
+pca<-suppressPackageStartupMessages( makepca( betas, pdata, params$out, colnames(pdata) )
 pvalue<-pca$pvalue
 qvalue<-pca$qvalue
 jpeg(paste0(params$out, "/pca_contributions_0001.jpg"))

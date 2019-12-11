@@ -48,19 +48,21 @@ multiplot<-function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 #######################
 # violin plot
-violin_plot<-function(pdata,betas,group,samples,platform, path, out="./",genome="hg19",regions=""){
+violin_plot<-function(pdata,betas,group,samp,platform, datadir, out="./",genome="hg19",regions=""){
 
-	suppressPackageStartupMessages( require(ggplot2) )
-	suppressPackageStartupMessages( require(annotatr) )
+	require(annotatr)
+	require(ggplot2)
 	require(data.table)
 
 	if (!is.data.table(pdata)){ pdata<-data.table(pdata) }
 	#colnames(pdata)[barcode]<-"barcode"
-	pdata$barcode<-as.character(pdata$barcode)
+	#pdata$barcode<-as.character(pdata$barcode)
 
 	#get cpgs annotation
-	if (platform=="IlluminaHumanMethylation450k"){regions=paste0(datadir,"/illumina450k.bed")}
-	if (platform=="IlluminaHumanMethylationEPIC"){regions=paste0(datadir,"/illuminaEpic.bed")}
+	
+	#if (platform=="IlluminaHumanMethylation450k"){regions=paste0(datadir,"/illumina450k.bed")}
+	#if (platform=="IlluminaHumanMethylationEPIC"){regions=paste0(datadir,"/illuminaEpic.bed")}
+	regions=paste0(datadir, platform, ".bed")
 	cpg_annotated<-mk_annotate(regions,genome=genome)
 
 	#format annotation
@@ -72,7 +74,7 @@ violin_plot<-function(pdata,betas,group,samples,platform, path, out="./",genome=
 	#merge betas and pdata in a data.table
 	colnames(betas)<-gsub("X","",colnames(betas))
 	b<-data.table(melt(as.matrix(betas)))
-	b<-merge(pdata[,.( get(samples), grp=get(group))],b,by.x="V1",by.y="Var2")
+	b<-merge(pdata[,.( get(samp), grp=get(group))],b,by.x="V1",by.y="Var2")
 	if (!is.character(b$Var1)) { b$Var1<-as.character(b$Var1) }
 	
 	#get cpg islands annotation
@@ -149,7 +151,7 @@ circusplot<-function(ranges, genome){
 
 mk_barplot<-function(annotated_regions, betafc, what=c("cpgi","genes"), genome="hg19" ){
 	
-	suppressPackageStartupMessages( require(ggplot2) )
+	require(ggplot2)
 	require(RColorBrewer)
 
 	annotated_regions$DM_Status[ betafc > 0 ] = "hyper"
@@ -160,17 +162,17 @@ mk_barplot<-function(annotated_regions, betafc, what=c("cpgi","genes"), genome="
 		x_order = c('hyper','hypo')
 		colors<-brewer.pal(12,"Paired")[c(1,7,8,7,1,2)]
 	}
-	else {
+	if (what=="genes"){
 		annots_order = paste0( genome, c('_genes_intergenic', '_genes_1to5kb', '_genes_5UTRs', '_genes_promoters', '_genes_firstexons', '_genes_exons', '_genes_introns'))
 		x_order = c('hyper','hypo')
 		colors<-brewer.pal(7, "Paired")
 	}
 
 	foo<-annotated_regions[ annotated_regions$annot.type %in% annots_order, ]
-	foo<-rbind(data.frame(type=as.factor(foo$annot.type), status=foo$DM_Status, val=1), data.frame(type=foo$annot.type, status="all", val=1) )
-	levels(foo$type)<-annots_order
-	
-	p<-ggplot(foo, aes(fill=type, x=status, y=val)) + geom_bar( stat="identity", position="fill") + coord_flip() + scale_fill_manual(values=colors) + theme		(legend.text=element_text(size=12))
+	foo<-rbind(data.frame(type=foo$annot.type, status=foo$DM_Status), data.frame(type=foo$annot.type, status="all") )
+	foo$type<-factor(foo$type, levels = annots_order)
+
+	p<-ggplot(foo, aes(fill=type, x=status)) + geom_bar(position="fill") + coord_flip() + scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12))
 	return(p)
 }
 

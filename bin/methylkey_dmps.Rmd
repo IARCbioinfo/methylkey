@@ -41,7 +41,9 @@ source( paste0(params$path, "/logistic.r")  )
 datadir=paste0( params$path, "/../data/" )
 if ( !file.exists(params$out)) { dir.create(params$out) }
 nbdmps1=0
+lambda1=0
 nbdmps2=0
+lambda2=0
 info=NULL
 ```
 
@@ -143,7 +145,7 @@ qq(lmPvals2,main=paste("QQ plot: ","lambda=",lambda2,sep=""))
 dev.off()
 ```
 
-```{r logisticReg3, evel=(nbdmps2>0), include=FALSE}
+```{r logisticReg3, eval=(nbdmps2>0), include=FALSE}
 deltabetas2<-getDeltaBetas(betas[rownames(toptable2),],pdata[,variables[1]])
 toptable2$deltaBetas<-deltabetas2[,1]
 anno<-annoTable(getRegionsAsGenomicRanges(regions,platform),toptable2,params$genome)

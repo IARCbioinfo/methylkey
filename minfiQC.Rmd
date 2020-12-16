@@ -1,0 +1,136 @@
+---
+title: "minfiQC"
+runtime: shiny
+output: flexdashboard::flex_dashboard
+params:
+  meth: "../minfi_result/Funnorm/betas.rda"
+---
+
+```{r echo = FALSE, message = FALSE}
+library(minfi)
+library(data.table)
+library(RColorBrewer)
+source("R/violinPlot.r")
+```
+
+```{r echo = FALSE}
+load(params$meth)
+if(exists("mval")){ betas<-mval } # in case the loaded object is the mvalues.
+annot<-fread("illumina/hm450.hg38.manifest.gencode.v22.tsv.gz")
+annotID="probeID"
+annot[ is.na(CGIposition),]$CGIposition<-"openSea"
+group<-unlist(strsplit(opt_$groups,","))[1]
+group<-which(colnames(pdata)==group)
+```
+
+Column {.sidebar}
+--------------------------------------------------
+
+<h4>Titles</h4>
+
+```{r echo = FALSE}
+textInput("main1", "Density plot title", value = "... Density plot ...")
+textInput("main2", "Density Bean Plot title", value = "... Density Bean plot ...")
+textInput("xlab", "x-axis label", value = "Beta")
+```
+
+<h4>Parameters</h4>
+
+```{r echo = FALSE}
+sliderInput("numPositions", label = "number of Positions :", min = 1000, max = nrow(betas) , value = 10000, step = 1000)
+```
+
+The density calculation uses this selected number of randomly selected CpG positions.
+
+<h3>Legend</h3>
+
+```{r echo = FALSE}
+selectInput("sample", "Labels", choices = colnames(pdata), selected = 1, multiple = FALSE)
+```
+
+```{r echo = FALSE}
+selectInput("group", "Colors", choices = colnames(pdata), selected = group, multiple = FALSE)
+```
+
+```{r echo = FALSE}
+selectInput("feature", "Feature", choices = colnames(annot), selected = 12, multiple = FALSE)
+```
+
+```{r echo = FALSE}
+radioButtons("pal", label = "Palette", choices = c("Set3", "Spectral","PRGn","Paired","Dark2","Accent"), selected = "Dark2")
+```
+
+```{r echo = FALSE}
+radioButtons("legendPos", label = "legend Position", choices = c("bottomleft", "bottomright","topleft","topright"), selected = "bottomleft")
+```
+
+```{r echo = FALSE}
+#sliderInput("pch", label = "plotting symbol :", min = 0, max = 18 , value = 0, step = 1)
+```
+
+
+Column
+--------------------------------------------------
+
+
+```{r echo = FALSE, fig.height=4}
+renderPlot({
+  n<-length( unique(pdata[,input$group]) )
+	densityPlot(betas, 
+	            sampGroups = pdata[,input$group], 
+	            main=input$main1, 
+	            xlab=input$xlab, 
+	            pal=brewer.pal(n, input$pal) 
+	         )
+}, height=300)
+```
+
+```{r echo = FALSE, fig.height=4}
+renderPlot({
+  n<-length( unique(pdata[,input$group]) )
+	densityBeanPlot(betas, 
+	                sampGroups=pdata[,input$group], 
+	                sampNames=pdata[,input$sample], 
+	                main=input$main2, 
+	                pal=brewer.pal(n, input$pal),
+	                numPositions=input$numPositions
+	             )
+}, height=300)
+```
+
+```{r echo = FALSE, fig.height=4}
+renderPlot({
+  
+  violin_plot1(betas, 
+              group=pdata[,input$group],
+              numPositions=input$numPositions
+            )
+}, height=300)
+```
+
+```{r echo = FALSE, fig.height=4}
+renderPlot({
+  
+  violin_plot2(betas,annot, 
+              feature=input$feature,
+              numPositions=input$numPositions
+            )
+}, height=300)
+```
+
+```{r echo = FALSE, fig.height=4}
+renderPlot({
+  
+  n<-length( unique(pdata[,input$group]) )
+  mdsPlot( betas,
+          sampGroups=pdata[,input$group], 
+          legendPos = input$legendPos,
+          #pch=input$pch,
+          sampNames=pdata[,input$sample], 
+          pal=brewer.pal(n, input$pal),
+          numPositions=input$numPositions,
+          main=input$main
+      )
+},height=800, width=800)
+```
+

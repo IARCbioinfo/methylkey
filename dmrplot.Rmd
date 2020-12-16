@@ -1,0 +1,58 @@
+---
+title: "dmrplot"
+runtime: shiny
+output: flexdashboard::flex_dashboard
+params:
+  dmrs: "../TCGA/HNSC/normalized/~type/~type_Tumor-vs-normal_ls.dmrs.rda"
+---
+
+```{r echo = FALSE, message = FALSE}
+library(data.table)
+library(GenomicRanges)
+library(ggplot2)
+library(reshape2)
+library(RColorBrewer)
+```
+
+
+```{r echo = FALSE}
+load(params$dmrs)
+load(paste0( dirname(params$dmrs), "/../betas.rda" ))
+table$ID=paste0(seqnames(table),":",ranges(table))
+table<-as.data.table(table)
+```
+
+Column {.sidebar}
+--------------------------------------------------
+
+<h4>Parameters</h4>
+
+```{r echo = FALSE}
+selectInput("group", "group", choices = colnames(pdata), selected = 3, multiple = FALSE)
+selectInput("dmr", "dmr", choices = table$ID, selected = 1, multiple = FALSE)
+```
+
+Column
+--------------------------------------------------
+
+```{r echo = FALSE, message = FALSE}
+renderPlot({
+  
+  #foo<-table[ grepl(input$gene,table$overlapping.genes), ]
+  foo<-table[ ID==input$dmr, ]
+  cpgs<-unlist(strsplit(foo$overlapping.sites,","))
+  colnames(betas)<-pdata$samples
+  foo<-reshape2::melt(betas[cpgs,])
+  colnames(foo)=c("cpg","samples","betas")
+  foo<-as.data.table(merge(foo,pdata,by="samples"))
+  foo<-foo[ , .(betas=mean(betas), sd=sd(betas)), by=c(input$group,"cpg")]
+  
+  ggplot(foo, aes(x=cpg, y=betas, ymin=(betas-sd/2), ymax=(betas+sd/2) , group=get(input$group), fill=get(input$group) )   ) +
+    geom_line() + 
+    geom_point() +
+    geom_ribbon(alpha=0.5) +
+    theme(axis.text.x=element_text(angle=50,hjust=1, size=10)) +
+    labs(fill=input$group) +
+    ggtitle(input$dmr)
+})
+```

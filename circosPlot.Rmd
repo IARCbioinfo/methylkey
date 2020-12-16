@@ -1,0 +1,109 @@
+---
+title: "modelQC"
+runtime: shiny
+output: flexdashboard::flex_dashboard
+params:
+  meth: "../minfi_result/Funnorm/~Smoking_status/~Smoking_status_Waterpipe-vs-Never_ls.dmps.rda"
+---
+
+```{r echo = FALSE, message = FALSE}
+library(data.table)
+library(GenomicRanges)
+library(ggbio)
+library(dplyr)
+#library(RColorBrewer)
+```
+
+```{r echo = FALSE}
+load(params$meth)
+gbm<-makeGRangesFromDataFrame(table, keep.extra.columns = T)
+```
+
+```{r echo = FALSE}
+#circos plot
+if (opt_$genome=="hg38"){ require(BSgenome.Hsapiens.UCSC.hg38) ; species=BSgenome.Hsapiens.UCSC.hg38}
+if (opt_$genome=="hg19"){ require(BSgenome.Hsapiens.UCSC.hg19) ; species=BSgenome.Hsapiens.UCSC.hg19}
+
+chr.len = seqlengths(species)
+chr.len = chr.len[grep("_|M", names(chr.len), invert = T)]
+myIdeo <- GRanges(seqnames = names(chr.len), ranges = IRanges(start = 1, chr.len))
+seqlengths(myIdeo)<-myIdeo@ranges@width
+
+ranges<-keepSeqlevels(gbm, names(chr.len), pruning.mode="coarse")
+seqlengths(ranges)<-myIdeo@ranges@width
+```
+
+```{r echo = FALSE}
+#manhattan plot
+nCHR <- length(unique(ranges@seqnames))
+ranges<-sort(ranges, ignore.strand=TRUE)
+ranges$BPcum<-cumsum(as.numeric(ranges@ranges@start))
+axis.set <- as.data.table(ranges) %>% group_by(seqnames) %>% summarize(center = (max(BPcum) + min(BPcum)) / 2)
+ylim <- abs(floor(log10(min(ranges$P.Value)))) + 2 
+```
+
+Column {.sidebar}
+--------------------------------------------------
+
+<h4>Parameters</h4>
+
+```{r echo = FALSE}
+sliderInput("dbcutoff", label = "Delta Betas cutoff :", min = 0, max = 100 , value = 10, step = 1)
+numericInput("qcutoff", label = "qvalue cutoff :", value=1, min = 0, max = 1)
+```
+
+Column
+--------------------------------------------------
+
+```{r echo = FALSE}
+#circos plot
+renderPlot({
+  
+  gr <-ranges[ abs(ranges$deltaBetas) > input$dbcutoff & ranges$adj.P.Val < input$qcutoff ]
+  g  <- gr[,0]
+  g$meth.diff  <- gr$deltaBetas
+  g$probeID    <- gr$probeID
+  g.po <- g[ g$meth.diff<0 ]
+  g.per<- g[ g$meth.diff>0 ]
+  
+  p<- ggbio() + circle(myIdeo, geom = "ideo", fill = "gray70", radius = 39, trackWidth = 2)
+  p<- p + circle(myIdeo, geom = "text", aes(label = seqnames), vjust = 0, radius = 55, trackWidth = 7)
+  	
+  if (length(g.po) > 0){
+  		values(g.po)$id = "hypo"
+  		p <- p + circle(g.po, geom = "point", size = 1, aes(x = midpoint, y = "meth.diff", color = id), radius = 19, trackWidth = 20) + scale_colour_manual(values = c("magenta", "green")) 
+  }
+  if (length(g.per) > 0){	
+  	values(g.per)$id = "hyper"
+  	p <- p + circle(g.per, geom = "point", size = 1, aes(x = midpoint, y = meth.diff, color = id), radius = 41, trackWidth = 20)
+  }
+  p
+  
+}, height=800)  
+```
+
+
+```{r echo = FALSE}
+#manhattan plot
+renderPlot({
+  
+ ggplot(ranges[ abs(ranges$deltaBetas) > input$dbcutoff ], aes(x=BPcum, y=-log10(P.Value), color=as.factor(seqnames), size=-log10(P.Value))) +
+  geom_point(alpha = 0.75) +
+  geom_hline(yintercept = -log10(input$qcutoff), color = "grey40", linetype = "dashed") + 
+  scale_x_continuous(label = axis.set$seqnames, breaks = axis.set$center) +
+  scale_y_continuous(expand = c(0,0), limits = c(0, ylim)) +
+  scale_color_manual(values = rep(c("#276FBF", "#183059"), nCHR)) +
+  scale_size_continuous(range = c(0.5,3)) +
+  labs(x = NULL, y = "-log10(pvalue)") + 
+  theme_minimal() +
+  theme( 
+    legend.position = "none",
+    panel.border = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    axis.text.x = element_text(angle = 90, size = 8, vjust = 0.5)
+  )
+  
+}, height=800)  
+```
+

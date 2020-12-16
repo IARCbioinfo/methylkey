@@ -1,0 +1,88 @@
+---
+title: "barplot"
+runtime: shiny
+output: flexdashboard::flex_dashboard
+params:
+  meth: "../minfi_result/Funnorm/~Gender/~Gender_male-vs-female_ls.annotated.dmrs.rda"
+  annotgene: "illumina/EPIC.hg19.annotatr.genes.rda"
+  annotcpgi: "illumina/EPIC.hg19.annotatr.cpgi.rda"
+  genome: "hg19"
+---
+
+```{r echo = FALSE, message = FALSE}
+library(data.table)
+library(ggplot2)
+library(RColorBrewer)
+```
+
+```{r echo = FALSE}
+load(params$meth)
+load(params$annotgene)
+load(params$annotcpgi)
+isdmps<-ifelse(is.data.table(table), TRUE, FALSE)
+```
+
+```{r echo = FALSE, eval=isdmps, message = FALSE}
+#if input is dmps table
+message("found dmps")
+table$DM_Status = "hyper"
+table[ deltaBetas < 0 ]$DM_Status = "hypo"
+table$DM_Status<-factor(table$DM_Status, levels = c('hyper','hypo'))
+
+tableXgenes<-merge(table,annotated_manifest_genes,by="probeID")
+
+tableXcpgi<-merge(table,annotated_manifest_cpgi,by="probeID")
+cpgi_order = paste0( params$genome, c('_cpg_islands', '_cpg_shores', '_cpg_shelves', '_cpg_inter'))
+tableXcpgi$annot.type<-factor(tableXcpgi$annot.type, levels = cpgi_order)
+```
+
+```{r ,eval=!isdmps, echo = FALSE}
+#if input is dmrs table
+message("found dmrs")
+table<-as.data.table(table)
+colnames(table)[which(colnames(table)=="meandiff")]="deltaBetas"
+colnames(table)[which(colnames(table)=="HMFDR")]="adj.P.Val"
+table$DM_Status = "hyper"
+table[ deltaBetas < 0 ]$DM_Status = "hypo"
+table$DM_Status<-factor(table$DM_Status, levels = c('hyper','hypo'))
+tableXgenes<-table[annot.feature=="genes",]
+tableXcpgi<-table[annot.feature=="cpg",]
+```
+
+Column {.sidebar}
+--------------------------------------------------
+
+<h4>Parameters</h4>
+
+```{r echo = FALSE}
+sliderInput("dbcutoff", label = "Delta Betas or meanDiff cutoff :", min = 0, max = 100 , value = 10, step = 1)
+numericInput("qcutoff", label = "qvalue cutoff :", value=1, min = 0, max = 1)
+textInput("main1", "Title barplot cpgi", value = "... Barplot : cpgi annotation...")
+textInput("main2", "Title barplot genes", value = "... Barplot : genes annotation......")
+```
+
+Column
+--------------------------------------------------
+
+```{r echo = FALSE, message = FALSE}
+renderPlot({
+  foo<-tableXcpgi[ deltaBetas > input$dbcutoff & adj.P.Val<input$qcutoff, ]
+  colors<-brewer.pal(12, "Paired")[c(3,8,7,1)]
+  ggplot(tableXcpgi, aes(fill=annot.type, x=DM_Status)) + geom_bar(position="fill") + coord_flip() + 
+    scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12)) +
+    ggtitle(input$main1) + theme(plot.title = element_text(size=12, face='bold',hjust = 0.5))
+})
+```
+
+```{r echo = FALSE, message = FALSE}
+renderPlot({
+  foo<-tableXgenes[ deltaBetas > input$dbcutoff & adj.P.Val<input$qcutoff, ]
+  colors<-brewer.pal(11, "Paired")
+  ggplot(tableXgenes, aes(fill=annot.type, x=DM_Status)) + geom_bar(position="fill") + coord_flip() +
+    scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12)) +
+    ggtitle(input$main2) + theme(plot.title = element_text(size=12, face='bold',hjust = 0.5))
+})
+```
+
+
+

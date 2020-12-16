@@ -10,7 +10,7 @@ params:
   idat: "idat"
   pipeline: "minfi"
   normalize: "Funnorm"
-  samples: "Sample_ID"
+  samples: NULL
   barcode: NULL
   groups: "Sentrix_ID"
   nalimit: 0.2
@@ -93,7 +93,7 @@ groups<-colnames(pdata[groups])
 #6- read idat
 RGset<-read.metharray.exp(base = params$idat, targets=pdata, force=TRUE)
 betas<-getBeta(RGset)
-colnames(betas)<-pdata$samples
+#colnames(betas)<-pdata$samples
 platform<-RGset@annotation["array"]
 message(paste0("reading idat : " , platform ) )
 nbprobes1<-nrow(betas)
@@ -102,11 +102,11 @@ pvalues<-minfi::detectionP(RGset)
 ```
 
 ```{r checkgender, include=FALSE}
-#7-check gender
+#7-check gender and age
 GMsetEx <- mapToGenome(RGset) 
 estSex <- getSex(GMsetEx)
 pdata$predictedSex <- estSex$predictedSex
-pdata$predictedage <- agep(betas)
+pdata$predictedAge <- agep(betas)
 ```
 
 ```{r boxplots1, include=FALSE}
@@ -147,7 +147,7 @@ for (group in groups) {
 	dev.off()
 
 	jpeg(paste(params$out, group, "densityBeanPlot1.jpg", sep="/"), width=800, height=800)
-	densityBeanPlot(betas, sampGroups = pdata[,group])
+	densityBeanPlot(RGset, sampGroups = pdata[,group])
 	dev.off()
 
 	jpeg(paste(params$out, group, "mdsPlot1.jpg", sep="/"), width=800, height=800)
@@ -171,11 +171,12 @@ rawbetas=betas
 if(params$normalize=="Funnorm") {	MSet<-preprocessFunnorm(RGset, sex=estSex$predictedSex)   }
 if(params$normalize=="Illumina"){	MSet<-preprocessIllumina(RGset)                           }
 if(params$normalize=="Noob")    {	MSet<-preprocessNoob(RGset)	                              }
-if(params$normalize=="Quantile"){	MSet<-preprocessQuantile(RGset, sex=estSex$predictedSex )	}
-if(params$normalize=="SWAN")    { MSet<-preprocessSWAN(RGset, MSet )                        }
+if(params$normalize=="Quantile"){	MSet<-preprocessQuantile(RGset, sex=estSex$predictedSex ) }
+if(params$normalize=="SWAN")    {   MSet<-preprocessSWAN(RGset, MSet )                        }
+if(params$normalize=="SWANoob") {   MSet<-preprocessSWAN(RGset, preprocessNoob(RGset) )       }
 
 betas=getBeta(MSet)
-colnames(betas)<-pdata$samples
+#colnames(betas)<-pdata$samples
 ```
 
 ```{r filterbypvalue, include=FALSE}
@@ -260,7 +261,7 @@ nbprobes2=nrow(betas)
 
 ```{r PCA, include=FALSE}
 #20- PCA
-pca<-suppressPackageStartupMessages( makepca( betas, pdata, params$out, colnames(pdata), nPC=10 ) )
+pca<-makepca( betas, pdata, params$out, colnames(pdata), nPC=10 )
 jpeg(paste0(params$out, "/pca_contributions_0001.jpg"))
 plot(pca$contrib)
 dev.off()
@@ -290,7 +291,7 @@ write.table(pca$pvalue, file=paste0(params$out, "/pvalue_0001.txt"), row.names=T
 write.table(pca$qvalue, file=paste0(params$out, "/qvalue_0001.txt"), row.names=T, sep="\t")
 
 regions=""
-save(betas, pdata, samples, groups, platform, genome, regions, mval, file=paste0(params$out, "/meth.rdata") )
+save(betas, pdata, samples, groups, platform, genome, regions, mval, regression, file=paste0(params$out, "/meth.rdata") )
 ```
 
 <!-- --------------------------------Report Section-------------------------------------------- -->
@@ -312,7 +313,6 @@ kable(pdata)
 ```{r echo=FALSE, results ='asis', warning=FALSE}
 betas<-fread(paste0(params$out,"/betas.txt"),nrows=100)
 kable(betas)
-
 ```
 
 # Minfi QC

@@ -24,6 +24,7 @@ source( paste0(params$path, "/pca.r") )
 if ( !file.exists(params$out)) { dir.create(params$out) }
 message(paste0("variables:", params$variables))
 message(paste0("correction:", params$correction))
+n.sv="undetermined"
 ```
 
 ```{r load, include=FALSE}
@@ -77,12 +78,14 @@ if (length(variables)==1){
   sva<-sva(mval,design,model0)
 }
 
+n.sv=sva$n.sv
 message(paste0("number of surrogate variables", sva$n.sv))
-if(sva$n.sv) { stop( "0 surrogate variables have been found, batchcorrection is useless !" )  }
-
-#design<-cbind(design,sva$sv)
-mval = t(residuals(lm(t(mval)~sva$sv)))
-  
+if(!sva$n.sv) { 
+  message( "0 surrogate variables have been found, batchcorrection is useless !" ) 
+}else{
+  #design<-cbind(design,sva$sv)
+  mval = t(residuals(lm(t(mval)~sva$sv)))
+}
 formula1<-paste(formula1, collapse="")
 correction=paste0("on SVA corrected mvalues with model ", formula1)
 ```
@@ -117,7 +120,7 @@ correction=paste0("on combat corrected mvalues for batch ", colnames(pdata)[batc
 ```
 
 ```{r PCA, include=FALSE}
-pca<-makepca( mval, pdata, params$out, colnames(pdata), nPC=10 )
+pca<-makepca( mval, pdata, params$out, colnames(pdata) )
 qvalue<-pca$qval
 pvalue<-pca$pval
   
@@ -143,6 +146,10 @@ library(formattable)
 ## 1 {.tabset .tabset-fade .tabset-pills}
 
 ### Contributions
+
+```{r, echo=FALSE, results='asis'}
+cat( "number of surrogate varaiables : " , n.sv )
+```
 
 [ ![](`r params$out`/pca_contributions_0002.jpg) ](`r params$out`/pca_contributions_0002.jpg)
 

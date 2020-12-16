@@ -17,7 +17,7 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 	require(reshape2)
 	require(ggplot2)
 
-    npC=min(nPC,10)
+    nPC=min(nPC,10)
   
 	invtbetas = 1/t(betas) # n x p required for prcomp
 	#mval<-t(beta2m(as.matrix(betas)))
@@ -37,7 +37,7 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 
         ###########################
 	#plot contributions
-	plot_PCA_contribution <- function( pca, nPC = 10, title = "" ){
+	plot_PCA_contribution <- function( pca, nPC = 4, title = "" ){
 		v_var <- summary( pca )$importance[ 2, 1:nPC ] 
 		return( ggplot(data.table( PCA_axis = names( v_var ), val = v_var )) 
 		+ geom_col(aes( x=reorder( PCA_axis, 1:nPC ), y=val )) 
@@ -70,7 +70,7 @@ makepca <- function( betas, pdata, out=getwd(), variables=colnames(pdata),  nPC=
 
 				}else if ( tab[ , is.numeric( get(variable) ) ] ){
 					pv <- tab[ , cor.test(  get(PC), get(variable) , method = "kendall" ) ]$p.value
-				}
+				} else { next }
 				dt_pval[ PCA_dim == PC & Variables == variable, ]$p_val <- pv
 			}
 		}

@@ -11,6 +11,7 @@ params:
   type: "differential"
   pval: 0.05
   out: "methylkey"
+  regression: "ls"
 ---
 
 
@@ -25,6 +26,7 @@ library(data.table)
 source( paste0(params$path, "/utils.r")  )
 source( paste0(params$path, "/plots.r")  )
 source( paste0(params$path, "/annot.r")  )
+regression<-params$regression
 ```
 
 ```{r load, include=FALSE}
@@ -39,7 +41,7 @@ if ( !file.exists(rpath)) { dir.create(rpath) }
 ```{r prepare, include=FALSE}
 cmtx <- makeContrasts(colnames(design)[2], levels= colnames(design))
 colnames(design)[1] <- "(Intercept)"
-if (method=="robust"){ niter=200 }
+if (regression=="robust"){ niter=200 }
 header<-"stat\tChr\tPos\tdiff\tfdr"
 write.table(header, file=paste(rpath, "annotated.txt",sep="/"), row.names=F, col.names=F, sep="\t")
 write.table(header, file=paste(rpath, "toptable.txt",sep="/"), row.names=F, col.names=F, sep="\t")
@@ -54,7 +56,7 @@ if (platform=="IlluminaHumanMethylationEPIC" | platform=="IlluminaHumanMethylati
     if (platform=="IlluminaHumanMethylation450k"){ 
         arraytype="450K"; arannot=c(array = "IlluminaHumanMethylation450k", annotation ="ilm10b2.hg19")
     }
-  	myannotation<-cpg.annotate(object=mval, analysis.type=params$type, design=design, coef=2, datatype="array", arraytype=arraytype, what="M", fdr=params$fdr, annotation=arannot,  method=method, maxiter=niter, cont.matrix=cmtx)	
+  	myannotation<-cpg.annotate(object=mval, analysis.type=params$type, design=design, coef=2, datatype="array", arraytype=arraytype, what="M", fdr=params$fdr, annotation=arannot,  method=regression, maxiter=niter, cont.matrix=cmtx)	
   	#dmrcoutput<-dmrcate(myannotation,lambda=1000,C=2,pcutoff=pcutoff)
   	dmrcoutput<-dmrcate(object=myannotation, C=2, pcutoff=params$pval)
   	results.ranges <- extractRanges(dmrcoutput, genome=genome)
@@ -66,7 +68,7 @@ if (platform=="RRBS" | platform=="sequencing"){
     
   	final<-cbind(toptable$t, toptable$chr, toptable$start, toptable$logFC, toptable$adj.P.Val)
   	colnames(final)<-c('stat', 'chr', 'pos', 'diff', 'fdr')
-  	myannotation<-cpg.annotate( as.data.frame(final), datatype="sequencing", analysis.type="differential", method=method, maxiter=niter)	
+  	myannotation<-cpg.annotate( as.data.frame(final), datatype="sequencing", analysis.type="differential", method=regression, maxiter=niter)	
   	#suppressWarnings(suppressMessages(dmrcoutput<-dmrcate(myannotation,lambda=1000,C=50,pcutoff=0.05)))
   	myannotation$CHR<-paste0("chr",myannotation$CHR)
   	myannotation$CHR<-sub("chr23", "chrX", myannotation$CHR )
@@ -118,7 +120,7 @@ dmrs<-dmrs[order(dmrs$minfdr),]
 table<-table[order(table$minfdr),]
 write.table(dmrs, file=paste0(rpath, "/annotated.txt"), row.names=F, sep="\t")
 write.table(table, file=paste0(rpath, "/toptable.txt"), row.names=F, sep="\t")
-save(betas, mval, pdata, groups, samples, design, platform, method, genome, regions, toptable, model, info, table, file=paste0(params$out, "/meth.rdata") )
+save(betas, mval, pdata, groups, samples, design, platform, regression, genome, regions, toptable, model, info, table, file=paste0(params$out, "/meth.rdata") )
 ```
 
 #DMRs

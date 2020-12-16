@@ -55,10 +55,14 @@ groups <-params$groups
 #1- load pdata
 pdata<-read.table(params$pdata, sep=params$separator, header=T)
 if( ncol(pdata)<2 ){ stop(paste0("Check if your separator in pdata is really '", params$separator, "'")) }
-colnames(pdata)[ which(colnames(pdata)==samples) ] <-"sample_name"
+if (is.numeric(samples)){
+  colnames(pdata)[ samples ] <-"samples"
+}else{
+  colnames(pdata)[ which(colnames(pdata)==samples) ] <-"samples"
+}
 if(file.exists(params$badsamples)){
   bad<-read.table(params$badsamples)$V1
-  pdata<-pdata[ !pdata$sample_name %in% bad, ]
+  pdata<-pdata[ !pdata$samples %in% bad, ]
   message(paste0(length(bad), " samples listed in ", params$badsamples, " are removed !"))
 }
 ```
@@ -76,7 +80,7 @@ for (variable in colnames(pdata)){
 ```{r checkSamples, include=FALSE}
 #3- check samples
 tryCatch({
-  samples<-pdata$sample_name
+  samples<-pdata$samples
 }, error = function(err) {
   stop(paste0("Check if '", samples, "' is a column in your pdata. You can specify the column's name for samples names with --samples "))
 })
@@ -111,13 +115,14 @@ filetype = summary( file(params$idat) )$class
 if(filetype=="gzfile"){
 	betas<-fread(cmd=paste0("zcat < '", params$idat, "'") , header=T, sep=",")
 }else{
-	betas<-fread(params$idat, header=T, sep=",")
+	betas<-fread(params$idat, header=T, sep=",", fill=TRUE)
 }
 regions<-betas[,1:5, with=F]
-pdata<-pdata[ pdata$sample_name %in% colnames(betas),]
-samples<-pdata$sample_name
-betas<-betas[, colnames(betas) %in% pdata$sample_name, with=F]
-message( paste0( length(pdata$sample_name), " samples in pdata, ", ncol(betas), " found in betas" ) )
+pdata<-pdata[ pdata$samples %in% colnames(betas),]
+samples<-pdata$samples
+#betas<-betas[, colnames(betas) %in% pdata$samples, with=F]
+betas<-betas[,pdata$samples, with=F]
+message( paste0( length(pdata$samples), " samples in pdata, ", ncol(betas), " found in betas" ) )
 betas<-as.matrix(betas)
 nbprobes1=nrow(betas)
 rownames(betas)<-regions$ID
@@ -156,9 +161,9 @@ for (group in groups) {
 	dev.off()
 
 	jpeg(paste(params$out, group, "densityBeanPlot2.jpg", sep="/"), width=800, height=800)
-	if(nrow(betas)>200){ #sample function need at least 200 records.
+	try({
 	  densityBeanPlot(betas, sampGroups = pdata[,group])
-	}
+	})
 	dev.off()
 
 	jpeg(paste(params$out, group, "mdsPlot2.jpg", sep="/"), width=800, height=800)
@@ -175,7 +180,7 @@ nbprobes2=nrow(betas)
 
 ```{r PCA, include=FALSE}
 #10- PCA
-pca<-suppressPackageStartupMessages( makepca( betas, pdata, params$out, colnames(pdata) )
+pca<-makepca( betas, pdata, params$out, colnames(pdata) )
 pvalue<-pca$pvalue
 qvalue<-pca$qvalue
 jpeg(paste0(params$out, "/pca_contributions_0001.jpg"))

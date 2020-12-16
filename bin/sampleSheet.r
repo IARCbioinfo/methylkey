@@ -26,6 +26,8 @@ readSampleSheet<-function(path, samples=NULL, barcode=NULL, groups=NULL, sep="\t
     #2 samples column
     if( !is.null(samples) ){ 
         colnames(pdata)[ which( colnames(pdata)==samples ) ]<-"samples"
+    }else if (is.numeric(samples)){
+        colnames(pdata)[ samples ]<-"samples"
     }else if ( length(samples_) ) {
         colnames(pdata)[samples_]="samples"
     }else { stop( "Oups, sorry, cannot determine samples names column. Try to use --samples <column_name>" )   }
@@ -36,6 +38,8 @@ readSampleSheet<-function(path, samples=NULL, barcode=NULL, groups=NULL, sep="\t
     #3- Basename columns
     if( !is.null(barcode) ){ 
         colnames(pdata)[ which( colnames(pdata)==barcode ) ]<-"Basename"
+    }else if (is.numeric(barcode)){
+        colnames(pdata)[ barcode ]<-"Basename"
     }else if ( length(barcode_) ) {
        colnames(pdata)[barcode_]="Basename"
     }else if ( length(sentrix_id_) == 1 & length(sentrix_position_) ==1 ){
@@ -57,8 +61,8 @@ readSampleSheet<-function(path, samples=NULL, barcode=NULL, groups=NULL, sep="\t
 
     #5- check groups
     for (group in groups) {
-        if ( ! group %in% colnames(pdata) ){
-            stop(paste0("Oups ! Check if '", group, "' is not a column in your sample sheet"))
+        if ( ! group %in% colnames(pdata) & !is.numeric(group) ){
+            stop(paste0("Oups ! Check if '", group, "' is a column in your sample sheet"))
         }
     }
 

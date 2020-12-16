@@ -40,9 +40,8 @@ m_leastsquare<-function(mval,pdata,variables){
     chisq <- qchisq(1-eb$p.value,1)
     lambda<-median(chisq)/qchisq(0.5,1)
     table<-topTable(eb, adjust="BH", number=Inf, p=1, sort.by="P")
-    rownames(table)<-rownames(mval)
 
-	return(list(table=table, lambda=lambda, pvals=eb$p.value ) )
+    return(list(table=table, lambda=lambda, pvals=eb$p.value ) )
 }
 
 #######################
@@ -62,19 +61,23 @@ m_robust<-function(mval,pdata,variables,niter=50){
     chisq <- qchisq(1-eb$p.value,1)
     lambda<-median(chisq)/qchisq(0.5,1)
     table<-topTable(eb, adjust="BH", number=Inf, p=1, sort.by="P")
-    rownames(table)<-rownames(mval)
     
-	return(list(table=table, lambda=lambda, pvals=eb$p.value) )
+    return(list(table=table, lambda=lambda, pvals=eb$p.value) )
 }
 
 #######################
 # conditionnal logistic regression, return direcly a toptable
 m_logistic<-function(mval,pdata,variables,fdr, ncore=4){
 
-	require(survival)
+    require(survival)
 
-	tmpval<-merge( pdata[,c("samples",variables) ], t(mval), by.x="samples", by.y="row.names" )
-	bcol<-length(c("samples",variables))+1
+    ##TOREMOVE
+    colnames(pdata)[1]<-"samples"
+    ##
+    
+    colnames(mval)<-pdata$samples
+    tmpval<-merge( pdata[,c("samples",variables) ], t(mval), by.x="samples", by.y="row.names" )
+    bcol<-length(c("samples",variables))+1
 
     #mock result when clogit failed
     mock<-data.frame(matrix( c(0,0,0,0,0,1), nrow=1))
@@ -83,7 +86,7 @@ m_logistic<-function(mval,pdata,variables,fdr, ncore=4){
     #clogit parallelized whith mcapply
     logreg<-mclapply( c(bcol:ncol(tmpval)), function(x) {
         tryCatch({
-		    as.data.frame( coef(summary( clogit( eval(parse( text=makeFormula(x, variables) )), id=pdata$samples ) )) )
+		    as.data.frame( coef(summary( clogit( eval(parse( text=makeFormula(x, variables) )), id=pdata$samples, robust=FALSE ) )) )
         }, error=function(e){ mock }) 
 	}, mc.preschedule=TRUE, mc.cores=ncore )
     logreg<-rbindlist(logreg,fill=TRUE)

@@ -42,6 +42,7 @@ opt$genome="hg19"
 opt$dmrcate=FALSE
 opt$annot=FALSE
 opt$annotatr=NULL
+opt$fullmanifest=FALSE
 
 GetoptLong(
   "meth=s",       "input object",
@@ -53,6 +54,7 @@ GetoptLong(
   "reg=s",        "method of regression, default=ls",
   "niter=i",      "number of iteration, default=25",
   "ncore=i",      "number of core, default=4",
+  "fullmanifest!","annotate probes with all columns of the manifest",
   "dmrcate!",     "calculate DMRs",
   "annot!",       "annot DMRs",
   "genome=s",     "ref genome, default hg19",
@@ -134,21 +136,22 @@ if (!file.exists( paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".d
   
   message("Downloading annotation ...")
   #################################################
-  message("debug")
   message(analyse$platform)
   message(opt$genome)
-  save.image(file="DEBUG")
-  if( grepl("hm27",analyse$platform)  & opt$genome=="hg19"){ manifest<-fread("http://git.iarc.lan/EGE/methylkey/raw/master/illumina/hm27.hg19.manifest.tsv.gz") }
-  if( grepl("hm450",analyse$platform) & opt$genome=="hg19"){ manifest<-fread("http://git.iarc.lan/EGE/methylkey/raw/master/illumina/hm450.hg19.manifest.tsv.gz") }
-  #if( grepl("EPIC",analyse$platform) & opt$genome=="hg19") { manifest<-fread("http://git.iarc.lan/EGE/methylkey/raw/master/illumina/EPIC.hg19.manifest.tsv.gz") }
-  if( grepl("EPIC",analyse$platform) & opt$genome=="hg19") { manifest<-fread("methylkey/illumina/EPIC.hg19.manifest.tsv.gz") }
-  if( grepl("hm27",analyse$platform)  & opt$genome=="hg38"){ manifest<-fread("http://git.iarc.lan/EGE/methylkey/raw/master/illumina/hm27.hg38.manifest.tsv.gz") }
-  if( grepl("hm450",analyse$platform) & opt$genome=="hg38"){ manifest<-fread("http://git.iarc.lan/EGE/methylkey/raw/master/illumina/hm450.hg38.manifest.tsv.gz") }
-  if( grepl("EPIC",analyse$platform) & opt$genome=="hg38") { manifest<-fread("http://git.iarc.lan/EGE/methylkey/raw/master/illumina/EPIC.hg38.manifest.tsv.gz") }
+  if( grepl("hm27",analyse$platform)  & opt$genome=="hg19"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM27/HM27.hg19.manifest.tsv.gz") }
+  if( grepl("hm450",analyse$platform) & opt$genome=="hg19"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM450/HM450.hg19.manifest.tsv.gz") }
+  if( grepl("EPIC",analyse$platform) & opt$genome=="hg19") { manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/EPIC/EPIC.hg19.manifest.tsv.gz") }
+  if( grepl("hm27",analyse$platform)  & opt$genome=="hg38"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM27/HM27.hg38.manifest.tsv.gz") }
+  if( grepl("hm450",analyse$platform) & opt$genome=="hg38"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM450/HM450.hg38.manifest.tsv.gz") }
+  if( grepl("EPIC",analyse$platform) & opt$genome=="hg38") { manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/EPIC/EPIC.hg38.manifest.tsv.gz") }
 
   message("annotating ...")
   #################################################
-  table<-merge(manifest[,1:5],data.table(probeID=rownames(regression$table), regression$table), by="probeID")
+  if(opt$fullmanifest){
+    table<-merge(manifest[,1:ncol(manifest)],data.table(probeID=rownames(regression$table), regression$table), by="probeID")
+  } else {
+    table<-merge(manifest[,c(1:5,20)],data.table(probeID=rownames(regression$table), regression$table), by="probeID")
+  }
   colnames(table)[2:5]<-c("chr","start","end","strand")
   
   message("saving ...")
@@ -215,8 +218,9 @@ if (opt$annot){
   message("Annotating DMRs ...")
   #################################################
   #6.1- Annot dmrs
+  annot=NULL
   if(!opt$genome %in% c("hg19","hg38","mm10")){ message(paste0(opt$annot," is not a valid genome")) }
-  load(opt$annotatr)
+  if (!is.null(opt$annotatr)){load(opt$annotatr)}
   
   table<-mk_annotation(regions=table,annot=annot,genome=opt$genome)
   message(paste0("table:",length(table)))
@@ -224,7 +228,7 @@ if (opt$annot){
   #################################################
   #6.2- Save
   opt_=opt
-  save(log, opt_, table, file=paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".annotated.dmrs.rda") )
+  save(table, log, opt_, file=paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".annotated.dmrs.rda") )
   
 }
 

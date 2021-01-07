@@ -3,7 +3,7 @@ title: "dmrplot"
 runtime: shiny
 output: flexdashboard::flex_dashboard
 params:
-  dmrs: "../TCGA/HNSC/normalized/~type/~type_Tumor-vs-normal_ls.dmrs.rda"
+  dmrs: "../waterpipe3/Funnorm/~Smoking_status/~Smoking_status_Waterpipe-vs-Never_ls.annotated.dmrs.rda"
 ---
 
 ```{r echo = FALSE, message = FALSE}

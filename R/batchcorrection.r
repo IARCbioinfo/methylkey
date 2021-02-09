@@ -2,7 +2,7 @@ bc_sva<-function(mval,pdata,model){
 
   library(sva)
   
-  formula1 <- as.formula(params$model)
+  formula1 <- as.formula(model)
   design<-model.matrix(formula1,data=pdata)
   if(nrow(design) > ncol(mval)){ stop("Missing samples in betas ! ") }
   if(nrow(design) < ncol(mval)){ stop("Missing samples in pdata ! ") }

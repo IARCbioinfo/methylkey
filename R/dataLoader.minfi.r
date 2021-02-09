@@ -32,7 +32,9 @@ githome="http://git.iarc.lan/EGE/methylkey/raw/master/"
 suppressMessages( source_https(paste0(githome,"/R/utils.r")) )
 suppressMessages( source_https(paste0(githome,"/R/sampleSheet.r")) )
 suppressMessages( source_https(paste0(githome,"/R/missingValues.r")) )
-suppressMessages( source_https(paste0(githome,"/R/batchcorrection.r")) )
+#suppressMessages( source_https(paste0(githome,"/R/batchcorrection.r")) )
+source("methylkey/R/batchcorrection.r")
+source("methylkey/R/pca.r")
 
 message("Reading parameters ...")
 #1 parameters
@@ -176,6 +178,7 @@ if ( !file.exists( paste0(opt$out, "/plotQC1.jpg") )){
   #####################################################
   #3.2- QC before processing : plotQC1
   MSet <- preprocessRaw(RGset)
+  MSet <- fixMethOutliers(MSet)
   qc <- getQC(MSet)
   jpeg(paste0(opt$out, "/plotQC1.jpg"), width=800, height=800)
   plotQC(qc)
@@ -260,7 +263,9 @@ if ( !file.exists( paste0(opt$out, "/", opt$normalize , "/betas.rda") )){
   message("predict smoking statut")
   ######################################################
   #4.7- predict smoking statut
+  print(pdata$predictedSex)
   pdata$sex<-pdata$predictedSex
+  print(pdata$sex)
   colnames(betas)<-rownames(pdata)
   
   analyse$result_SSt <- epismoker(dataset=betas, samplesheet = pdata, method = "SSt")
@@ -268,7 +273,11 @@ if ( !file.exists( paste0(opt$out, "/", opt$normalize , "/betas.rda") )){
   pdata = pdata[,!(names(pdata) %in% "sex")]
   
   ######################################################
-  #4.8- Save
+  #4.8- pca
+  analyse$betas_pca<-makepca( betas, pdata, colnames(pdata), nPC=10 )
+  
+  ######################################################
+  #4.9- Save
   message("saving ...")
   message( paste0(opt$out, "/", opt$normalize ,"/betas.rda") )
   opt_=opt
@@ -291,12 +300,18 @@ if ( !opt$nosva ){
   ######################################################
   #5.1- batchcorrection sva
   mval<-beta2m(betas)
-  bc_sva<-function(mval,pdata,model)
+  mval[!is.finite(mval)]<-min(mval[is.finite(mval)])
+  mval<-bc_sva(mval,pdata,opt$model)
   
   ######################################################
-  #5.2- Save
+  #5.2- pca
+  analyse$mval_pca<-makepca( mval, pdata, colnames(pdata), nPC=10 )  
+  print(dim(analyse$mval_pca))
+    
+  ######################################################
+  #5.3- Save
   message("saving ...")
-  message( paste0(opt$out, "/", opt$normalize ,"/betas.rda") )
+  message( paste0(opt$out, "/", opt$normalize ,"/mval.rda") )
   opt_=opt
   save(opt_, analyse, mval, pdata, file=paste0(opt$out, "/", opt$normalize ,"/mval.rda") )
 }

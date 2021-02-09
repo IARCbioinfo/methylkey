@@ -11,6 +11,7 @@ Prerequisites :
 
 ```bash
 install.packages("R.utils")
+install.packages("formattable")
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install("minfi")
@@ -18,6 +19,7 @@ BiocManager::install("IlluminaHumanMethylationEPICmanifest")
 BiocManager::install("IlluminaHumanMethylationEPICanno.ilm10b4.hg19")
 BiocManager::install("wateRmelon")
 BiocManager::install("limma")
+BiocManager::install("sva")
 BiocManager::install("DMRcate")
 BiocManager::install("DMRcatedata")
 BiocManager::install("ggplot2")

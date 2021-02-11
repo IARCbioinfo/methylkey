@@ -3,7 +3,7 @@ title: "minfiQC"
 runtime: shiny
 output: flexdashboard::flex_dashboard
 params:
-  meth:   "../waterpipe3/Funnorm/betas.rda"
+  meth:   "/data/ege/ChildhoodCancer/work/spitztoledodiasn/MoBa/FirstProcessing_MoBa_nosva/Funnorm/betas.rda"
   genome: "hg38"
   annot:  "https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/"
 ---
@@ -21,11 +21,11 @@ load(params$meth)
 if(exists("mval")){ betas<-mval } # in case the loaded object is the mvalues.
 
 #https://zwdzwd.github.io/InfiniumAnnotation
-if( grepl("hm27",analyse$platform)  & params$genome=="hg19") { annot<-fread(paste0(params$annot,"HM27/HM27.hg19.manifest.tsv.gz")) }
-if( grepl("hm450",analyse$platform) & params$genome=="hg19") { annot<-fread(paste0(params$annot,"HM450/HM450.hg19.manifest.tsv.gz")) }
+if( grepl("27k",analyse$platform)  & params$genome=="hg19") { annot<-fread(paste0(params$annot,"HM27/HM27.hg19.manifest.tsv.gz")) }
+if( grepl("450k",analyse$platform) & params$genome=="hg19") { annot<-fread(paste0(params$annot,"HM450/HM450.hg19.manifest.tsv.gz")) }
 if( grepl("EPIC",analyse$platform)  & params$genome=="hg19") { annot<-fread(paste0(params$annot,"EPIC/EPIC.hg19.manifest.tsv.gz")) }
-if( grepl("hm27",analyse$platform)  & params$genome=="hg38") { annot<-fread(paste0(params$annot,"HM27/HM27.hg38.manifest.tsv.gz")) }
-if( grepl("hm450",analyse$platform) & params$genome=="hg38") { annot<-fread(paste0(params$annot,"HM450/HM450.hg38.manifest.tsv.gz")) }
+if( grepl("27k",analyse$platform)  & params$genome=="hg38") { annot<-fread(paste0(params$annot,"HM27/HM27.hg38.manifest.tsv.gz")) }
+if( grepl("450k",analyse$platform) & params$genome=="hg38") { annot<-fread(paste0(params$annot,"HM450/HM450.hg38.manifest.tsv.gz")) }
 if( grepl("EPIC",analyse$platform)  & params$genome=="hg38") { annot<-fread(paste0(params$annot,"EPIC/EPIC.hg38.manifest.tsv.gz")) }
 
 #annot<-fread("illumina/hm450.hg38.manifest.gencode.v22.tsv.gz")

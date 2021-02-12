@@ -138,11 +138,11 @@ if (!file.exists( paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".d
   #################################################
   message(analyse$platform)
   message(opt$genome)
-  if( grepl("hm27",analyse$platform)  & opt$genome=="hg19"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM27/HM27.hg19.manifest.tsv.gz") }
-  if( grepl("hm450",analyse$platform) & opt$genome=="hg19"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM450/HM450.hg19.manifest.tsv.gz") }
+  if( grepl("27k",analyse$platform)  & opt$genome=="hg19"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM27/HM27.hg19.manifest.tsv.gz") }
+  if( grepl("450k",analyse$platform) & opt$genome=="hg19"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM450/HM450.hg19.manifest.tsv.gz") }
   if( grepl("EPIC",analyse$platform) & opt$genome=="hg19") { manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/EPIC/EPIC.hg19.manifest.tsv.gz") }
-  if( grepl("hm27",analyse$platform)  & opt$genome=="hg38"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM27/HM27.hg38.manifest.tsv.gz") }
-  if( grepl("hm450",analyse$platform) & opt$genome=="hg38"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM450/HM450.hg38.manifest.tsv.gz") }
+  if( grepl("27k",analyse$platform)  & opt$genome=="hg38"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM27/HM27.hg38.manifest.tsv.gz") }
+  if( grepl("450k",analyse$platform) & opt$genome=="hg38"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM450/HM450.hg38.manifest.tsv.gz") }
   if( grepl("EPIC",analyse$platform) & opt$genome=="hg38") { manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/EPIC/EPIC.hg38.manifest.tsv.gz") }
 
   message("annotating ...")

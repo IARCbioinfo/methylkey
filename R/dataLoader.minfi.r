@@ -19,6 +19,7 @@ suppressPackageStartupMessages( library(wateRmelon) )
 suppressPackageStartupMessages( library(minfi) )
 suppressPackageStartupMessages( library(GetoptLong) )
 suppressPackageStartupMessages( library(EpiSmokEr) )
+suppressPackageStartupMessages( library(FlowSorted.Blood.EPIC) )
 #IlluminaHumanMethylationEPICmanifest
 #IlluminaHumanMethylationEPICanno.ilm10b4.hg19
 
@@ -55,7 +56,7 @@ opt$out="minfi_result"
 opt$meth=paste0(opt$out,"/betas.rdata")
 opt$cell=FALSE
 opt$badsamples=""
-opt$filter="default"
+opt$filter="crossnpxy"
 
 GetoptLong(
   "pdata=s",      "pdata file",
@@ -82,9 +83,13 @@ if ( !dir.exists(opt$out) ){ dir.create(opt$out) }
 groups<-unlist(strsplit(opt$groups,","))
 analyse=new.env()
 
-if (opt$filter=="default"){
-  opt$filter="http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_ALL_races_5percent.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_EPIC.csv"
+if (opt$filter=="crossnp"){
+  opt$filter="http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC_single_base.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_Chen.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_EGE.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_All_races_5percent.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_Chr_SNPs.csv"
 }
+if (opt$filter=="crossnpxy"){
+  opt$filter="http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC_single_base.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_Chen.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_EGE.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_All_races_5percent.csv"
+}
+
 
 #################################################
 #2- load data
@@ -128,12 +133,13 @@ if ( ! file.exists( paste0(opt$out, "/RGset.rda") ) ){
   
   #message("Estimate cell count ...")
   ################################################
-  #RGset.450k = convertArray(RGset, outType = "lluminaHumanMethylation450k")
-  #estimateCellCounts2(RGset, compositeCellType = "Blood",
+  #estimateCellCounts.wlmn(RGset, compositeCellType = "Blood",
   #                   processMethod = "auto", probeSelect = "auto",
   #                   cellTypes = c("CD8T","CD4T", "NK","Bcell","Mono","Neu"),
+  #                   #cellTypes = c("WholeBlood"),
   #                   referencePlatform = analyse$platform,
   #                   returnAll = FALSE, meanPlot = FALSE, verbose = TRUE)
+  pdata<-cbind(pdata,estimateCellCounts2(RGset))
   
   message("saving RGset raw ...")
   #####################################################
@@ -224,11 +230,10 @@ if ( !file.exists( paste0(opt$out, "/", opt$normalize , "/betas.rda") )){
   ######################################################
   #4.3- select probes from list
   probes=c()
-  filters<-split(",",opt$filter)
+  filters<-unlist(strsplit(opt_$filter,","))
   for (file in filters){
-    if(file.exists(file)){
-      probes <- unique( c(probes, fread(file)[[1]] ))
-    }
+    if( !file.exists(file) & !url.exists(file) ){ stop(paste0(file, " not found")) }
+    probes <- unique( c(probes, fread(file)[[1]] ))
   }
   filteredFromList<-length(probes)
   message(filteredFromList)

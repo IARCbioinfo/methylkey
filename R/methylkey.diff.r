@@ -71,7 +71,10 @@ if(file.exists(gsub("betas","mval",opt$meth))){ load(gsub("betas","mval",opt$met
 message(analyse$platform)
 if(!exists("betas")){ stop("betas not found ! check your input file") }
 message(analyse$platform)
-if(!exists("mval")){ mval<-beta2m(betas) }
+if(!exists("mval")){
+  mval<-beta2m(betas) 
+  mval[!is.finite(mval)]<-min(mval[is.finite(mval)])
+}
 
 message("debug")
 message(analyse$platform)

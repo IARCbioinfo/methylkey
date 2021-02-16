@@ -149,7 +149,7 @@ The only input required is the betas.rda file you get from dataLoader.minfi.r (o
   | --control              | Sentrix_ID       | Control status                                                                    |
   | --fdr                  | 0.05             | Cutoff Qvalue for significant dmps in toptable (default=0.05)                     |
   | --pval                 | 0.1              | All dmps with pvalue below this cutoff are used for DMR analysis (default=0.05)   |
-  | --reg                  | ls               | Regression method : ls (default), robust, logistic                                |
+  | --reg                  | ls               | Regression method : ls (default), robust, logistic, ls_ruv                                |
   | --niter                | 25               | Number of iteration when using robust regression (default=25)                     |
   | --ncore                | 4                | Number of core for computation (default=4)                                        |
   

@@ -15,6 +15,9 @@ m_regression<-function(mval,pdata,variables,method="ls", niter=50, ncore=4){
     if(method=="ls"){ 
         regression<-m_leastsquare(mval,pdata,variables)
     }
+    if(method=="ls_ruv"){ 
+      regression<-m_leastsquare_ruv(mval,pdata,variables)
+    }
     if(method=="robust"){ 
         regression<-m_robust(mval,pdata,variables, niter=niter)
     }
@@ -42,6 +45,30 @@ m_leastsquare<-function(mval,pdata,variables){
     table<-topTable(eb, adjust="BH", number=Inf, p=1, sort.by="P")
 
     return(list(table=table, lambda=lambda, pvals=eb$p.value ) )
+}
+
+#######################
+# least square method with ruv correction, return the whole table
+m_leastsquare_ruv<-function(mval,pdata,variables){
+  
+  require(missMethyl)
+  formula1 <- as.formula(paste("~ " ,paste(variables,collapse="+")))
+  design<-model.matrix(formula1,data=pdata)
+  colnames(design)<-make.names(colnames(design))
+  cmtx <- makeContrasts( contrasts=colnames(design)[2] , levels=colnames(design) )
+  fit<-lmFit(mval,design, pdata, ndups=1, method='ls')
+  rownames(cmtx)<-colnames(fit)
+  fitContrasts=contrasts.fit(fit,cmtx)
+  eb=eBayes(fitContrasts)
+  lTop<-topTable(eb, adjust="BH", number=Inf, p=1, sort.by="P")
+  # Perform RUV adjustment and fit
+  ctl <- rownames(mval) %in% rownames(lTop[lTop$adj.P.Val > 0.5,])
+  fit <- RUVfit(Y=mval, X=pdata[,factors], ctl=ctl)
+  fit2 <- RUVadj(Y=mval, fit=fit)
+  chisq <- qchisq(1-fit2$C$F.p,1)
+  lambda<-median(chisq)/qchisq(0.5,1)
+  table <- topRUV(fit2, sort.by = "F.p", n=nrow(fit2$C))
+  return(list(table=table, lambda=lambda, pvals=eb$p.value ) )
 }
 
 #######################

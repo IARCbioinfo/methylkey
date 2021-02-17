@@ -84,10 +84,10 @@ if ( !dir.exists(opt$out) ){ dir.create(opt$out) }
 groups<-unlist(strsplit(opt$groups,","))
 analyse=new.env()
 
-if (opt$filter=="crossnp"){
-  opt$filter="http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC_single_base.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_Chen.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_EGE.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_All_races_5percent.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_Chr_SNPs.csv"
-}
 if (opt$filter=="crossnpxy"){
+  opt$filter="http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC_single_base.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_Chen.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_EGE.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_All_races_5percent.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_Chr_SNPs.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/XY.csv"
+}
+if (opt$filter=="crossnp"){
   opt$filter="http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC_single_base.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_Chen.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_EGE.csv,http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_All_races_5percent.csv"
 }
 

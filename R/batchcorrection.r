@@ -11,7 +11,7 @@ bc_sva<-function(mval,pdata,model){
     sva<-sva(mval,design)
   }else{
     #formula0 <- as.formula(paste("~ 1+", paste(variables[-1],collapse="+")))
-    formula0 <- gsub("~[^+]*\\+","~1+",formula1)
+    formula0 <- as.formula( gsub("~[^+]*\\+","~1+",model) )
     model0<-model.matrix(formula0, data=pdata)
     sva<-sva(mval,design,model0)
   }

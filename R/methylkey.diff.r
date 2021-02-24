@@ -103,11 +103,13 @@ if (!file.exists( paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".d
   case<-make.names(opt$case)
   control<-make.names(opt$control)
   variables=unlist(strsplit(gsub("~","",opt$model),"\\+"))
-  levels<-paste0(levels(pdata$Smoking_status),collapse=",")
-  if(! case %in% levels(pdata[,variables[1]])){ stop( paste0( "Error : ", case , " not in ",  levels ) )}
-  if(! control %in% levels(pdata[,variables[1]])){ stop( paste0( "Error : ", control , " not in ", levels)  )}
-  pdata[,variables[1]] <- relevel(pdata[,variables[1]], case)
-  pdata[,variables[1]] <- relevel(pdata[,variables[1]], control)
+  if (sum( ! variables[1] %in% colnames(pdata) ) ){ stop("your model do not match samplesheet columns names") }
+  lvls<-levels(as.factor(pdata[,variables[1]]))
+  #levels<-paste0(levels(as.factor(pdata[,variables[1]])),collapse=",")
+  if(! case %in% lvls ){ stop( paste0( "Error : ", case , " not in ",  lvls ) )}
+  if(! control %in% lvls ){ stop( paste0( "Error : ", control , " not in (", paste(lvls),")" )  )}
+  pdata[,variables[1]] <- relevel(as.factor(pdata[,variables[1]]), case)
+  pdata[,variables[1]] <- relevel(as.factor(pdata[,variables[1]]), control)
   message(opt$model)
   message(log$comp)
   message(opt$model)

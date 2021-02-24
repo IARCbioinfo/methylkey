@@ -34,9 +34,9 @@ suppressMessages( source_https(paste0(githome,"/R/utils.r")) )
 suppressMessages( source_https(paste0(githome,"/R/sampleSheet.r")) )
 suppressMessages( source_https(paste0(githome,"/R/missingValues.r")) )
 suppressMessages( source_https(paste0(githome,"/R/batchcorrection.r")) )
-suppressMessages( source_https(paste0(githome,"/R/pca.r")) )
+#suppressMessages( source_https(paste0(githome,"/R/pca.r")) )
 #source("methylkey/R/batchcorrection.r")
-#source("methylkey/R/pca.r")
+source("/data/ege/Waterpipe/work/cahaisv/methylkey/R/pca.r")
 
 message("Reading parameters ...")
 #1 parameters
@@ -108,6 +108,12 @@ if ( ! file.exists( paste0(opt$out, "/RGset.rda") ) ){
   }
   analyse$pdata<-pdata
   analyse$nsamp<-nrow(pdata)
+  
+  #check if variables in model are set for all samples
+  vars<-strsplit(opt$model,"~|\\+")[[1]][-1]
+  for(var in vars){
+    if ( sum(is.na(pdata[,var]))>0 ) { stop(paste0("you cannot use ", var, " in you model because there is NA values for some samples" )) }
+  }
 
   message("loading idats ...")
   ################################################
@@ -149,7 +155,7 @@ if ( ! file.exists( paste0(opt$out, "/RGset.rda") ) ){
   #####################################################
   #2.4- saving : RGset
   opt_=opt
-  save(opt_, analyse, RGset, file=paste0(opt$out, "/RGset.rda") )
+  save(opt_, analyse, RGset, pdata, file=paste0(opt$out, "/RGset.rda") )
 }
 
 #########################################################
@@ -272,9 +278,7 @@ if ( !file.exists( paste0(opt$out, "/", opt$normalize , "/betas.rda") )){
   message("predict smoking statut")
   ######################################################
   #4.7- predict smoking statut
-  print(pdata$predictedSex)
-  pdata$sex<-pdata$predictedSex
-  print(pdata$sex)
+  pdata$sex<-estSex$predictedSex
   colnames(betas)<-rownames(pdata)
   
   analyse$result_SSt <- epismoker(dataset=betas, samplesheet = pdata, method = "SSt")

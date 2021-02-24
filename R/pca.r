@@ -17,7 +17,7 @@ makepca <- function( betas, pdata, variables=colnames(pdata),  nPC=ncol(betas) )
   require(reshape2)
   require(ggplot2)
   
-  nPC=min(nPC,10)
+  nPC=min( nPC,ncol(betas) )
   
   invtbetas = 1/t(betas) # n x p required for prcomp
   #mval<-t(beta2m(as.matrix(betas)))

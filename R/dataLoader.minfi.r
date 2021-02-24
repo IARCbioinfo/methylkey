@@ -34,9 +34,9 @@ suppressMessages( source_https(paste0(githome,"/R/utils.r")) )
 suppressMessages( source_https(paste0(githome,"/R/sampleSheet.r")) )
 suppressMessages( source_https(paste0(githome,"/R/missingValues.r")) )
 suppressMessages( source_https(paste0(githome,"/R/batchcorrection.r")) )
-#suppressMessages( source_https(paste0(githome,"/R/pca.r")) )
+suppressMessages( source_https(paste0(githome,"/R/pca.r")) )
 #source("methylkey/R/batchcorrection.r")
-source("/data/ege/Waterpipe/work/cahaisv/methylkey/R/pca.r")
+#source("/data/ege/Waterpipe/work/cahaisv/methylkey/R/pca.r")
 
 message("Reading parameters ...")
 #1 parameters

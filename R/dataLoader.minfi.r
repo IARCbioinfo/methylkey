@@ -29,7 +29,8 @@ suppressPackageStartupMessages( library(FlowSorted.Blood.EPIC) )
 #source(paste0(path,"batchcorrection.r"))
 #source("methylkey/R/utils.r")
 
-githome="http://git.iarc.lan/EGE/methylkey/raw/master/"
+#githome="http://git.iarc.lan/EGE/methylkey/raw/master/"
+githome="https://raw.githubusercontent.com/IARCbioinfo/methylkey/master/"
 suppressMessages( source_https(paste0(githome,"/R/utils.r")) )
 suppressMessages( source_https(paste0(githome,"/R/sampleSheet.r")) )
 suppressMessages( source_https(paste0(githome,"/R/missingValues.r")) )

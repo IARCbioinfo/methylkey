@@ -190,6 +190,7 @@ if (opt$dmrcate){
   foo <- new("CpGannotated", ranges=sort(annotated))
   message(length(foo@ranges))
   message(length(foo@ranges$stat))
+  foo@ranges$diff[ which(is.na(foo@ranges$diff)) ] <- 0 # fix issue when there is missing values in betas.
   dmrcoutput<-dmrcate(foo,C=2, pcutoff=opt$pval)
   table <- extractRanges(dmrcoutput, genome = opt$genome)
   

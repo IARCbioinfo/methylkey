@@ -18,13 +18,13 @@ suppressPackageStartupMessages( library(qqman) )
 suppressPackageStartupMessages( library(GenomicRanges) )
 suppressPackageStartupMessages( library(wateRmelon) )
 
-#path="methylkey/R/"
+path="methylkey/R/"
 #source(paste0(path,"/utils.r"))
-#source(paste0(path,"/regression.r"))
+source(paste0(path,"/regression.r"))
 
 githome="http://git.iarc.lan/EGE/methylkey/raw/master/"
 suppressMessages( source_https(paste0(githome,"/R/utils.r")) )
-suppressMessages( source_https(paste0(githome,"/R/regression.r")) )
+#suppressMessages( source_https(paste0(githome,"/R/regression.r")) )
 
 message("Reading parameters ...")
 #1 parameters
@@ -83,12 +83,14 @@ message(opt$genome)
 opt<-appendEnv(opt_,opt)                 # update options with new values
 message(analyse$platform)
 message(opt$genome)
-rpath<-paste(dirname(opt$meth), opt$model, sep="/") #result path
+model=gsub("~","",opt$model)
+rpath<-paste(dirname(opt$meth), model , sep="/") #result path
 dir.create(rpath,recursive=TRUE, showWarnings = FALSE)
+print(rpath)
 log=new.env()
 log$comp=paste(opt$case,"vs",opt$control,sep="-")
 
-if (!file.exists( paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".dmps.rda") )){ 
+if (!file.exists( paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".dmps.rda") )){ 
   
   #1.2- remove cpgs when sum of its betas is 0
   #it can produce a BUG when it is the case
@@ -102,9 +104,14 @@ if (!file.exists( paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".d
   #2.1- levels
   case<-make.names(opt$case)
   control<-make.names(opt$control)
+  print(case)
+  print(control)
   variables=unlist(strsplit(gsub("~","",opt$model),"\\+"))
+  print(variables[1])
   if (sum( ! variables[1] %in% colnames(pdata) ) ){ stop("your model do not match samplesheet columns names") }
+  print( as.factor(pdata[,variables[1]]) )
   lvls<-levels(as.factor(pdata[,variables[1]]))
+  print(lvls)
   #levels<-paste0(levels(as.factor(pdata[,variables[1]])),collapse=",")
   if(! case %in% lvls ){ stop( paste0( "Error : ", case , " not in ",  lvls ) )}
   if(! control %in% lvls ){ stop( paste0( "Error : ", control , " not in (", paste(lvls),")" )  )}
@@ -129,11 +136,12 @@ if (!file.exists( paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".d
   #3.1- Get DeltaBetas
   message("debug")
   regression$table$deltaBetas<-getDeltaBetas(betas[rownames(regression$table),],pdata[,variables[1]],case,control)*100
+  print(dim(regression$table))
   
   message("QQplot ...")
   #################################################
   #4.1- Draw qqplot
-  jpeg( paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, "_qqplot.jpg") )
+  jpeg( paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, "_qqplot.jpg") )
   try(
     qq(regression$pvals,main=paste("QQ plot: ","lambda=", regression$lambda,sep=""))
   ,silent=TRUE)
@@ -149,13 +157,37 @@ if (!file.exists( paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".d
   if( grepl("27k",analyse$platform)  & opt$genome=="hg38"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM27/HM27.hg38.manifest.tsv.gz") }
   if( grepl("450k",analyse$platform) & opt$genome=="hg38"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM450/HM450.hg38.manifest.tsv.gz") }
   if( grepl("EPIC",analyse$platform) & opt$genome=="hg38") { manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/EPIC/EPIC.hg38.manifest.tsv.gz") }
+  if( grepl("MM250",analyse$platform) ) {
+    library(dplyr)
+	source_https("http://git.iarc.lan/EGE/methylkey/raw/master/R/annotation.r")
+    manifest<-fread("https://support.illumina.com/content/dam/illumina-support/documents/downloads/productfiles/mouse-methylation/Infinium%20Mouse%20Methylation%20v1.0%20A1%20GS%20Manifest%20File.csv",skip=7) 
+    manifest$start<-manifest$MAPINFO
+    manifest$end<-manifest$MAPINFO
+    manifest<-manifest[,c("CHR","start","end","Strand","IlmnID","N_Shelf","N_Shore","CpG_Island","CpG_Island_chrom","CpG_Island_chromStart","CpG_Island_chromEnd","CpG_Island_chromEnd","CpG_Island_cpgNum","CpG_Island_gcNum","CpG_Island_perCpg","CpG_Island_perGc","CpG_Island_obsExp","S_Shore","S_Shelf","MFG_Change_Flagged")]
+    colnames(manifest)[1:5]<-c("chr","start","end","strand","probeID")
+	manifest$strand<-gsub("F","+",manifest$strand)
+    manifest$strand<-gsub("R","-",manifest$strand)
+	manifest$strand[ manifest$strand=="" ]<-"*"
+	manifest<-makeGRangesFromDataFrame(manifest[!grepl("rs",manifest$probeID) & manifest$chr>0,], keep.extra.columns=TRUE)
+    seqlevelsStyle(manifest)<-"UCSC" 
+    annotated_manifest<-mk_annotatr(manifest, genome="mm10")
+	foo<-unique(as.data.frame(annotated_manifest)[,c(1:3,5,6,30)])
+	foo<-foo[!is.na(foo$annot.symbol),]
+	p <- function(v) { Reduce(f=paste, x = v) }
+	manifest <- foo %>% group_by(seqnames,start,end,strand,probeID) %>% summarize( genes=p(annot.symbol) ) %>% ungroup() %>% as.data.table()
+  }
 
   message("annotating ...")
   #################################################
   if(opt$fullmanifest){
     table<-merge(manifest[,1:ncol(manifest)],data.table(probeID=rownames(regression$table), regression$table), by="probeID")
+  } else if ( grepl("MM250",analyse$platform) ) {
+    foo<-data.table(probeID=rownames(regression$table), regression$table)
+    table<-merge(manifest, data.table(probeID=rownames(regression$table), regression$table), by="probeID")
   } else {
+    print(dim(regression$table))
     table<-merge(manifest[,c(1:5,20)],data.table(probeID=rownames(regression$table), regression$table), by="probeID")
+    print(dim(regression$table))
   }
   colnames(table)[2:5]<-c("chr","start","end","strand")
   
@@ -163,7 +195,8 @@ if (!file.exists( paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".d
   #################################################
   #5.1- Save
   opt_=opt
-  save(opt_, log, table, file=paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".dmps.rda") )
+  write.table(table,sep="\t",row.names=FALSE,quote=F,file=paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".dmps.tab"))
+  save(opt_, log, table, file=paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".dmps.rda") )
 }
 
 if (opt$dmrcate){
@@ -175,9 +208,9 @@ if (opt$dmrcate){
   ################################################
   if(!exists("regression")){
     message("Try loading DMPs...")
-    load(paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".dmps.rda"))
+    load(paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".dmps.rda"))
     opt<-appendEnv(opt_,opt)                 # update options with new values
-    rpath<-paste(opt$out, opt$normalize, opt$model, sep="/") #result path
+    rpath<-paste(opt$out, opt$normalize, model, sep="/") #result path
   }
   
   message("DMRcate ...")
@@ -190,7 +223,8 @@ if (opt$dmrcate){
   foo <- new("CpGannotated", ranges=sort(annotated))
   message(length(foo@ranges))
   message(length(foo@ranges$stat))
-  foo@ranges$diff[ which(is.na(foo@ranges$diff)) ] <- 0 # fix issue when there is missing values in betas.
+  if( sum(is.na(foo@ranges$diff)) ){foo@ranges$diff[ which(is.na(foo@ranges$diff)) ] <- 0 } # fix issue when there is missing values in betas.
+
   dmrcoutput<-dmrcate(foo,C=2, pcutoff=opt$pval)
   table <- extractRanges(dmrcoutput, genome = opt$genome)
   
@@ -205,7 +239,8 @@ if (opt$dmrcate){
   #################################################
   #5.1- Save
   opt_=opt
-  save(log, opt_, table, file=paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".dmrs.rda") )
+  write.table(as.data.frame(table),sep="\t",row.names=FALSE,quote=F,file=paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".dmrs.tab"))
+  save(log, opt_, table, file=paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".dmrs.rda") )
   
 }
 
@@ -216,9 +251,9 @@ if (opt$annot){
   
   if(!is.data.table(table)){
     message("Try loading DMRs...")
-    load(paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".dmrs.rda"))
+    load(paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".dmrs.rda"))
     opt<-appendEnv(opt_,opt)                 # update options with new values
-    rpath<-paste(opt$out, opt$normalize, opt$model, sep="/") #result path
+    rpath<-paste(opt$out, opt$normalize, model, sep="/") #result path
   }
   
   message("Annotating DMRs ...")
@@ -228,13 +263,15 @@ if (opt$annot){
   if(!opt$genome %in% c("hg19","hg38","mm10")){ message(paste0(opt$annot," is not a valid genome")) }
   if (!is.null(opt$annotatr)){load(opt$annotatr)}
   
+  seqlevelsStyle(table)<-"UCSC" 
   table<-mk_annotation(regions=table,annot=annot,genome=opt$genome)
   message(paste0("table:",length(table)))
   message("saving ...")
   #################################################
   #6.2- Save
   opt_=opt
-  save(table, log, opt_, file=paste0(rpath, "/", opt$model, "_", log$comp, "_", opt$reg, ".annotated.dmrs.rda") )
+  print(paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".annotated.dmrs.rda"))
+  save(table, log, opt_, file=paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".annotated.dmrs.rda") )
   
 }
 

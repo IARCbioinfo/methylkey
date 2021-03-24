@@ -44,6 +44,10 @@ m_leastsquare<-function(mval,pdata,variables){
     lambda<-median(chisq)/qchisq(0.5,1)
     table<-topTable(eb, adjust="BH", number=Inf, p=1, sort.by="P")
 
+    #MetaFile<-data.frame(probeID=rownames(eb$coefficients),Coefficient=eb$coefficients[,1],Stdev=(sqrt(eb$s2.post) * eb$stdev.unscaled)[,1], PValue=eb$p.value[,1])
+    table$Coefficient=eb$coefficients[rownames(table),1]
+    table$Stdev=(sqrt(eb$s2.post) * eb$stdev.unscaled)[rownames(table),1]
+    print(dim(table))
     return(list(table=table, lambda=lambda, pvals=eb$p.value ) )
 }
 

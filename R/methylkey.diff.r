@@ -20,11 +20,11 @@ suppressPackageStartupMessages( library(wateRmelon) )
 
 path="methylkey/R/"
 #source(paste0(path,"/utils.r"))
-source(paste0(path,"/regression.r"))
+#source(paste0(path,"/regression.r"))
 
 githome="http://git.iarc.lan/EGE/methylkey/raw/master/"
 suppressMessages( source_https(paste0(githome,"/R/utils.r")) )
-#suppressMessages( source_https(paste0(githome,"/R/regression.r")) )
+suppressMessages( source_https(paste0(githome,"/R/regression.r")) )
 
 message("Reading parameters ...")
 #1 parameters

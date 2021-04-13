@@ -7,6 +7,7 @@
 #
 #####################################################################################
 
+
 #######################
 # least square method, return the whole table
 m_regression<-function(mval,pdata,variables,method="ls", niter=50, ncore=4){
@@ -93,6 +94,8 @@ m_robust<-function(mval,pdata,variables,niter=50){
     lambda<-median(chisq)/qchisq(0.5,1)
     table<-topTable(eb, adjust="BH", number=Inf, p=1, sort.by="P")
     
+    table$Coefficient=eb$coefficients[rownames(table),1]
+    table$Stdev=(sqrt(eb$s2.post) * eb$stdev.unscaled)[rownames(table),1]   
     return(list(table=table, lambda=lambda, pvals=eb$p.value) )
 }
 

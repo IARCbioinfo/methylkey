@@ -280,7 +280,7 @@ if ( !file.exists( paste0(opt$out, "/", opt$normalize , "/betas.rda") )){
   ######################################################
   #4.7- predict smoking statut
   pdata$sex<-estSex$predictedSex
-  colnames(betas)<-rownames(pdata)
+  rownames(pdata)<-colnames(betas)
   
   analyse$result_SSt <- epismoker(dataset=betas, samplesheet = pdata, method = "SSt")
   pdata$PredictedSmokingStatus <- analyse$result_SSt$PredictedSmokingStatus

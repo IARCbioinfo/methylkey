@@ -32,7 +32,8 @@ suppressPackageStartupMessages( library(FlowSorted.Blood.EPIC) )
 #githome="http://git.iarc.lan/EGE/methylkey/raw/master/"
 githome="https://raw.githubusercontent.com/IARCbioinfo/methylkey/master/"
 suppressMessages( source_https(paste0(githome,"/R/utils.r")) )
-suppressMessages( source_https(paste0(githome,"/R/sampleSheet.r")) )
+#suppressMessages( source_https(paste0(githome,"/R/sampleSheet.r")) )
+source("~/git/methylkey/master/R/sampleSheet.r")
 suppressMessages( source_https(paste0(githome,"/R/missingValues.r")) )
 suppressMessages( source_https(paste0(githome,"/R/batchcorrection.r")) )
 suppressMessages( source_https(paste0(githome,"/R/pca.r")) )
@@ -46,6 +47,7 @@ opt$pdata="pdata.csv"
 opt$idat="idat"
 opt$normalize="Funnorm"
 opt$nosva=FALSE
+opt$nopca=FALSE
 opt$samples=NULL
 opt$barcode=NULL
 opt$groups="Sentrix_ID"
@@ -66,6 +68,7 @@ GetoptLong(
   "meth=s",       "input object",
   "normalize=s",  "(Funnorm|Illumina|Noob|Quantile|SWAN|SWANoob|None)",
   "sva!",         "batch correction with sva",
+  "pca!",         "run pca",
   "samples=s",    "sample column name or index",
   "barcode=s",    "barcode column name or index",
   "groups=s",     "groups columns name or index (comma separated list without space)",
@@ -288,7 +291,9 @@ if ( !file.exists( paste0(opt$out, "/", opt$normalize , "/betas.rda") )){
   
   ######################################################
   #4.8- pca
-  analyse$betas_pca<-makepca( betas, pdata, colnames(pdata), nPC=10 )
+  if( !opt$nopca ){
+    analyse$betas_pca<-makepca( betas, pdata, colnames(pdata), nPC=10 )
+  }
   
   ######################################################
   #4.9- Save
@@ -318,12 +323,22 @@ if ( !opt$nosva ){
   mval<-bc_sva(mval,pdata,opt$model)
   
   ######################################################
-  #5.2- pca
-  analyse$mval_pca<-makepca( mval, pdata, colnames(pdata), nPC=10 )  
-  print(dim(analyse$mval_pca))
-    
+  #5.2- Save
+  message("saving ...")
+  message( paste0(opt$out, "/", opt$normalize ,"/mval.rda") )
+  opt_=opt
+  save(opt_, analyse, mval, pdata, file=paste0(opt$out, "/", opt$normalize ,"/mval.rda") )
+
   ######################################################
-  #5.3- Save
+  #5.3- pca
+  if( !opt$nopca ){
+    message("pca ...")
+    analyse$mval_pca<-makepca( mval, pdata, colnames(pdata), nPC=10 )
+    print(dim(analyse$mval_pca))
+  }
+
+  ######################################################
+  #5.4- reSave
   message("saving ...")
   message( paste0(opt$out, "/", opt$normalize ,"/mval.rda") )
   opt_=opt

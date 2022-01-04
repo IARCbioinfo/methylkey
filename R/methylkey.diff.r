@@ -79,6 +79,7 @@ if(!exists("mval")){
 message("debug")
 message(analyse$platform)
 message(opt$genome)
+message(paste0("number of probes in mvalues : ",nrow(mval)))
 
 opt<-appendEnv(opt_,opt)                 # update options with new values
 message(analyse$platform)
@@ -110,13 +111,15 @@ if (!file.exists( paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".dmps.
   print(variables[1])
   if (sum( ! variables[1] %in% colnames(pdata) ) ){ stop("your model do not match samplesheet columns names") }
   print( as.factor(pdata[,variables[1]]) )
-  lvls<-levels(as.factor(pdata[,variables[1]]))
+  #lvls<-levels(as.factor(pdata[,variables[1]]))
+  lvls<-unique( unlist( pdata[,variables[1]] ) )
   print(lvls)
   #levels<-paste0(levels(as.factor(pdata[,variables[1]])),collapse=",")
+  #save.image("DEBUG.rda")
   if(! case %in% lvls ){ stop( paste0( "Error : ", case , " not in ",  lvls ) )}
   if(! control %in% lvls ){ stop( paste0( "Error : ", control , " not in (", paste(lvls),")" )  )}
-  pdata[,variables[1]] <- relevel(as.factor(pdata[,variables[1]]), case)
-  pdata[,variables[1]] <- relevel(as.factor(pdata[,variables[1]]), control)
+  pdata[,variables[1]] <- relevel(as.factor(unlist(pdata[,variables[1]])), case)
+  pdata[,variables[1]] <- relevel(as.factor(unlist(pdata[,variables[1]])), control)
   message(opt$model)
   message(log$comp)
   message(opt$model)
@@ -128,9 +131,12 @@ if (!file.exists( paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".dmps.
   message("Running regression ...")
   #################################################
   #2.1- Run regression analysis for dmps
+  save.image(file="DEBUG.rda")
   regression<-m_regression(mval,pdata,variables,method=opt$reg,niter=opt$niter,ncore=opt$ncore)
   log$lambda=regression$lambda
   
+  message(paste0("number of probes in regression result", nrow(regression$table)))
+
   message("get delta betas ...")
   #################################################
   #3.1- Get DeltaBetas
@@ -157,31 +163,29 @@ if (!file.exists( paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".dmps.
   if( grepl("27k",analyse$platform)  & opt$genome=="hg38"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM27/HM27.hg38.manifest.tsv.gz") }
   if( grepl("450k",analyse$platform) & opt$genome=="hg38"){ manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/HM450/HM450.hg38.manifest.tsv.gz") }
   if( grepl("EPIC",analyse$platform) & opt$genome=="hg38") { manifest<-fread("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/20180909/EPIC/EPIC.hg38.manifest.tsv.gz") }
-  if( grepl("MM250",analyse$platform) ) {
+  if( grepl("MM285",analyse$platform) ) {
     library(dplyr)
 	source_https("http://git.iarc.lan/EGE/methylkey/raw/master/R/annotation.r")
-    manifest<-fread("https://support.illumina.com/content/dam/illumina-support/documents/downloads/productfiles/mouse-methylation/Infinium%20Mouse%20Methylation%20v1.0%20A1%20GS%20Manifest%20File.csv",skip=7) 
-    manifest$start<-manifest$MAPINFO
-    manifest$end<-manifest$MAPINFO
-    manifest<-manifest[,c("CHR","start","end","Strand","IlmnID","N_Shelf","N_Shore","CpG_Island","CpG_Island_chrom","CpG_Island_chromStart","CpG_Island_chromEnd","CpG_Island_chromEnd","CpG_Island_cpgNum","CpG_Island_gcNum","CpG_Island_perCpg","CpG_Island_perGc","CpG_Island_obsExp","S_Shore","S_Shelf","MFG_Change_Flagged")]
-    colnames(manifest)[1:5]<-c("chr","start","end","strand","probeID")
-	manifest$strand<-gsub("F","+",manifest$strand)
-    manifest$strand<-gsub("R","-",manifest$strand)
-	manifest$strand[ manifest$strand=="" ]<-"*"
-	manifest<-makeGRangesFromDataFrame(manifest[!grepl("rs",manifest$probeID) & manifest$chr>0,], keep.extra.columns=TRUE)
-    seqlevelsStyle(manifest)<-"UCSC" 
-    annotated_manifest<-mk_annotatr(manifest, genome="mm10")
-	foo<-unique(as.data.frame(annotated_manifest)[,c(1:3,5,6,30)])
-	foo<-foo[!is.na(foo$annot.symbol),]
-	p <- function(v) { Reduce(f=paste, x = v) }
-	manifest <- foo %>% group_by(seqnames,start,end,strand,probeID) %>% summarize( genes=p(annot.symbol) ) %>% ungroup() %>% as.data.table()
+    #manifest<-fread("https://support.illumina.com/content/dam/illumina-support/documents/downloads/productfiles/mouse-methylation/Infinium%20Mouse%20Methylation%20v1.0%20A1%20GS%20Manifest%20File.csv",skip=7) 
+    manifest<-fread("https://support.illumina.com/content/dam/illumina-support/documents/downloads/productfiles/mouse-methylation/MouseMethylation-12v1-0_A1_Annotation_Mus_musculus.csv")
+    #manifest<-manifest[,c("chrom","chromStart","chromEnd","chromLength","chromStrand","name","Gene","Transcript","Feature","Source","CpG_Island_chromStart","CpG_Island_chromEnd","CpG_Island_chromEnd","CpG_Island_cpgNum","CpG_Island_gcNum","CpG_Island_perCpg","CpG_Island_perGc","CpG_Island_obsExp","S_Shore","S_Shelf","MFG_Change_Flagged")]
+    colnames(manifest)<-c("probeID","Gene","Transcript","chr","start","end","length","strand","Feature","Source")
+	#manifest<-makeGRangesFromDataFrame(manifest[!grepl("rs",manifest$probeID) & manifest$chr>0,], keep.extra.columns=TRUE)
+        #seqlevelsStyle(manifest)<-"UCSC" 
+        #annotated_manifest<-mk_annotatr(manifest, genome="mm10")
+	#foo<-unique(as.data.frame(annotated_manifest)[,c(1:3,5,6,30)])
+	#foo<-foo %>% arrange(probeID,annot.symbol)
+	#p <- function(v) { Reduce(f=paste, x = v) }
+	#manifest <- foo %>% group_by(seqnames,start,end,strand,probeID) %>% summarize( genes=p(annot.symbol) ) %>% ungroup() %>% as.data.table()
+        #manifest$genes <- gsub(" *NA","",manifest$genes)
   }
 
   message("annotating ...")
+  save.image("debug.rda")
   #################################################
   if(opt$fullmanifest){
     table<-merge(manifest[,1:ncol(manifest)],data.table(probeID=rownames(regression$table), regression$table), by="probeID")
-  } else if ( grepl("MM250",analyse$platform) ) {
+  } else if ( grepl("MM285",analyse$platform) ) {
     foo<-data.table(probeID=rownames(regression$table), regression$table)
     table<-merge(manifest, data.table(probeID=rownames(regression$table), regression$table), by="probeID")
   } else {
@@ -210,7 +214,7 @@ if (opt$dmrcate){
     message("Try loading DMPs...")
     load(paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".dmps.rda"))
     opt<-appendEnv(opt_,opt)                 # update options with new values
-    rpath<-paste(opt$out, opt$normalize, model, sep="/") #result path
+    #rpath<-paste(opt$out, opt$normalize, model, sep="/") #result path
   }
   
   message("DMRcate ...")
@@ -253,7 +257,7 @@ if (opt$annot){
     message("Try loading DMRs...")
     load(paste0(rpath, "/", model, "_", log$comp, "_", opt$reg, ".dmrs.rda"))
     opt<-appendEnv(opt_,opt)                 # update options with new values
-    rpath<-paste(opt$out, opt$normalize, model, sep="/") #result path
+    #rpath<-paste(opt$out, opt$normalize, model, sep="/") #result path
   }
   
   message("Annotating DMRs ...")

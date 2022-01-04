@@ -91,5 +91,5 @@ makepca <- function( betas, pdata, variables=colnames(pdata),  nPC=ncol(betas) )
   
   mt_qval<-acast(dt_pval, Variables~PCA_dim, value.var="adj_pval")
   
-  return( list(pvalue=mt_pval, qvalue=mt_qval, contrib=p))
+  return( list(pvalue=mt_pval, qvalue=mt_qval, contrib=p, pca=pca))
 }

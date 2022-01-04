@@ -48,8 +48,13 @@ m_leastsquare<-function(mval,pdata,variables){
     #MetaFile<-data.frame(probeID=rownames(eb$coefficients),Coefficient=eb$coefficients[,1],Stdev=(sqrt(eb$s2.post) * eb$stdev.unscaled)[,1], PValue=eb$p.value[,1])
     table$Coefficient=eb$coefficients[rownames(table),1]
     table$Stdev=(sqrt(eb$s2.post) * eb$stdev.unscaled)[rownames(table),1]
-    print(dim(table))
-    return(list(table=table, lambda=lambda, pvals=eb$p.value ) )
+
+    #goodness
+    sst<-rowSums(mval^2)
+    ssr<-sst-fit$df.residual*fit$sigma^2
+    rsq<-ssr/sst
+    
+    return(list(table=table, lambda=lambda, pvals=eb$p.value, goodness=rsq ) )
 }
 
 #######################
@@ -95,8 +100,14 @@ m_robust<-function(mval,pdata,variables,niter=50){
     table<-topTable(eb, adjust="BH", number=Inf, p=1, sort.by="P")
     
     table$Coefficient=eb$coefficients[rownames(table),1]
-    table$Stdev=(sqrt(eb$s2.post) * eb$stdev.unscaled)[rownames(table),1]   
-    return(list(table=table, lambda=lambda, pvals=eb$p.value) )
+    table$Stdev=(sqrt(eb$s2.post) * eb$stdev.unscaled)[rownames(table),1]
+    
+    #goodness
+    sst<-rowSums(mval^2)
+    ssr<-sst-fit$df.residual*fit$sigma^2
+    rsq<-ssr/sst
+    
+    return(list(table=table, lambda=lambda, pvals=eb$p.value, goodness=rsq) )
 }
 
 #######################

@@ -1,0 +1,45 @@
+Package: methylkey
+Title: Pipeline for methylation array analysis
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Vincent",
+           family = "Cahais",
+           role = c("aut", "cre"),
+           email = "cahaisv@iarc.fr",
+           comment = c(ORCID = "https://orcid.org/0000-0001-5530-4368"))
+Description: Methylkey is a pipeline for methylation array analysis. It is working with human infinium array (hm450k and EPIC) and with mouse infinium array. It provide set of functions and examples markdown report to run a complete analysis.
+License: `GNU General Public License v3.0`
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+Imports:
+	sva (>= 3.38.0),
+	qqman (>= 0.1.8),
+	limma (>= 3.46.0),
+	minfi (>= 1.36.0),
+	GetoptLong (>= 1.0.5),
+	pamr (>= 1.56.1),
+	missMethyl (>= 1.24.0),
+	survival (>= 3.2-13),
+	FlowSorted.Blood.EPIC (>= 1.8.0),
+  annotatr (>= 1.16.0),
+  data.table (>= 1.14.0),
+  factoextra (>= 1.0.7)
+Depends:
+  dplyr (>= 1.0.7),
+  tidyr (>= 1.1.4),
+	readr (>= 2.0.1),
+	tibble (>= 3.1.4),
+  enrichR (>= 3.0),
+  ggplot2 (>= 3.3.5),
+  wateRmelon (>= 1.34.0),
+  GenomicRanges (>= 1.42.0),
+  DMRcate(>= 2.4.1),
+  EpiSmokEr (>= 0.1.0),
+  RColorBrewer (>= 1.1-2),
+  DT (>= 0.19)
+Suggests: 
+  rmarkdown,
+  knitr
+VignetteBuilder: knitr

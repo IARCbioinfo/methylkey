@@ -15,10 +15,13 @@
 ```bash
 install.packages("devtools") 
 library(devtools)
-devtools::install("~/git/methylkey/v1.0/")
-devtools::install_github("~/git/methylkey/v1.0/")
-#or
-devtools::load_all("~/git/methylkey/v1.0/")
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install()
+
+devtools::install_github("IARCbioinfo/methylkey@v1.0")
+library(methylkey)
 ```
 
 ## 2. Prepare sampleSheet

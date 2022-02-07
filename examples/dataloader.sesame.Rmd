@@ -1,0 +1,188 @@
+---
+title: "MMA4"
+author: Cahais Vincent
+date: February 19, 2022
+output:
+  rmdformats::readthedown:
+    toc_depth: 3
+    theme: lumen
+params:
+  idat: "idat/"
+  sampleSheet : "sampleSheet.csv"
+  output : "MM4"
+---
+
+```{R setup, warning=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+devtools::load_all("~/git/methylkey/v1.0/")
+library(sesame)
+library(sesameData)
+library(kableExtra)
+library(wheatmap)
+```
+
+# 1- loading idats { .tabset }
+
+```{R loading}
+# sampleSheet
+sampleSheet <-read_tsv(params$sampleSheet)
+
+# reading the array to list of Sesame Set objects
+sesameDataCache("MM285")
+mft <- sesameDataGet('MM285.mm10.manifest')
+sdfs = lapply(searchIDATprefixes(params$idat), readIDATpair)
+
+#read idat to betas, with all preprocess step + normalisation with Noob
+betas<-openSesame(params$idat, BPPARAM=BiocParallel::MulticoreParam(2) )
+```  
+
+## sampleSheet
+
+```{R sampleSheet}
+sampleSheet %>% kbl(caption = "Sample Sheet") %>% kable_paper("hover", full_width = F)
+```
+
+## betas
+
+```{R betas}
+betas[1:50,] %>% kbl(caption = "head betas") %>% kable_paper("hover", full_width = F)
+```
+
+# 2- Quality Control { .tabset }
+
+```{R QC, warning=FALSE, message=FALSE}
+#sesameQC require raw sset (only readIDATPair !)
+qc5 <- do.call(rbind, lapply(sdfs, function(x) as.data.frame(sesameQC(x[1:262858,])) ))
+#qc10$mean_oob_grn <- unlist(lapply(sdfs, function(x) mean(oobG(x[1:262858,]),na.rm=T )))
+#qc10$mean_oob_red <- unlist(lapply(sdfs, function(x) mean(oobR(x[1:262858,]),na.rm=T )))
+qc5$sample_name <- sampleSheet$Sample_Name[match(names(sdfs),sampleSheet$Basename)]
+qc5$samples <- names(sdfs)
+#qc10[,c('mean_beta_cg','frac_meth_cg','frac_unmeth_cg','sex','age')] %>% 
+   #kbl(caption = "Summary betas") %>% kable_paper("hover", full_width = F)
+qc5[,c('mean_beta_cg','frac_meth_cg','frac_unmeth_cg')]
+```
+
+## Mean intensity
+
+The mean intensity of all the probes characterize the quantity of input DNA and efficiency of probe hybridization.
+
+```{R mean_intensity, warning=FALSE, message=FALSE, width=1000}
+mean_int<-do.call(rbind, lapply(sdfs, function(x) as.data.frame(meanIntensity(x)) )) %>% 
+  rownames_to_column("samples") %>%
+  mutate(sample_name=sampleSheet$Sample_Name[match(samples,sampleSheet$Basename)]) %>%
+  separate(samples,sep="_",into=c("sentrix_id","sentrix_position"),remove=FALSE)
+
+for(id in unique(mean_int$sentrix_id)){
+  p<-ggplot(mean_int %>% filter(sentrix_id==id), aes( x=sample_name, y=`meanIntensity(x)` )) + 
+    geom_col() + xlab(id) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+  print(p)
+}
+``` 
+
+## Background
+
+The background level is given by mean_oob_grn and mean_oob_red. But they are empty !
+
+```{R Background, warning=FALSE, message=FALSE}
+ggplot(qc5,
+  aes(x = mean_oob_grn, y= mean_oob_red, label = samples)) +
+  geom_point() + geom_text(hjust = -0.1, vjust = 0.1) +
+  geom_abline(intercept = 0, slope = 1, linetype = 'dotted') +
+  xlab('Green Background') + ylab('Red Background') +
+  xlim(c(250,500)) + ylim(c(400,750))
+```
+
+## Mean Channel Intensity
+
+The mean {M,U} intensity can be reached by mean_intensity. Similarly, the mean M+U intensity can be reached by mean_intensity_total. Low intensities are symptomatic of low input or poor hybridization.
+
+```{R Mean_Intensity, warning=FALSE, message=FALSE}
+for(id in unique(mean_int$sentrix_id)){
+  p1 <- ggplot(qc5[grepl(id,rownames(qc5)), ]) +
+    geom_bar(aes(sample_name, mean_intensity), stat='identity') +
+     xlab(id) + ylab('Mean Intensity') +
+     ylim(0,18000) +
+     theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
+  p2 <- ggplot(qc5[grepl(id,rownames(qc5)), ]) +
+     geom_bar(aes(sample_name, mean_intensity_total), stat='identity') +
+    xlab(id) + ylab('Mean M+U Intensity') +
+    ylim(0,18000) +
+    theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
+  print(WGG(p1) + WGG(p2, RightOf()))
+}
+```
+
+## Fraction of color channel switch
+
+The fraction of color channel switch can be found in InfI_switch_G2R and InfI_switch_R2G. These numbers are symptomatic of how Infinium I probes are affected by SNP-induced color channel switching.
+
+```{R Fraction_of_color_channel_switch, warning=FALSE, message=FALSE}
+ggplot(qc5) +
+    geom_point(aes(InfI_switch_G2R, InfI_switch_R2G))
+```
+
+## Fraction of NA
+
+The fraction of NAs are signs of masking due to variety of reasons including failed detection, high background, putative low quality probes etc. This number can be reached in frac_na_cg and num_na_cg (the cg stands for CpG probes, so we also have num_na_ch and num_na_rs)
+
+```{R Fraction_of_NA, warning=FALSE, message=FALSE}
+for(id in unique(mean_int$sentrix_id)){
+  p1 <- ggplot(qc5[grepl(id,rownames(qc5)), ]) +
+      geom_bar(aes(samples, num_na_cg), stat='identity') +
+      xlab(id) + ylab('Number of NAs') +
+      theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
+  p2 <- ggplot(qc5[grepl(id,rownames(qc5)), ]) +
+      geom_bar(aes(samples, frac_na_cg), stat='identity') +
+      xlab(id) + ylab('Fraction of NAs (%)') +
+      theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
+  print(WGG(p1) + WGG(p2, RightOf()))
+}
+```
+
+## Color Channel Intensity
+
+```{R signal1, warning=FALSE, message=FALSE}
+nsamp=length(sdfs)
+signalM <- do.call(cbind, lapply(sdfs, function(x) as.data.frame(sesame::signalMU(x)[,"M"] )))
+colnames(signalM)<-names(sdfs)
+signalU <- do.call(cbind, lapply(sdfs, function(x) as.data.frame(sesame::signalMU(x)[,"U"] )))
+colnames(signalU)<-names(sdfs)
+pvalues <- do.call(cbind, lapply(sdfs, function(x) as.data.frame(sesame::pOOBAH(x) )))
+```
+
+```{R channels, warning=FALSE, message=FALSE}
+labels<-sampleSheet$Sample_Name[match(names(sdfs),sampleSheet$Basename)]
+for(i in seq(1,85,by=12)){
+  ylab<-"log2 intensity of both green and red channel" 
+  par(xaxt='n')
+  p1<-boxplot(log2(signalM[,i:(i+11)]+1), col = "red", boxwex = 0.25, at= 1:12 - 0.175, ylab=ylab, cex=0.5)
+  p2<-boxplot(log2(signalU[,i:(i+11)]+1), col = "green", boxwex = 0.25, at= 1:12 + 0.175, axis=F , add=T, cex=0.5)
+  par(xaxt='s')
+  #axis(1, at=1:12, labels=names(sdfs)[i:(i+11)] ,tick=TRUE, las=2, cex.axis=0.8)
+  axis(1, at=1:12, labels=labels[i:(i+11)], tick=TRUE, las=2, cex.axis=0.8)
+}
+```
+
+# 4- MDSplot
+
+```{R, warning=FALSE, message=FALSE}
+mdsPlot( betas,
+          sampGroups=sampleSheet$Sentrix_ID, 
+          legendPos = "bottomleft",
+          #pch=input$pch,
+          sampNames=sampleSheet$Sample_Name, 
+          #pal=brewer.pal(n, input$pal),
+          #numPositions=input$numPositions,
+          #main=input$main
+      )
+```
+
+# 5- save
+
+```{R tomethylkey, warning=FALSE, message=FALSE}
+betas<-betas[ !grepl("rs",rownames(betas)), ]
+betas<-betas[,sampleSheet$Basename]
+
+save(sampleSheet, betas, file=paste0( params$output, "_", params$normalize, "_", Sys.Date(),".rda" ) )
+```

@@ -28,10 +28,11 @@ mk_annotatr<-function(regions,annot=NULL,genome="hg19"){
   
   if(is.null(annot)){ annot<-buildAnnot(genome=genome) }
   
-  foo<-elementMetadata(annot)
-  foo<-as.data.table(foo)
-  foo[, c("genome","feature","value"):=tstrsplit(type,"_") ]
-  elementMetadata(annot)<-foo
+  #foo<-elementMetadata(annot)
+  #foo<-as.data.table(foo)
+  #foo[, c("genome","feature","value"):=tstrsplit(type,"_") ]
+  
+  elementMetadata(annot)<-elementMetadata(annot) %>% as.data.frame() %>% tidyr::separate(type,into=c("genome","feature","value"))
   
   cpg_annotated <- annotate_regions(regions, annotations=annot, minoverlap = 1L, ignore.strand = FALSE)
   

@@ -4,14 +4,12 @@
 \alias{makepca}
 \title{PCA analysis}
 \usage{
-makepca(betas, pdata, variables = colnames(pdata), nPC = ncol(betas))
+makepca(betas, pdata, nPC = ncol(betas))
 }
 \arguments{
 \item{betas}{matrix of betas}
 
 \item{pdata}{sampleSheet of data}
-
-\item{variables}{vector of variables names to include in the PCA}
 
 \item{nPC}{maximum number of principal component to display}
 }

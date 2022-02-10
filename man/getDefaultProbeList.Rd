@@ -8,7 +8,7 @@ getDefaultProbeList(
   plateform = "IlluminaHumanMethylationEPIC",
   SNP = TRUE,
   CROSS = TRUE,
-  XY = FALSE
+  XY = TRUE
 )
 }
 \arguments{

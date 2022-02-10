@@ -17,5 +17,5 @@ barplots_(plateform = "IlluminaHumanMethylation450k", tab = NULL, man = NULL)
 plot
 }
 \description{
-Display betas in a violin plot by group
+Display repartition of DMPs/DMRs annotation
 }

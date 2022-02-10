@@ -40,21 +40,42 @@ beta2m <- function (betas) {
 #' 
 #' @return vector
 #' 
-getDefaultProbeList<-function(plateform="IlluminaHumanMethylationEPIC", SNP=TRUE, CROSS=TRUE, XY=FALSE){
+# getDefaultProbeList<-function(plateform="IlluminaHumanMethylationEPIC", SNP=TRUE, CROSS=TRUE, XY=TRUE){
+#   
+#   filters<-c()
+#   if (plateform=="IlluminaHumanMethylationEPIC"){
+#     if (CROSS){ filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_EPIC.csv" ) }
+#     if (SNP)  { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC.csv" ) }
+#     if (SNP)  { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC_single_base.csv" ) }
+#     if (XY)   { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_EPIC.csv" ) }
+#     if (XY)   { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/XY.csv" ) }
+#   }
+#   
+#   if (plateform=="IlluminaHumanMethylation450k"){
+#     if (CROSS){ filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_Chen.csv") }
+#     if (CROSS){ filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_EGE.csv") }
+#     if (SNP)  { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_All_races_5percent.csv") }
+#     if (XY)   { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_Chr_SNPs.csv") }
+#   }
+#   
+#   return(filters)
+# }
+
+getDefaultProbeList<-function(plateform="IlluminaHumanMethylationEPIC", SNP=TRUE, CROSS=TRUE, XY=TRUE){
   
   filters<-c()
   if (plateform=="IlluminaHumanMethylationEPIC"){
-    if (CROSS){ filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_EPIC.csv" ) }
-    if (SNP)  { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC.csv" ) }
-    if (SNP)  { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC_single_base.csv" ) }
-    if (XY)   { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_EPIC.csv" ) }
+    if (CROSS){ filters<- c(filters, Crossreactive_probes_EPIC ) }
+    if (SNP)  { filters<- c(filters, SNP_EPIC ) }
+    if (SNP)  { filters<- c(filters, SNP_EPIC_single_base ) }
+    if (XY)   { filters<- c(filters, Sex_EPIC ) }
   }
   
   if (plateform=="IlluminaHumanMethylation450k"){
-    if (CROSS){ filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_Chen.csv") }
-    if (CROSS){ filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_EGE.csv") }
-    if (SNP)  { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_All_races_5percent.csv") }
-    if (XY)   { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_Chr_SNPs.csv") }
+    if (CROSS){ filters<- c(filters, Crossreactive_probes_450k_Chen) }
+    if (CROSS){ filters<- c(filters, Crossreactive_probes_450k_EGE) }
+    if (SNP)  { filters<- c(filters, SNP_All_races_5percent) }
+    if (XY)   { filters<- c(filters, Sex_Chr_SNPs) }
   }
   
   return(filters)
@@ -71,17 +92,19 @@ getDefaultProbeList<-function(plateform="IlluminaHumanMethylationEPIC", SNP=TRUE
 #' 
 #' @export
 #' 
-CpGexcl<-function(filters=NULL, plateform="IlluminaHumanMethylationEPIC"){
-  
-  # from list
-  if(is.null(filters)){
-    filters=getDefaultProbeList(plateform)
-  }
+CpGexcl<-function(filters=NULL, plateform="IlluminaHumanMethylationEPIC", SNP=TRUE, CROSS=TRUE, XY=TRUE){
   
   probes=c()
-  for (file in filters){
-    if( !file.exists(file) & !RCurl::url.exists(file) ){ stop(paste0(file, " not found")) }
-    probes <- unique( c(probes, read_tsv(file)[[1]] ))
+  if(is.null(filters)){
+    # from list
+    probes=getDefaultProbeList(plateform, SNP, CROSS, XY)
+  }
+  else{
+    # from files
+    for (file in filters){
+      if( !file.exists(file) & !RCurl::url.exists(file) ){ stop(paste0(file, " not found")) }
+      probes <- unique( c(probes, read_tsv(file)[[1]] ))
+    }
   }
   
   return( probes )

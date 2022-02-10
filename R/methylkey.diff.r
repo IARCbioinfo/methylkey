@@ -147,12 +147,19 @@ methyldiff<-function(model=NULL,case=NULL,control=NULL,betas=NULL,pdata=NULL,sva
                           stat=table$t, diff= table$deltabetas, ind.fdr=table$adj.P.Val, is.sig=(table$adj.P.Val<qval) )
   annotated<-GenomicRanges::makeGRangesFromDataFrame(annotated, keep.extra.columns=TRUE)
   names(annotated)<-table$probeID
-  foo <- new("CpGannotated", ranges=sort(annotated))
+  myannotation <- new("CpGannotated", ranges=sort(annotated))
 
   # fix issue when there is missing values in deltabetas.
-  if( sum(is.na(foo@ranges$diff)) ){foo@ranges$diff[ which(is.na(foo@ranges$diff)) ] <- 0 }
+  if( sum(is.na(myannotation@ranges$diff)) ){myannotation@ranges$diff[ which(is.na(myannotation@ranges$diff)) ] <- 0 }
 
-  dmrcoutput<- DMRcate::dmrcate(foo,C=2, pcutoff=pcutoff)
+  #for debug
+  #myannotation <- cpg.annotate("array", mval, arraytype = "EPIC",analysis.type="differential", design=design, coef=2, what = "M")
+  dmrcoutput=NULL
+  tryCatch(
+    dmrcoutput<- DMRcate::dmrcate(myannotation,C=2, pcutoff=pcutoff)
+  , error=function(e) { message(e) } )
+  if(is.null(dmrcoutput)) return()
+  
   table <- DMRcate::extractRanges(dmrcoutput, genome = genome)
 
   overlap <- GenomicRanges::findOverlaps(table,annotated)

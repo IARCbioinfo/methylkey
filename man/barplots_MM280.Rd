@@ -15,5 +15,5 @@ barplots_MM280(tab = NULL, man = NULL)
 plot
 }
 \description{
-Display betas in a violin plot by group
+Display repartition of DMPs/DMRs annotation
 }

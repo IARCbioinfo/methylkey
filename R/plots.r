@@ -174,6 +174,8 @@ barplots_<-function(plateform="IlluminaHumanMethylation450k",tab=NULL,man=NULL){
 #' 
 #' @return plot
 #' 
+#' @export
+#' 
 barplots_MM280<-function(tab=NULL,man=NULL){
   
   colors<-RColorBrewer::brewer.pal(8,"Spectral")
@@ -198,6 +200,8 @@ barplots_MM280<-function(tab=NULL,man=NULL){
 #' @param man manifest
 #' 
 #' @return plot
+#' 
+#' @export
 #' 
 barplots_450k<-function(tab=NULL,man=NULL){
   
@@ -229,6 +233,8 @@ barplots_450k<-function(tab=NULL,man=NULL){
 #' @param man manifest
 #' 
 #' @return plot
+#' 
+#' @export
 #' 
 barplots_EPIC<-function(tab=NULL,man=NULL){
   
@@ -262,6 +268,8 @@ barplots_EPIC<-function(tab=NULL,man=NULL){
 #' 
 #' @return plot
 #' 
+#' @export
+#'  
 volcano<-function(df,  sig=5e-8 ){
 
   # to make it work with DMRs table.
@@ -291,6 +299,8 @@ volcano<-function(df,  sig=5e-8 ){
 #' @param sig cutoff significance
 #' 
 #' @return plot
+#' 
+#' @export
 #' 
 manhattan<-function(df,  sig=5e-8 ){
   

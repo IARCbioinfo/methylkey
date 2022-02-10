@@ -4,7 +4,13 @@
 \alias{CpGexcl}
 \title{CpGexcl}
 \usage{
-CpGexcl(filters = NULL, plateform = "IlluminaHumanMethylationEPIC")
+CpGexcl(
+  filters = NULL,
+  plateform = "IlluminaHumanMethylationEPIC",
+  SNP = TRUE,
+  CROSS = TRUE,
+  XY = TRUE
+)
 }
 \arguments{
 \item{filters}{file containing probe list}

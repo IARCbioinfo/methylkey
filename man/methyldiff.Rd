@@ -16,12 +16,12 @@ methyldiff(
   ncore = 2,
   qval = 0.05,
   pcutoff = 0.2,
-  pca_group = NULL,
   output = "methylkey",
   manifest = NULL,
   display = 500,
   plateform = NULL,
-  genome = "hg19"
+  genome = "hg19",
+  level = "###"
 )
 }
 \arguments{
@@ -46,8 +46,6 @@ methyldiff(
 \item{qval}{qvalue cutoff for selecting significant dmps}
 
 \item{pcutoff}{qvalue cutoff for selecting dmps used for dmr analysis}
-
-\item{pca_group}{vector of variables tested in the PCA}
 
 \item{output}{output folder}
 

@@ -102,38 +102,38 @@ getInfiniumAnnotation<-function(plateform, genome="hg19"){
 #' @export
 #' 
 getAnnotedManifest<-function(plateform){
-  
+
   manifest=NULL
-  
+
   if(plateform=="IlluminaHumanMethylation450k"){
-    manifest<-readr::read_csv("~/git/methylkey/v1.0/data/HumanMethylation450_15017482_v1-2.csv", skip=7) %>% 
-      dplyr::rename( Gene = UCSC_RefGene_Name ) %>% 
+    manifest<-readr::read_csv("https://github.com/IARCbioinfo/methylkey/raw/v1.0/data/HumanMethylation450_15017482_v1-2.csv", skip=7) %>%
+      dplyr::rename( Gene = UCSC_RefGene_Name ) %>%
       dplyr::rename( chr = CHR ) %>%
       mutate( chr = paste0("chr",chr) ) %>%
       mutate( start = MAPINFO ) %>%
       mutate( end = MAPINFO ) %>%
       mutate( Strand = ifelse(Strand=="F","+","-") )
   }
-  
+
   if(plateform=="IlluminaHumanMethylationEPIC"){
-    manifest<-readr::read_csv("~/git/methylkey/v1.0/data/infinium-methylationepic-v-1-0-b5-manifest-file.csv", skip=7) %>% 
-      dplyr::rename( probeID = Name ) %>% 
-      dplyr::rename( Gene = UCSC_RefGene_Name ) %>% 
+    manifest<-readr::read_csv("https://github.com/IARCbioinfo/methylkey/raw/v1.0/data/infinium-methylationepic-v-1-0-b5-manifest-file.csv", skip=7) %>%
+      dplyr::rename( probeID = Name ) %>%
+      dplyr::rename( Gene = UCSC_RefGene_Name ) %>%
       dplyr::rename( chr = CHR ) %>%
       mutate( chr = paste0("chr",chr) ) %>%
       mutate( start = MAPINFO ) %>%
       mutate( end = MAPINFO ) %>%
       mutate( Strand = ifelse(Strand=="F","+","-") )
   }
-    
+
   if(plateform=="IlluminaMouseMethylation285k"){
-    manifest<-readr::read_csv("~/git/methylkey/v1.0/data/MouseMethylation-12v1-0_A1_Annotation_Mus_musculus.csv") %>% 
+    manifest<-readr::read_csv("https://github.com/IARCbioinfo/methylkey/raw/v1.0/data/infinium-methylationepic-v-1-0-b5-manifest-file.csv") %>%
       dplyr::rename( chr = chrom ) %>%
       dplyr::rename( start = chromStart ) %>%
       dplyr::rename( end = chromEnd ) %>%
       dplyr::rename( Strand = chromStrand )
   }
-  
+
   return(manifest)
 }
 

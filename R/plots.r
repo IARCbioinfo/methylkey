@@ -144,7 +144,7 @@ circosplot<-function(ranges, genome){
 
 
 
-#' barplots
+#' barplots_
 #' 
 #' Display repartition of DMPs/DMRs annotation
 #' 
@@ -259,7 +259,7 @@ barplots_EPIC<-function(tab=NULL,man=NULL){
 }
 
 
-#' volcano plot
+#' volcano
 #' 
 #' Volcano plot of DMPs
 #' 
@@ -288,7 +288,7 @@ volcano<-function(df,  sig=5e-8 ){
   return(p)
 }
 
-#' Manhattan plot
+#' Manhattan
 #' 
 #' Manhattan plot of DMPs
 #' 

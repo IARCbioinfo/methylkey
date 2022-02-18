@@ -23,7 +23,6 @@ Imports:
 	missMethyl (>= 1.24.0),
 	survival (>= 3.2-13),
 	FlowSorted.Blood.EPIC (>= 1.8.0),
-  annotatr (>= 1.16.0),
   data.table (>= 1.14.0),
   factoextra (>= 1.0.7)
 Depends:
@@ -38,6 +37,7 @@ Depends:
   DMRcate(>= 2.4.1),
   EpiSmokEr (>= 0.1.0),
   RColorBrewer (>= 1.1-2),
+  annotatr (>= 1.16.0),
   DT (>= 0.19)
 Suggests: 
   rmarkdown,

@@ -2,7 +2,7 @@
 % Please edit documentation in R/plots.r
 \name{barplots_}
 \alias{barplots_}
-\title{barplots}
+\title{barplots_}
 \usage{
 barplots_(plateform = "IlluminaHumanMethylation450k", tab = NULL, man = NULL)
 }

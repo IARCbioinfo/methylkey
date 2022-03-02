@@ -1,0 +1,103 @@
+---
+title: "Waterpipe"
+date: December 03, 2021
+output:
+  BiocStyle::html_document:
+      toc: true
+package: methylkey
+params:
+  group: "Smoking_status"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning = FALSE)
+
+devtools::load_all("~/git/methylkey/v1.0/")
+#library(methylkey)
+library(DescTools)
+
+dbs<-initEnrichR("hg19")
+
+output_dir<-"report_SmokingStatus"
+dir.create(output_dir)
+```
+
+
+```{r loading_data}
+# load betas
+load("waterpipe_Funnorm_2022-01-25.rda")
+sampleSheet[params$group] <- sampleSheet %>% pull(params$group) %>% as.factor()
+#sampleSheet$Sentrix_Position<-as.factor(sampleSheet$Sentrix_Position)
+
+samples=sampleSheet$samples
+group=sampleSheet %>% pull(params$group)
+Sentrix_Position=sampleSheet %>% pull(Sentrix_Position)
+
+sampleSheet %>% DT::datatable()
+```
+
+
+# RAW DATA {.tabset}
+
+
+```{r, echo=FALSE, warning=FALSE, error=FALSE}
+print( paste0( "replace remaining na beta values by mean group by ",  params$group, " : ",  sum(is.na(betas)) ) )
+betas<-methylkey::replaceByMean( betas,groups = sampleSheet %>% pull(params$group) %>% as.factor() )
+# There is still probes whith NA because all sample of one group is na. They are removed :
+probes <- names(which( rowSums(apply(betas, 2, is.na )) >0))
+betas  <- betas[ ! rownames(betas) %in% probes,] 
+betas  <- Winsorize(betas)
+```
+
+## MDS plot
+
+```{r, echo=FALSE, warning=FALSE, error=FALSE}
+minfi::mdsPlot( betas,
+          sampGroups = group, 
+          legendPos  = "bottomleft",
+          sampNames  = samples, 
+          main       = "group"
+      )
+```
+
+```{r, echo=FALSE, warning=FALSE, error=FALSE}
+minfi::mdsPlot( betas,
+          sampGroups = sampleSheet$Gender, 
+          legendPos  = "bottomleft",
+          sampNames  = samples, 
+          main       = "Sentrix_Position"
+      )
+```
+
+## PCA
+
+```{r, echo=FALSE, warning=FALSE, error=FALSE}
+pca<-makepca( betas, sampleSheet, nPC=9 )
+rownames(pca$pca$x)<-sampleSheet$samples
+fig_sva<-factoextra::fviz_pca_ind(pca$pca,habillage=group, addEllipses=TRUE, ellipse.level=0.95)
+print(fig_sva)
+DT::datatable(pca$pvalue)
+print(pca$contrib)
+```
+
+
+
+# Models
+
+## ~Smoking_status
+
+### Cigarette vs Never {.tabset}
+
+```{r, echo=FALSE, warning=FALSE, error=FALSE, results='asis'}
+methyldiff(model="~Smoking_status",
+           case ="Cigarette",
+           control="Never",
+           betas=betas,
+           pdata=sampleSheet,
+           sva=FALSE,
+           method="ls",
+           output=paste0(output_dir,"/Cigarette"),
+           level="####"
+)
+```
+

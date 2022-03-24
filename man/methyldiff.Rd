@@ -6,6 +6,7 @@
 \usage{
 methyldiff(
   model = NULL,
+  modelSVA = NULL,
   case = NULL,
   control = NULL,
   betas = NULL,
@@ -26,6 +27,8 @@ methyldiff(
 }
 \arguments{
 \item{model}{model to use for the analysis (string) eg: "~group+gender"}
+
+\item{modelSVA}{model to use for the batch correction (string) if different from model.}
 
 \item{case}{name of case level}
 
@@ -53,7 +56,7 @@ methyldiff(
 
 \item{display}{number of dmps displayed in heatmap}
 
-\item{plateform}{palteform type (IlluminaHumanMethylation450k, IlluminaHumanMethylationEPIC, MM280)}
+\item{plateform}{plateform type (IlluminaHumanMethylation450k, IlluminaHumanMethylationEPIC, IlluminaMouseMethylation285k)}
 
 \item{genome}{genome assembly}
 }

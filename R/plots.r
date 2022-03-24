@@ -206,8 +206,8 @@ barplots_MM280<-function(tab=NULL,man=NULL){
 barplots_450k<-function(tab=NULL,man=NULL){
   
   colors<-RColorBrewer::brewer.pal(8,"Spectral")
-  mantmp<-bind_cols(man[,c("UCSC_RefGene_Group","Relation_to_UCSC_CpG_Island")],status="Hm450k",is.sig=FALSE)
-  bart<-tab %>% dplyr::select(UCSC_RefGene_Group,Relation_to_UCSC_CpG_Island,status,is.sig) %>% bind_rows(mantmp)
+  mantmp<-bind_cols(man[,c("UCSC_RefGene_Group","Relation_to_Island")],status="Hm450k",is.sig=FALSE)
+  bart<-tab %>% dplyr::select(UCSC_RefGene_Group,Relation_to_Island,status,is.sig) %>% bind_rows(mantmp)
   tmpbart <- bart %>% filter(is.sig) %>% mutate(status=paste0(status,"*"))
   bart    <- bind_rows(bart, tmpbart ) %>% 
     mutate(status=factor(status, levels=c("hypo*", "hypo","Hm450k","hyper","hyper*"))) 
@@ -217,8 +217,8 @@ barplots_450k<-function(tab=NULL,man=NULL){
     ggplot(aes(fill=UCSC_RefGene_Group,x=status)) + geom_bar(position="fill") + coord_flip() + scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12))
   
   bp2<-bart %>% filter(!is.na(status)) %>%
-    separate_rows(Relation_to_UCSC_CpG_Island, sep = ";", convert = FALSE) %>%
-    ggplot(aes(fill=Relation_to_UCSC_CpG_Island,x=status)) + geom_bar(position="fill") + coord_flip() + scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12))
+    separate_rows(Relation_to_Island, sep = ";", convert = FALSE) %>%
+    ggplot(aes(fill=Relation_to_Island,x=status)) + geom_bar(position="fill") + coord_flip() + scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12))
   
   print(bp1)
   print(bp2)
@@ -240,8 +240,8 @@ barplots_EPIC<-function(tab=NULL,man=NULL){
   
   cat("\ndebug\n")
   colors<-RColorBrewer::brewer.pal(8,"Spectral")
-  mantmp<-bind_cols(man[,c("UCSC_RefGene_Group","Relation_to_UCSC_CpG_Island")],status="EPIC",is.sig=FALSE)
-  bart<-tab %>% dplyr::select(UCSC_RefGene_Group,Relation_to_UCSC_CpG_Island,status,is.sig) %>% bind_rows(mantmp)
+  mantmp<-bind_cols(man[,c("UCSC_RefGene_Group","Relation_to_Island")],status="EPIC",is.sig=FALSE)
+  bart<-tab %>% dplyr::select(UCSC_RefGene_Group,Relation_to_Island,status,is.sig) %>% bind_rows(mantmp)
   tmpbart <- bart %>% filter(is.sig) %>% mutate(status=paste0(status,"*"))
   bart    <- bind_rows(bart, tmpbart ) %>% 
     mutate(status=factor(status, levels=c("hypo*", "hypo","EPIC","hyper","hyper*"))) 
@@ -251,8 +251,8 @@ barplots_EPIC<-function(tab=NULL,man=NULL){
     ggplot(aes(fill=UCSC_RefGene_Group,x=status)) + geom_bar(position="fill") + coord_flip() + scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12))
   
   bp2<-bart %>% filter(!is.na(status)) %>%
-    separate_rows(Relation_to_UCSC_CpG_Island, sep = ";", convert = FALSE) %>%
-    ggplot(aes(fill=Relation_to_UCSC_CpG_Island,x=status)) + geom_bar(position="fill") + coord_flip() + scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12))
+    separate_rows(Relation_to_Island, sep = ";", convert = FALSE) %>%
+    ggplot(aes(fill=Relation_to_Island,x=status)) + geom_bar(position="fill") + coord_flip() + scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12))
   
   print(bp1)
   print(bp2)
@@ -293,7 +293,7 @@ volcano<-function(df,  sig=5e-8 ){
 #' Manhattan plot of DMPs
 #' 
 #' The table must contain a column 'chr' for chromosome
-#' and a column MAPINFO for the chromosomique position.
+#' and a column pos for the chromosomique position.
 #' 
 #' @param tab dmps table (dataframe)
 #' @param sig cutoff significance
@@ -305,20 +305,20 @@ volcano<-function(df,  sig=5e-8 ){
 manhattan<-function(df,  sig=5e-8 ){
   
   df <- df  %>% 
-    #rename(any_of(c("P.Value"="HMFDR","chr"="seqnames","MAPINFO"="start"))) %>%
+    #rename(any_of(c("P.Value"="HMFDR","chr"="seqnames","pos"="start"))) %>%
     rename_with(~ case_when( . == "HMFDR" ~ "P.Value",  . == "seqnames" ~ "chr", TRUE ~ .) ) %>%
-    mutate(MAPINFO = if (exists('MAPINFO', where=.)) MAPINFO else start+(width/2)) %>%
+    mutate(pos = if (exists('pos', where=.)) pos else start+(width/2)) %>%
     mutate( chr = factor(chr,levels=c(paste0("chr",seq(1:22)),"chrX","chrY") ) )
   
   data_cum <- df %>% 
     group_by(chr) %>% 
-    summarise(max_bp = max(MAPINFO)) %>% 
+    summarise(max_bp = max(pos)) %>% 
     mutate(bp_add = lag(cumsum(as.numeric(max_bp)), default = 0)) %>% 
     dplyr::select(chr, bp_add)
   
   gwas_data <- df  %>% 
     inner_join(data_cum, by = "chr") %>% 
-    mutate(bp_cum = MAPINFO + bp_add)
+    mutate(bp_cum = pos + bp_add)
   
   axis_set <- gwas_data %>% 
     group_by(chr) %>% 

@@ -15,5 +15,5 @@ imputeNA(betas, nalimit)
 betas matrix
 }
 \description{
-impute missing values with parmr for probes with less than <nalimit> proportion of NA values
+impute missing values with parmr for probes with less than 'nalimit' proportion of NA values
 }

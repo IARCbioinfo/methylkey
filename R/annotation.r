@@ -106,32 +106,46 @@ getAnnotedManifest<-function(plateform){
   manifest=NULL
 
   if(plateform=="IlluminaHumanMethylation450k"){
-    manifest<-readr::read_csv("https://github.com/IARCbioinfo/methylkey/raw/v1.0/data/HumanMethylation450_15017482_v1-2.csv", skip=7) %>%
-      dplyr::rename( Gene = UCSC_RefGene_Name ) %>%
-      dplyr::rename( chr = CHR ) %>%
-      mutate( chr = paste0("chr",chr) ) %>%
-      mutate( start = MAPINFO ) %>%
-      mutate( end = MAPINFO ) %>%
-      mutate( Strand = ifelse(Strand=="F","+","-") )
+    # manifest<-readr::read_csv("~/git/methylkey/v1.0/data_raw/HumanMethylation450_15017482_v1-2.csv", skip=7) %>%
+    #   dplyr::rename( Gene = UCSC_RefGene_Name ) %>%
+    #   dplyr::rename( chr = CHR ) %>%
+    #   mutate( chr = paste0("chr",chr) ) %>%
+    #   mutate( start = MAPINFO ) %>%
+    #   mutate( end = MAPINFO ) %>%
+    #   mutate( Strand = ifelse(Strand=="F","+","-") )
+    manifest=IlluminaHumanMethylation450k_manifest
+    
+    manifest = cbind(IlluminaHumanMethylation450kanno.ilmn12.hg19::Locations, 
+                     IlluminaHumanMethylation450kanno.ilmn12.hg19::SNPs.147CommonSingle,
+                     IlluminaHumanMethylation450kanno.ilmn12.hg19::Islands.UCSC,
+                     IlluminaHumanMethylation450kanno.ilmn12.hg19::Other ) %>%
+      data.frame() %>% rownames_to_column("probeID")
   }
 
   if(plateform=="IlluminaHumanMethylationEPIC"){
-    manifest<-readr::read_csv("https://github.com/IARCbioinfo/methylkey/raw/v1.0/data/infinium-methylationepic-v-1-0-b5-manifest-file.csv", skip=7) %>%
-      dplyr::rename( probeID = Name ) %>%
-      dplyr::rename( Gene = UCSC_RefGene_Name ) %>%
-      dplyr::rename( chr = CHR ) %>%
-      mutate( chr = paste0("chr",chr) ) %>%
-      mutate( start = MAPINFO ) %>%
-      mutate( end = MAPINFO ) %>%
-      mutate( Strand = ifelse(Strand=="F","+","-") )
+    # manifest<-readr::read_csv("~/git/methylkey/v1.0/data_raw/infinium-methylationepic-v-1-0-b5-manifest-file.csv", skip=7) %>%
+    #   dplyr::rename( probeID = Name ) %>%
+    #   dplyr::rename( Gene = UCSC_RefGene_Name ) %>%
+    #   dplyr::rename( chr = CHR ) %>%
+    #   mutate( chr = paste0("chr",chr) ) %>%
+    #   mutate( start = MAPINFO ) %>%
+    #   mutate( end = MAPINFO ) %>%
+    #   mutate( Strand = ifelse(Strand=="F","+","-") )
+    ## manifest=IlluminaHumanMethylationEPIC_manifest
+    manifest = cbind(IlluminaHumanMethylationEPICanno.ilm10b4.hg19::Locations, 
+                     IlluminaHumanMethylationEPICanno.ilm10b4.hg19::SNPs.147CommonSingle,
+                     IlluminaHumanMethylationEPICanno.ilm10b4.hg19::Islands.UCSC,
+                     IlluminaHumanMethylationEPICanno.ilm10b4.hg19::Other ) %>%
+                data.frame() %>% rownames_to_column("probeID")
   }
 
   if(plateform=="IlluminaMouseMethylation285k"){
-    manifest<-readr::read_csv("https://github.com/IARCbioinfo/methylkey/raw/v1.0/data/infinium-methylationepic-v-1-0-b5-manifest-file.csv") %>%
-      dplyr::rename( chr = chrom ) %>%
-      dplyr::rename( start = chromStart ) %>%
-      dplyr::rename( end = chromEnd ) %>%
-      dplyr::rename( Strand = chromStrand )
+    # manifest<-readr::read_csv("~/git/methylkey/v1.0/data_raw/MouseMethylation-12v1-0_A1_Annotation_Mus_musculus.csv") %>%
+    #   dplyr::rename( chr = chrom ) %>%
+    #   dplyr::rename( start = chromStart ) %>%
+    #   dplyr::rename( end = chromEnd ) %>%
+    #   dplyr::rename( Strand = chromStrand )
+    manifest=IlluminaMouseMethylation285k_manifest
   }
 
   return(manifest)
@@ -172,3 +186,4 @@ initEnrichR<-function(genome="hg19"){
   
   return(dbs)
 }
+

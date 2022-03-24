@@ -3,6 +3,7 @@
 #' Create a differential methylation analysis report in Rmarkdown.
 #'
 #' @param model model to use for the analysis (string) eg: "~group+gender"
+#' @param modelSVA model to use for the batch correction (string) if different from model.
 #' @param case name of case level
 #' @param control name of control level
 #' @param betas matrix of beta values
@@ -16,14 +17,14 @@
 #' @param output output folder
 #' @param manifest annotation for th array
 #' @param display number of dmps displayed in heatmap
-#' @param plateform palteform type (IlluminaHumanMethylation450k, IlluminaHumanMethylationEPIC, MM280)
+#' @param plateform plateform type (IlluminaHumanMethylation450k, IlluminaHumanMethylationEPIC, IlluminaMouseMethylation285k)
 #' @param genome genome assembly
 #'
 #' @return None
 #'
 #' @export
 #' 
-methyldiff<-function(model=NULL,case=NULL,control=NULL,betas=NULL,pdata=NULL,sva=TRUE,method="ls", niter=50,ncore=2,qval=0.05,pcutoff=0.2, output="methylkey", manifest=NULL, display=500,plateform=NULL,genome="hg19",level="###" ){
+methyldiff<-function(model=NULL,modelSVA=NULL,case=NULL,control=NULL,betas=NULL,pdata=NULL,sva=TRUE,method="ls", niter=50,ncore=2,qval=0.05,pcutoff=0.2, output="methylkey", manifest=NULL, display=500,plateform=NULL,genome="hg19",level="###" ){
   
   #relevel according to case and control
   grp_g<-strsplit(model,"~|\\+")[[1]][2]
@@ -70,7 +71,8 @@ methyldiff<-function(model=NULL,case=NULL,control=NULL,betas=NULL,pdata=NULL,sva
   #batch correction
   if(sva){
     cat(paste0("\n\n",level," Batch correction \n\n"))
-    mval  <- bc_sva(mval,pdata,model)
+    if(is.null(modelSVA)){ modelSVA=model }
+    mval  <- bc_sva(mval,pdata,modelSVA)
   } else {
     cat(paste0("\n\n",level," PCA \n\n"))
   }
@@ -120,7 +122,7 @@ methyldiff<-function(model=NULL,case=NULL,control=NULL,betas=NULL,pdata=NULL,sva
   
   cat(paste0("\n\n#",level," Barplots\n\n"))
   barplots_(plateform=plateform,table,manifest)
-
+  
   #pathway analysis : enrichR
   if( (table %>% dplyr::filter(adj.P.Val < qval) %>% nrow()) > 3 ){
     
@@ -128,7 +130,7 @@ methyldiff<-function(model=NULL,case=NULL,control=NULL,betas=NULL,pdata=NULL,sva
     NMF::aheatmap( betas[ table$probeID[1:min(100,nrow(table))] ,] , labCol=samples , annCol = grp_g, Rowv= FALSE )
   
     cat(paste0("\n\n#",level," EnrichR\n\n"))
-    genes<-table %>% filter(adj.P.Val < qval) %>% dplyr::select(Gene) %>% unique %>% head(1000) %>% pull()
+    genes<-table %>% filter(adj.P.Val < qval) %>% dplyr::select(UCSC_RefGene_Name) %>% head(1000) %>% pull() %>% strsplit(";") %>% unlist() %>% unique() 
     enriched <- enrichR::enrichr(genes, dbs)
     for( db in dbs)
     {
@@ -139,21 +141,23 @@ methyldiff<-function(model=NULL,case=NULL,control=NULL,betas=NULL,pdata=NULL,sva
     }
     
   }
-
+  
   #DMRcate
   cat(paste0("\n\n",level," DMRs {.tabset}\n\n"))
-  table     <- GenomicRanges::makeGRangesFromDataFrame(table, keep.extra.columns=TRUE)
+  table     <- GenomicRanges::makeGRangesFromDataFrame(table, start.field = "pos", end.field= "pos", keep.extra.columns=TRUE)
   annotated <- data.frame(chr=GenomicRanges::seqnames(table), start=start(table), end=end(table), strand=strand(table),
                           stat=table$t, diff= table$deltabetas, ind.fdr=table$adj.P.Val, is.sig=(table$adj.P.Val<qval) )
   annotated<-GenomicRanges::makeGRangesFromDataFrame(annotated, keep.extra.columns=TRUE)
   names(annotated)<-table$probeID
   myannotation <- new("CpGannotated", ranges=sort(annotated))
 
+  message("debug03")
+  
   # fix issue when there is missing values in deltabetas.
   if( sum(is.na(myannotation@ranges$diff)) ){myannotation@ranges$diff[ which(is.na(myannotation@ranges$diff)) ] <- 0 }
 
   #for debug
-  #myannotation <- cpg.annotate("array", mval, arraytype = "EPIC",analysis.type="differential", design=design, coef=2, what = "M")
+  #myannotation2 <- cpg.annotate("array", mval, arraytype = "EPIC",analysis.type="differential", design=model.matrix(as.formula(model),data=pdata), coef=2, what = "M")
   dmrcoutput=NULL
   tryCatch(
     dmrcoutput<- DMRcate::dmrcate(myannotation,C=2, pcutoff=pcutoff)

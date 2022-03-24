@@ -15,5 +15,5 @@ CpGNAexcl(betas, nalimit = 0.2)
 List of probes to exclude
 }
 \description{
-select probes with percentage of missing values > CpGlimit
+select probes with percentage of missing values superior to CpGlimit
 }

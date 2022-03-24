@@ -1,6 +1,6 @@
 #' CpG with too many NA
 #'
-#' select probes with percentage of missing values > CpGlimit
+#' select probes with percentage of missing values superior to CpGlimit
 #' 
 #' @param betas matrix of betas
 #' @param nalimit maximum proportion of NA accepted
@@ -19,7 +19,7 @@ CpGNAexcl<-function(betas,nalimit=0.2){
 
 #' impute missing values
 #'
-#' impute missing values with parmr for probes with less than <nalimit> proportion of NA values
+#' impute missing values with parmr for probes with less than 'nalimit' proportion of NA values
 #' 
 #' @param betas matrix of betas
 #' @param nalimit maximum proportion of NA accepted

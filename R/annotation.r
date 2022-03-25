@@ -113,7 +113,7 @@ getAnnotedManifest<-function(plateform){
     #   mutate( start = MAPINFO ) %>%
     #   mutate( end = MAPINFO ) %>%
     #   mutate( Strand = ifelse(Strand=="F","+","-") )
-    manifest=IlluminaHumanMethylation450k_manifest
+    #   manifest=IlluminaHumanMethylation450k_manifest
     
     manifest = cbind(IlluminaHumanMethylation450kanno.ilmn12.hg19::Locations, 
                      IlluminaHumanMethylation450kanno.ilmn12.hg19::SNPs.147CommonSingle,

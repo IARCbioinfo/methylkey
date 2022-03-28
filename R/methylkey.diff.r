@@ -24,7 +24,7 @@
 #'
 #' @export
 #' 
-methyldiff<-function(model=NULL,modelSVA=NULL,case=NULL,control=NULL,betas=NULL,pdata=NULL,sva=TRUE,method="ls", niter=50,ncore=2,qval=0.05,pcutoff=0.2, output="methylkey", manifest=NULL, display=500,plateform=NULL,genome="hg19",level="###" ){
+methyldiff<-function(model=NULL,modelSVA=NULL,case=NULL,control=NULL,betas=NULL,pdata=NULL,sva=TRUE,pca=TRUE,method="ls", niter=50,ncore=2,qval=0.05,pcutoff=0.2, output="methylkey", manifest=NULL, display=500,plateform=NULL,genome="hg19",level="###" ){
   
   #relevel according to case and control
   grp_g<-strsplit(model,"~|\\+")[[1]][2]
@@ -73,17 +73,17 @@ methyldiff<-function(model=NULL,modelSVA=NULL,case=NULL,control=NULL,betas=NULL,
     cat(paste0("\n\n",level," Batch correction \n\n"))
     if(is.null(modelSVA)){ modelSVA=model }
     mval  <- bc_sva(mval,pdata,modelSVA)
-  } else {
-    cat(paste0("\n\n",level," PCA \n\n"))
   }
 
   #pca
-  pca<-makepca( mval, pdata, nPC=9 )
-  rownames(pca$pca$x)<-pdata$samples
-  fig_sva<-factoextra::fviz_pca_ind(pca$pca,habillage=grp_g, addEllipses=TRUE, ellipse.level=0.95)
-  print(fig_sva)
-  print(pca$contrib)
-  pca$pvalue %>% as.data.frame() %>% DT::datatable() %>% htmltools::tagList() %>% print()
+  if(sva & pca){
+    pca<-makepca( mval, pdata, nPC=9 )
+    rownames(pca$pca$x)<-pdata$samples
+    fig_sva<-factoextra::fviz_pca_ind(pca$pca,habillage=grp_g, addEllipses=TRUE, ellipse.level=0.95)
+    print(fig_sva)
+    print(pca$contrib)
+    pca$pvalue %>% as.data.frame() %>% DT::datatable() %>% htmltools::tagList() %>% print()
+  }
   
   cat(paste0("\n\n",level," DMPs {.tabset}\n\n"))
   

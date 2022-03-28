@@ -91,6 +91,29 @@ getInfiniumAnnotation<-function(plateform, genome="hg19"){
   return(annot)
 }
 
+
+#' IlluminaMouseMethylation285k_manifest
+#'
+#' IlluminaMouseMethylation285k annotated manifest
+#'
+#' @format A data frame with 2228753 rows and 10 variables:
+#' \describe{
+#'   \item{name}{probe ID}
+#'   \item{Gene}{Gene symbol}
+#'   \item{Transcript}{Transcript name}
+#'   \item{chr}{chromosome name}
+#'   \item{start}{start position}
+#'   \item{end}{end position}
+#'   \item{chromLength}{Gene symbol}
+#'   \item{Strand}{Srtand}
+#'   \item{Feature}{Relation to cpgislands}
+#'   \item{Source}{Annotation Source}
+#' }
+#' @source \url{https://support.illumina.com/content/dam/illumina-support/documents/downloads/productfiles/mouse-methylation/}
+"IlluminaMouseMethylation285k_manifest"
+
+
+
 #' getAnnotedManifest
 #' 
 #' retrieve infinium annotations

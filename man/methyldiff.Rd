@@ -12,6 +12,7 @@ methyldiff(
   betas = NULL,
   pdata = NULL,
   sva = TRUE,
+  pca = TRUE,
   method = "ls",
   niter = 50,
   ncore = 2,

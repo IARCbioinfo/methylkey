@@ -19,5 +19,5 @@ Manhattan plot of DMPs
 }
 \details{
 The table must contain a column 'chr' for chromosome
-and a column MAPINFO for the chromosomique position.
+and a column pos for the chromosomique position.
 }

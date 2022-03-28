@@ -10,7 +10,7 @@ Authors@R:
 Description: Methylkey is a pipeline for methylation array analysis. It is working with human infinium array (hm450k and EPIC) and with mouse infinium array. It provide set of functions and examples markdown report to run a complete analysis.
 License: `GNU General Public License v3.0`
 Encoding: UTF-8
-LazyData: true
+LazyData: false
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 Imports:

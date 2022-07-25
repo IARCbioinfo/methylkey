@@ -1,0 +1,80 @@
+---
+title: "Sesame Shiny"
+output:
+  rmdformats::readthedown
+theme: lumen
+runtime: shiny
+params:
+  idat: "idat"
+  plateform : "EPIC"
+  organism : "hg19"
+  betas : "/data/ege/Waterpipe/work/cahaisv/waterpipe3/Funnorm/betas.rda"
+---
+
+```{R setup, warning=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(sesame)
+library(GenomicFeatures)
+library(pander)
+```
+
+
+```{R loading}
+load(params$betas)
+genomeInfo<-getChromInfoFromUCSC(params$organism)
+pl=params$plateform
+```
+
+# Visualize methylation { .tabset }
+
+## By Gene
+
+To visualize all probes from a gene
+
+```{R visualization_by_gene, warning=FALSE, message=FALSE}
+textInput("gene", "Gene name", value = "DNMT1")
+```
+
+```{R visualization_by_gene2, warning=FALSE, message=FALSE}
+renderPlot({
+  visualizeGene(input$gene, betas, platform=pl)
+})
+```
+
+
+## By Region
+
+To visualize all probes from a region
+
+```{R visualization_by_region, warning=FALSE, message=FALSE, }
+selectInput("chromosomes", "chromosomes", choices = genomeInfo$chrom, selected = 19, multiple = FALSE)
+
+renderUI({ 
+  max_= genomeInfo[ genomeInfo$chrom==input$chromosomes , "size" ]
+  sliderInput("start", label = "start", value=10260000, min = 0, max = max_ )
+})
+
+sliderInput("size", label = "size", value=120000, min = 0, max = 500000 )
+
+renderPlot({
+  visualizeRegion(input$chromosomes,input$start,(input$start+input$size), betas, platform=pl, show.probeNames = TRUE)
+}, height = 600)
+```
+
+
+## by probe ID
+
+To visualize all selected probes
+
+```{R visualization_by_probe, warning=FALSE, message=FALSE}
+textInput("probes", "probes", value = "cg02382400,cg03738669")
+renderPlot({
+ visualizeProbes( strsplit(input$probes,",")[[1]] , betas, platform=pl )
+}, height = 600)
+```
+
+# sessionInfo
+
+```{r, results='asis'}
+pander( sessionInfo() )
+```

@@ -1,0 +1,365 @@
+---
+title: "SesameQC Demo"
+author: Cahais Vincent
+date: May 31, 2021
+output:
+  rmdformats::readthedown:
+    toc_depth: 3
+theme: lumen
+runtime: shiny
+params:
+  idat: "idat"
+  plateform : "MM285"
+  sampleSheet : "MMA1.csv"
+  output : "MEF_2-5/Noob/betas.rda"
+---
+
+```{R setup, warning=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sesame)
+library(GenomicFeatures)
+library(tidyverse)
+library(ggplot2)
+library(kableExtra)
+library(pander)
+library(wheatmap)
+library(minfi)
+sesameDataCacheAll("2020-08-24")
+```
+
+# 1- loading idats { .tabset }
+
+```{R loading}
+# sampleSheet
+pdata <-read_tsv(params$sampleSheet)
+pdata$project<-c(rep("MEF_2-5",4),rep("MEF_253-5",4),rep("MEFh_AA2",4),rep("Spartan",11),"MEFh_AA2")
+pdata$group<-c("WT","KO","WT","KO","WT","KO","WT","KO","Tumor","Tumor","Primary","Primary",rep("m",11),"Primary")
+# manifest (not annotated ! only for loading the array)
+mft   <- readRDS(url("https://zwdzwd.s3.amazonaws.com/InfiniumAnnotation/current/MM285/MM285.address.rds"))
+# reading the array to list of Sesame Set objects
+ssets <- lapply( searchIDATprefixes(params$idat), readIDATpair, platform=params$plateform, manifest= mft[[1]] )
+# reading the array to betas
+betas<-openSesame("idat", 'custom_array_name', mft[[1]])
+# if you get ERROR; return code from pthread_create() is 22
+# git clone https://github.com/bmbolstad/preprocessCore.git
+# cd preprocessCore/
+# R CMD INSTALL --configure-args="--disable-threading"  .
+
+# openSesame equivalent to 
+# ssets <- lapply( searchIDATprefixes("idat"), function(pfx){ 
+#   pfx %>% 
+#   readIDATpair(platform="MM285", manifest= mft[[1]]) %>%
+#   noob %>%
+#   dyeBiasCorrTypeINorm %>%
+#   qualityMask %>%
+#   detectionMask %>%
+#   getBetas
+# })
+
+# sesamizing from minfi
+#ssets <- sesamize(RGset)
+```  
+## sampleSheet
+
+```{R sampleSheet}
+pdata %>% kbl(caption = "Sample Sheet") %>% kable_paper("hover", full_width = F)
+```
+
+## betas
+
+```{R betas}
+betas[1:50,] %>% kbl(caption = "head betas") %>% kable_paper("hover", full_width = F)
+```
+
+
+# 2- Infer Samples Traits { .tabset }
+
+SeSAMe implements inference of sex, age, ethnicity. These are valuable information for checking the integrity of the experiment and detecting sample swaps.
+
+## 2.1 Sex
+
+Sex is inferred based on our curated X-linked probes and Y chromosome probes excluding pseudo-autosomal regions.
+Not working for MM285 !
+
+```{R sex, warning=FALSE, message=FALSE, error=TRUE}
+inferSex(ssets[[1]])
+inferSexKaryotypes(ssets[[1]])
+```
+
+## 2.2 Ethnicity
+
+Ethnicity is inferred using a random forest model trained based on both the built-in SNPs (rs probes) and channel-switching Type-I probes.
+Not working for MM285 !
+
+```{R Ethnicity, warning=FALSE, message=FALSE, error=TRUE}
+inferEthnicity(ssets[[1]])
+```    
+
+## 2.3 Age
+
+SeSAMe provides age regression a la the Horvath 353 model.
+Not working for MM285 !
+
+```{R Age, warning=FALSE, message=FALSE, error=TRUE}
+predictAgeHorvath353(betas)
+``` 
+
+# 3- Quality Control
+
+```{R QC, warning=FALSE, message=FALSE}
+#sesameQC require raw sset (only readIDATPair !)
+qc10 <- do.call(rbind, lapply(ssets, function(x) as.data.frame(sesameQC(x)) ))
+qc10$mean_oob_grn <- unlist(lapply(ssets, function(x) mean(oobG(x),na.rm=T )))
+qc10$mean_oob_red <- unlist(lapply(ssets, function(x) mean(oobR(x),na.rm=T )))
+qc10$sample_name <- names(ssets)
+qc10[,c('mean_beta_cg','frac_meth_cg','frac_unmeth_cg','sex','age')] %>% 
+  kbl(caption = "Summary betas") %>% kable_paper("hover", full_width = F)
+```
+
+## 3.1 Mean intensity
+
+The mean intensity of all the probes characterize the quantity of input DNA and efficiency of probe hybridization.
+
+```{R mean_intensity, warning=FALSE, message=FALSE}
+mean_int<-do.call(rbind, lapply(ssets, function(x) as.data.frame(meanIntensity(x)) )) %>% rownames_to_column("samples")
+ggplot(mean_int, aes( x=samples, y=`meanIntensity(x)` )) + geom_col() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+``` 
+
+## 3.2 Bisulfite conversion control using GCT scores
+
+Infinium platforms are intrinsically robust to incomplete bisulfite conversion as non-converted probes would fail to hybridize to the target. Residual incomplete bisulfite conversion can be quantified using GCT score based on C/T-extension probes. Details of this method can be found in Zhou et al. 2017. The closer the score to 1.0, the more complete the bisulfite conversion.
+Not working for MM285 !
+
+```{R Bisulfite_conversion, warning=FALSE, message=FALSE, error=TRUE}
+bisConversionControl(ssets[[1]])
+``` 
+
+## 3.3- Background
+
+The background level is given by mean_oob_grn and mean_oob_red. But they are empty !
+
+```{R Background, warning=FALSE, message=FALSE}
+ggplot(qc10,
+  aes(x = mean_oob_grn, y= mean_oob_red, label = pdata$Sample_Name)) +
+  geom_point() + geom_text(hjust = -0.1, vjust = 0.1) +
+  geom_abline(intercept = 0, slope = 1, linetype = 'dotted') +
+  xlab('Green Background') + ylab('Red Background') +
+  xlim(c(250,500)) + ylim(c(400,750))
+```
+
+## 3.4- Mean Intensity
+
+The mean {M,U} intensity can be reached by mean_intensity. Similarly, the mean M+U intensity can be reached by mean_intensity_total. Low intensities are symptomatic of low input or poor hybridization.
+
+```{R Mean_Intensity, warning=FALSE, message=FALSE}
+p1 <- ggplot(qc10) +
+  geom_bar(aes(sample_name, mean_intensity), stat='identity') +
+  xlab('Sample Name') + ylab('Mean Intensity') +
+  ylim(0,18000) +
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
+p2 <- ggplot(qc10) +
+  geom_bar(aes(sample_name, mean_intensity_total), stat='identity') +
+  xlab('Sample Name') + ylab('Mean M+U Intensity') +
+  ylim(0,18000) +
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
+WGG(p1) + WGG(p2, RightOf())
+```
+
+## 3.5- Fraction of color channel switch
+
+The fraction of color channel switch can be found in InfI_switch_G2R and InfI_switch_R2G. These numbers are symptomatic of how Infinium I probes are affected by SNP-induced color channel switching.
+
+```{R Fraction_of_color_channel_switch, warning=FALSE, message=FALSE}
+ggplot(qc10) +
+    geom_point(aes(InfI_switch_G2R, InfI_switch_R2G))
+```
+
+## 3.6- Fraction of NA
+
+The fraction of NAs are signs of masking due to variety of reasons including failed detection, high background, putative low quality probes etc. This number can be reached in frac_na_cg and num_na_cg (the cg stands for CpG probes, so we also have num_na_ch and num_na_rs)
+
+```{R Fraction_of_NA, warning=FALSE, message=FALSE}
+p1 <- ggplot(qc10) +
+    geom_bar(aes(sample_name, num_na_cg), stat='identity') +
+    xlab('Sample Name') + ylab('Number of NAs') +
+    theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
+p2 <- ggplot(qc10) +
+    geom_bar(aes(sample_name, frac_na_cg), stat='identity') +
+    xlab('Sample Name') + ylab('Fraction of NAs (%)') +
+    theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
+WGG(p1) + WGG(p2, RightOf())
+```
+
+## 3.7- Quality Ranking
+
+Sesame provide convenient function to compare your sample with public data sets processed with the same pipeline. All you need is a raw SigSet.
+
+```{R Quality_Ranking, warning=FALSE, message=FALSE, error=TRUE}
+qualityRank(ssets[[1]])
+```
+
+## 3.8 Color Channel Intensity
+
+```{R signal1, warning=FALSE, message=FALSE}
+nsamp=length(ssets)
+signalM <- do.call(cbind, lapply(ssets, function(x) as.data.frame(sesame::signalMU(x)[,"M"] )))
+signalU <- do.call(cbind, lapply(ssets, function(x) as.data.frame(sesame::signalMU(x)[,"U"] )))
+pvalues <- do.call(cbind, lapply(ssets, function(x) as.data.frame(sesame::pval(x) )))
+```
+
+```{R channels, warning=FALSE, message=FALSE}
+ylab<-"log2 intensity of both green and red channel"
+par(xaxt='n')
+boxplot(log2(signalM+1), col = "red", boxwex = 0.25, at= 1:nsamp - 0.175, ylab=ylab, cex=0.5)
+boxplot(log2(signalU+1), col = "green", boxwex = 0.25, at= 1:nsamp + 0.175, axis=F , add=T, cex=0.5)
+par(xaxt='s')
+axis(1, at=1:nsamp, labels=names(ssets), tick=TRUE, las=2, cex.axis=0.8)
+```
+
+## 3.9 Pvalues
+
+```{R pvalues, warning=FALSE, message=FALSE}
+ylab="pvalues"
+boxplot(pvalues, col = "red", boxwex = 0.25, at= 1:nsamp - 0.175, ylab=ylab, cex=0.5, outline=FALSE, xaxt="n")
+axis(1, at=1:nsamp, labels=names(ssets), tick=TRUE, las=2, cex.axis=0.8)
+```
+
+## 3.10 MDSplot
+
+```{R green_chanel, warning=FALSE, message=FALSE}
+mdsPlot( betas[ , pdata$project=="MEF_2-5"] ,
+          sampGroups=pdata[pdata$project=="MEF_2-5",]$group, 
+          legendPos = "bottomleft",
+          #pch=input$pch,
+          sampNames=pdata[pdata$project=="MEF_2-5",]$Sample_Name, 
+          #pal=brewer.pal(n, input$pal),
+          #numPositions=input$numPositions,
+          #main=input$main
+      )
+
+mdsPlot( betas[ , pdata$project=="MEF_253-5"] ,
+          sampGroups=pdata[pdata$project=="MEF_253-5",]$group, 
+          legendPos = "bottomright",
+          #pch=input$pch,
+          sampNames=pdata[pdata$project=="MEF_253-5",]$Sample_Name, 
+          #pal=brewer.pal(n, input$pal),
+          #numPositions=input$numPositions,
+          #main=input$main
+      )
+
+mdsPlot( betas[ , pdata$project=="MEFh_AA2"] ,
+          sampGroups=pdata[pdata$project=="MEFh_AA2",]$group, 
+          legendPos = "bottomright",
+          #pch=input$pch,
+          sampNames=pdata[pdata$project=="MEFh_AA2",]$Sample_Name, 
+          #pal=brewer.pal(n, input$pal),
+          #numPositions=input$numPositions,
+          #main=input$main
+      )
+
+mdsPlot( betas[ , pdata$project=="Spartan"] ,
+          sampGroups=pdata[pdata$project=="Spartan",]$group, 
+          legendPos = "bottomright",
+          #pch=input$pch,
+          sampNames=pdata[pdata$project=="Spartan",]$Sample_Name, 
+          #pal=brewer.pal(n, input$pal),
+          #numPositions=input$numPositions,
+          #main=input$main
+      )
+```
+
+```{R signal2, warning=FALSE, message=FALSE}
+pdata<-read_tsv("MEF_2-5.csv")
+load("MEF_2-5/Noob/mval.rda")
+mdsPlot( mval,
+          sampGroups=pdata$group, 
+          legendPos = "bottomleft",
+          #pch=input$pch,
+          sampNames=pdata$Sample_Name, 
+          #pal=brewer.pal(n, input$pal),
+          #numPositions=input$numPositions,
+          main="Mval MDS"
+      )
+
+pdata<-read_tsv("MEF_253-3.csv")
+load("MEF_253-3/Noob/mval.rda")
+mdsPlot( mval,
+          sampGroups=pdata$group, 
+          legendPos = "bottomleft",
+          #pch=input$pch,
+          sampNames=pdata$Sample_Name, 
+          #pal=brewer.pal(n, input$pal),
+          #numPositions=input$numPositions,
+          main="Mval MDS"
+      )
+
+pdata<-read_tsv("MEF_AA2.csv")
+load("MEF_AA2/Noob/mval.rda")
+mdsPlot( mval,
+          sampGroups=pdata$group, 
+          legendPos = "bottomleft",
+          #pch=input$pch,
+          sampNames=pdata$Sample_Name, 
+          #pal=brewer.pal(n, input$pal),
+          #numPositions=input$numPositions,
+          main="Mval MDS"
+      )
+```
+
+
+
+# 3- CNV
+
+SeSAMe performs copy number variation in three steps: 
+  1) normalizes the signal intensity using a copy-number-normal data set; 
+  2) groups adjacent probes into bins; 
+  3) runs DNAcopy internally to group bins into segments.
+
+```{R CNV, warning=FALSE, message=FALSE}
+selectInput("sample1", "sample1", choices = pdata$Sample_Name, selected = 1, multiple = FALSE)
+selectInput("sample2", "sample2", choices = pdata$Sample_Name, selected = 24, multiple = FALSE)
+renderPlot({
+  first<- which( pdata$Sample_Name == input$sample1 )
+  second<-which( pdata$Sample_Name == input$sample2 )
+  segs <- cnSegmentation(ssets[[first]], ssets[[second]])
+  visualizeSegments(segs)
+})
+```
+
+# 4- Cell Composition Deconvolution
+
+SeSAMe estimates leukocyte fraction using a two-component model.This function works for samples whose targeted cell-of-origin is not related to white blood cells.
+
+```{R Cell_Comp_Deconvolution, warning=FALSE, message=FALSE}
+leuk<-estimateLeukocyte(betas)
+leuk %>% kbl(caption = "Leukocytes") %>% kable_paper("hover", full_width = F)
+```
+
+
+
+## 5- Output explicit and Infinium-I-derived SNP to VCF
+
+do not exist yet !
+
+```{R sesamedataPullVariant, warning=FALSE, message=FALSE, error=TRUE}
+annoS <- sesameDataPullVariantAnno_SNP('MM285','mm10')
+annoI <- sesameDataPullVariantAnno_InfiniumI('MM285','mm10')
+```
+
+# 6- tomethylkey
+
+```{R tomethylkey, warning=FALSE, message=FALSE}
+betas<-betas[ !grepl("rs",rownames(betas)), ]
+betas<-betas[,pdata$Basename]
+
+analyse=new.env()
+analyse$nsamp=nrow(pdata)
+analyse$platform=params$plateform
+analyse$pdata=pdata
+ 
+opt_=new.env()
+opt_$groups="group"
+opt_$normalize="Noob"
+
+save(opt_, analyse, betas, pdata, file=params$output)
+```

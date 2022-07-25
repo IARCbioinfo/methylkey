@@ -22,7 +22,7 @@ if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install()
 
-devtools::install_github("IARCbioinfo/methylkey@v1.0")
+devtools::install_github("IARCbioinfo/methylkey")
 library(methylkey)
 ```
 

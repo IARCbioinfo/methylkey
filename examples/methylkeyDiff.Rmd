@@ -12,8 +12,7 @@ params:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning = FALSE)
 
-#library(methylkey)
-devtools::load_all("~/git/methylkey/v1.0/")
+library(methylkey)
 library(DescTools)
 library(DT)
 
@@ -26,7 +25,7 @@ dir.create(output_dir)
 
 ```{r loading_data}
 # load betas
-load("waterpipe_Funnorm_2022-03-02.rda")
+load("waterpipe_Funnorm_2022-01-18.rda")
 sampleSheet[params$group] <- sampleSheet %>% pull(params$group) %>% as.factor()
 #sampleSheet$Sentrix_Position<-as.factor(sampleSheet$Sentrix_Position)
 

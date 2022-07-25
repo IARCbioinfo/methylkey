@@ -1,6 +1,8 @@
 # Methylkey
 #### 05 Janvier 2021
 
+[![DOI](https://zenodo.org/badge/139563728.svg)](https://zenodo.org/badge/latestdoi/139563728)
+
 1. Installation
 2. Prepare SampleSheet
 3. Preprocessing illumina array

@@ -10,7 +10,7 @@ buildAnnot<-function(genome="hg19"){
   
   listOfAnnotations<-builtin_annotations()
   annots<-listOfAnnotations[grep(genome, listOfAnnotations)]
-  annotations <- build_annotations(genome = genome, annotations = annots)
+  annotations <- annotatr::build_annotations(genome = genome, annotations = annots)
   return(annotations)
 }
 
@@ -34,7 +34,7 @@ mk_annotatr<-function(regions,annot=NULL,genome="hg19"){
   
   elementMetadata(annot)<-elementMetadata(annot) %>% as.data.frame() %>% tidyr::separate(type,into=c("genome","feature","value"))
   
-  cpg_annotated <- annotate_regions(regions, annotations=annot, minoverlap = 1L, ignore.strand = FALSE)
+  cpg_annotated <- annotatr::annotate_regions(regions, annotations=annot, minoverlap = 1L, ignore.strand = FALSE)
   
   return(cpg_annotated)
 }

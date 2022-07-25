@@ -17,7 +17,7 @@ params:
 ```{R setup, echo = FALSE, message=FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning = FALSE)
 library(methylkey)
-#devtools::load_all("~/git/methylkey/v1.0/")
+libary(DT)
 ```
 
 # loading data

@@ -49,7 +49,7 @@ methyldiff<-function(model=NULL,modelSVA=NULL,case=NULL,control=NULL,betas=NULL,
   }
   
   #correct default genome
-  if (plateform=="IlluminaMouseMethylation285k") { genome=="mm10" }
+  if (plateform=="IlluminaMouseMethylation285k") { genome="mm10" }
   
   #calculate mvalues
   mval<-beta2m(betas)

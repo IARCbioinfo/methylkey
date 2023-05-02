@@ -278,7 +278,7 @@ volcano<-function(df,  sig=5e-8 ){
     #rename(any_of(c("P.Value"="HMFDR","deltabetas"="maxdiff")))
   
   
-  p <- ggplot( df, aes(x = deltabetas, y = -log(P.Value) ) ) + 
+  p <- ggplot( df, aes(x = deltabetas, y = -log10(P.Value) ) ) + 
   geom_point( aes(color=ifelse(P.Value>0.05,"lightgray",ifelse(deltabetas>0,"blue","red"))), alpha=0.5 ) +
   scale_colour_manual(values = c("blue", "lightgray", "red")) +
   geom_hline(yintercept = -log(0.05), linetype = "dashed", col="red") +

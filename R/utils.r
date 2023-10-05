@@ -1,6 +1,6 @@
 #' getDeltaBetas
 #' 
-#' calculate Delta betas
+#' calculate Delta betas between two groups
 #' 
 #' @param betas array of betas values
 #' @param group group
@@ -18,6 +18,42 @@ getDeltaBetas<-function(betas,group, case="TT", control="NT"){
   return(deltaBetas)
 }
 
+#' Calculate delta betas between all groups
+#'
+#' This function calculates delta betas (changes in methylation levels) between different groups based on methylation beta values. It computes the difference in methylation levels for all possible combinations of groups.
+#'
+#' @param betas A matrix of methylation beta values, where rows represent CpG sites and columns represent samples.
+#' @param group A factor or character vector specifying group membership for each sample.
+#'
+#' @return A data frame containing delta betas for each pair of groups.
+#'
+#' @export
+getDeltaBetas2 <- function(betas, group) {
+  # Get unique levels from the 'group' factor
+  levels_list <- levels(group)
+  
+  # Create an empty data frame to store the deltaBetas for each pair
+  deltaBetas_df <- list()
+  
+  # Calculate deltaBetas for all combinations of levels
+  for (i in 1:length(levels_list)) {
+    for (j in 1:length(levels_list)) {
+      case <- levels_list[i]
+      control <- levels_list[j]
+      if(case!=control){
+        
+        betas_<-betas[,group %in% c(case,control)]
+        group_<-group[group %in% c(case,control)]
+        deltaBetas <- rowMeans(betas_[,group==case]) - rowMeans(betas_[,group==control])
+        
+        deltaBetas_df[[paste0(case,"_vs_",control)]] <- deltaBetas * 100
+      }
+    }
+  }
+  
+  return(data.frame(deltaBetas_df))
+}
+
 #' beta2m
 #' 
 #' calculate mvalues
@@ -30,55 +66,6 @@ getDeltaBetas<-function(betas,group, case="TT", control="NT"){
 #' 
 beta2m <- function (betas) {
   return(log2(betas/(1 - betas)))
-}
-
-#' getDefaultProbeList
-#' 
-#' get default list of probes to filter according to the plateform
-#' 
-#' @param filters file containing probe list
-#' 
-#' @return vector
-#' 
-# getDefaultProbeList<-function(plateform="IlluminaHumanMethylationEPIC", SNP=TRUE, CROSS=TRUE, XY=TRUE){
-#   
-#   filters<-c()
-#   if (plateform=="IlluminaHumanMethylationEPIC"){
-#     if (CROSS){ filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_EPIC.csv" ) }
-#     if (SNP)  { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC.csv" ) }
-#     if (SNP)  { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_EPIC_single_base.csv" ) }
-#     if (XY)   { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_EPIC.csv" ) }
-#     if (XY)   { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/XY.csv" ) }
-#   }
-#   
-#   if (plateform=="IlluminaHumanMethylation450k"){
-#     if (CROSS){ filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_Chen.csv") }
-#     if (CROSS){ filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Crossreactive_probes_450k_EGE.csv") }
-#     if (SNP)  { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/SNP_All_races_5percent.csv") }
-#     if (XY)   { filters<- c(filters, "http://git.iarc.lan/EGE/methylkey/raw/master/data/Sex_Chr_SNPs.csv") }
-#   }
-#   
-#   return(filters)
-# }
-
-getDefaultProbeList<-function(plateform="IlluminaHumanMethylationEPIC", SNP=TRUE, CROSS=TRUE, XY=TRUE){
-  
-  filters<-c()
-  if (plateform=="IlluminaHumanMethylationEPIC"){
-    if (CROSS){ filters<- c(filters, Crossreactive_probes_EPIC ) }
-    if (SNP)  { filters<- c(filters, SNP_EPIC ) }
-    if (SNP)  { filters<- c(filters, SNP_EPIC_single_base ) }
-    if (XY)   { filters<- c(filters, Sex_EPIC ) }
-  }
-  
-  if (plateform=="IlluminaHumanMethylation450k"){
-    if (CROSS){ filters<- c(filters, Crossreactive_probes_450k_Chen) }
-    if (CROSS){ filters<- c(filters, Crossreactive_probes_450k_EGE) }
-    if (SNP)  { filters<- c(filters, SNP_All_races_5percent) }
-    if (XY)   { filters<- c(filters, Sex_Chr_SNPs) }
-  }
-  
-  return(filters)
 }
 
 #' CpGexcl
@@ -103,28 +90,29 @@ CpGexcl<-function(filters=NULL, plateform="IlluminaHumanMethylationEPIC", SNP=TR
     # from files
     for (file in filters){
       if( !file.exists(file) & !RCurl::url.exists(file) ){ stop(paste0(file, " not found")) }
-      probes <- unique( c(probes, read_tsv(file)[[1]] ))
+      probes <- unique( c(probes, readr::read_tsv(file)[[1]] ))
     }
   }
   
   return( probes )
 }
 
-#' getPlateform
+#' makeSummarizedExperimentFromBetas
 #'
-#' guess illumina plateform based on probes names and probes number
+#' create a summarized experiment
 #'
 #' @param betas betas array
+#' @param sampleSheet data.frame
 #'
-#' @return plateform
+#' @return SummarizedExperiment
 #'
 #' @export
 #'
-getPlateform<-function(betas){
-  
-  if ( grepl("_",rownames(betas)[1]) ){ return("IlluminaMouseMethylation285k") }
-  else if ( nrow(betas) > 500000){ return("IlluminaHumanMethylationEPIC") }
-  else if ( nrow(betas) > 200000){ return("IlluminaHumanMethylation450k") }
-  else if ( nrow(betas) > 10000 ){ return("IlluminaHumanMethylation27k") }
-  else { stop("can't identify plateform !") }
+makeSummarizedExperimentFromBetas<-function(betas,sampleSheet){
+  manifest=methylkey::getAnnotedManifest(methylkey::getPlateform(betas)) %>%
+    filter(probeID %in% rownames(betas)) %>%
+    makeGRangesFromDataFrame(keep.extra.columns = T, start.field="pos", end.field="pos" )
+  se<-SummarizedExperiment(assays=list(betas=betas[manifest$probeID,]), rowRanges=manifest, colData=sampleSheet)
+  return(se)
 }
+

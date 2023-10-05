@@ -1,64 +1,34 @@
-#' readSampleSheet
-#' 
-#' Display betas in a violin plot by group
-#' 
-#' @param path file location
-#' @param sample sample column name
-#' @param barcode barcode column name
-#' @param groups groups columns names (vector)
-#' @param sep field separator ('\\t')
-#' 
-#' @return dataframe
-#' 
+#' Format and rename columns in a sample sheet data frame
+#'
+#' This function formats and renames columns in a sample sheet data frame to ensure consistency and compatibility with downstream analysis. It performs the following operations:
+#' - Converts column names to lowercase.
+#' - Renames the "samples" or "sample_id" column to "samples".
+#' - Renames the "barcode" or "basename" column to "barcode".
+#' - Ensures that the "barcode" and "samples" columns exist in the sample sheet.
+#' - Converts column names to valid R variable names.
+#' - Converts character columns to factors.
+#' - Separates the "barcode" column into "sentrix_id" and "sentrix_position" columns.
+#' - Arranges the rows by the "barcode" column.
+#'
+#' @param sampleSheet A data frame representing the sample sheet.
+#'
+#' @return A processed and formatted sample sheet data frame.
+#'
+#'
 #' @export
-#' 
-readSampleSheet<-function(path, samples=NULL, barcode=NULL, groups=NULL, sep="\t"){
-
-    #1- read file
-    pdata<-readr::read_delim(path,delim=sep,trim_ws=TRUE)
-
-    if( ncol(pdata)<2 ){ stop( paste0("Oups ! Check if your separator in pdata is really '", sep, "' in your sample sheet.") ) }
-    
-    #identify columns indexes
-    samples_<-which( tolower( colnames(pdata) ) %in% c("samples","sample","samples_names","sample_names","sample_name","sample_id","id","ids") )
-    barcode_<-which( tolower( colnames(pdata) ) %in% c("barcode","basename") )
-    sentrix_id_<-which( tolower( colnames(pdata) ) %in% c("sentrix_id") )
-    sentrix_position_<-which( tolower( colnames(pdata) ) %in% c("sentrix_position") )
-
-    #2 samples column
-    if( !is.null(samples) ){ 
-        colnames(pdata)[ which( colnames(pdata)==samples ) ]<-"samples"
-    }else if (is.numeric(samples)){
-        colnames(pdata)[ samples ]<-"samples"
-    }else if ( length(samples_) ) {
-        colnames(pdata)[samples_]="samples"
-    }else { stop( "Oups, sorry, cannot determine samples names column. Try to use --samples <column_name>" )   }
-    if ( !base::all( !duplicated(pdata$samples) ) ) { stop("Oups ! there is duplicated samples name in your sample sheet.") }
-    message( paste0("reading samples sheet : ", nrow(pdata), " samples") )
-    #3- Basename columns
-    if( !is.null(barcode) ){ 
-        colnames(pdata)[ which( colnames(pdata)==barcode ) ]<-"Basename"
-    }else if (is.numeric(barcode)){
-        colnames(pdata)[ barcode ]<-"Basename"
-    }else if ( length(barcode_) ) {
-       colnames(pdata)[barcode_]="Basename"
-    }else if ( length(sentrix_id_) == 1 & length(sentrix_position_) ==1 ){
-      if ( nchar( as.character( pdata[sentrix_position_][1,1] ) ) == 3 ) { 
-            pdata[sentrix_position_]<-paste0(unlist(pdata[sentrix_position_]),"C01")
-      }
-      pdata$Basename<-paste0( pdata[,sentrix_id_], "_" , pdata[,sentrix_position_] )
-    }else { stop( "Oups, sorry, cannot determine barcode column. Try to use --barcode <column_name>" )}
-
-    #4- convert discrete variables to factor
-    pdata <- pdata %>% mutate_if(~ length(unique(.)) <= length(.)/8 , as.factor )
-      
-    #5- check groups
-    for (group in groups) {
-        if ( ! group %in% colnames(pdata) & !is.numeric(group) ){
-            stop(paste0("Oups ! Check if '", group, "' is a column in your sample sheet"))
-        }
-    }
-
-    message( paste0("reading samples sheet : done ...") )
-    return(pdata)
+formatSampleSheet<-function(sampleSheet){
+  
+  sampleSheet<-sampleSheet %>% rename_with(tolower) %>% 
+    dplyr::rename(any_of(c(samples="sample",samples="sample_id"))) %>%
+    dplyr::rename(any_of(c(barcode="basename")))
+  assertthat::assert_that( "barcode" %in% colnames(sampleSheet), msg="The barcode column is missing !" )
+  assertthat::assert_that( "samples" %in% colnames(sampleSheet), msg="The samples column is missing !" )
+  
+  sampleSheet <- sampleSheet  %>% 
+    rename_with( make.names, unique = TRUE ) %>%
+    setNames(gsub("\\.", "_", names(.))) %>%
+    dplyr::rename(samples=1) %>% # first column must be samples names
+    tidyr::separate(barcode, into = c("sentrix_id","sentrix_position"), remove=F) %>%
+    dplyr::mutate_if( is.character, as.factor ) %>%
+    dplyr::arrange(barcode)
 }

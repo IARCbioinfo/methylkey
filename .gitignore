@@ -1,2 +1,9 @@
 .Rproj.user
 inst/doc
+*/*rds
+*/*rda
+*/*html
+*/*csv
+*/*_files
+.Rhistory
+*/*.Rhistory

@@ -213,11 +213,11 @@ barplots_450k<-function(tab=NULL,man=NULL){
     mutate(status=factor(status, levels=c("hypo*", "hypo","Hm450k","hyper","hyper*"))) 
   
   bp1<-bart %>% filter(!is.na(status)) %>%
-    separate_rows(UCSC_RefGene_Group, sep = ";", convert = FALSE) %>% 
+    tidyr::separate_rows(UCSC_RefGene_Group, sep = ";", convert = FALSE) %>% 
     ggplot(aes(fill=UCSC_RefGene_Group,x=status)) + geom_bar(position="fill") + coord_flip() + scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12))
   
   bp2<-bart %>% filter(!is.na(status)) %>%
-    separate_rows(Relation_to_Island, sep = ";", convert = FALSE) %>%
+    tidyr::separate_rows(Relation_to_Island, sep = ";", convert = FALSE) %>%
     ggplot(aes(fill=Relation_to_Island,x=status)) + geom_bar(position="fill") + coord_flip() + scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12))
   
   print(bp1)
@@ -251,7 +251,7 @@ barplots_EPIC<-function(tab=NULL,man=NULL){
     ggplot(aes(fill=UCSC_RefGene_Group,x=status)) + geom_bar(position="fill") + coord_flip() + scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12))
   
   bp2<-bart %>% filter(!is.na(status)) %>%
-    separate_rows(Relation_to_Island, sep = ";", convert = FALSE) %>%
+    tidyr::separate_rows(Relation_to_Island, sep = ";", convert = FALSE) %>%
     ggplot(aes(fill=Relation_to_Island,x=status)) + geom_bar(position="fill") + coord_flip() + scale_fill_manual(values=colors) + theme(legend.text=element_text(size=12))
   
   print(bp1)
@@ -327,7 +327,7 @@ manhattan<-function(df,  sig=5e-8 ){
   ylim <- gwas_data %>% 
     filter(P.Value == min(P.Value)) %>% 
     mutate(ylim = abs(floor(log10(P.Value))) + 2) %>% 
-    pull(ylim)
+    dplyr::pull(ylim)
   
   p<-ggplot(gwas_data, aes(x = bp_cum, y = -log10(P.Value), 
                            color = haven::as_factor(chr), size = -log10(P.Value))) +
@@ -404,6 +404,629 @@ manhattan<-function(df,  sig=5e-8 ){
 # }
 
 
+#' Create a scatter plot with custom annotations
+#'
+#' This function generates a scatter plot with custom annotations using ggplot2. The plot displays data from a data frame, where 'mean_oob_grn' and 'mean_oob_red' are used as x and y coordinates, and 'name' is used for annotations.
+#'
+#' @param df A data frame containing the data to be plotted, with columns 'mean_oob_grn', 'mean_oob_red', and 'name'.
+#'
+#' @return A ggplot2 scatter plot with custom annotations.
+#'
+#' @import ggplot2
+#'
+#' @export
+plot_background<-function(df){
+  ggplot(df,
+         aes(x = mean_oob_grn, y= mean_oob_red, label = name)) +
+    geom_point() + geom_text(hjust = -0.1, vjust = 0.1) +
+    geom_abline(intercept = 0, slope = 1, linetype = 'dotted') +
+    xlab('Green Background') + ylab('Red Background')
+}
 
+
+#' Create a scatter plot to visualize channel switching
+#'
+#' This function generates a scatter plot to visualize channel switching using ggplot2. It plots data from a data frame, where 'InfI_switch_G2R' and 'InfI_switch_R2G' are used as x and y coordinates.
+#'
+#' @param df A data frame containing the data to be plotted, with columns 'InfI_switch_G2R' and 'InfI_switch_R2G'.
+#'
+#' @return A ggplot2 scatter plot for visualizing channel switching.
+#'
+#' @import ggplot2
+#'
+#' @export
+plot_channel_switch<-function(df){
+  ggplot(df) + geom_point(aes(InfI_switch_G2R, InfI_switch_R2G))
+}
+
+#' Create a bar plot to visualize missing values (NA)
+#'
+#' This function generates a bar plot to visualize the number of missing values (NA) for different categories using ggplot2. It plots data from a data frame, where 'name' is used on the x-axis and 'num_na_cg' on the y-axis.
+#'
+#' @param df A data frame containing the data to be plotted, with columns 'name' and 'num_na_cg'.
+#'
+#' @return A ggplot2 bar plot for visualizing missing values (NA).
+#'
+#' @import ggplot2
+#'
+#' @export
+plot_NA<-function(df){
+  ggplot(df) + geom_bar(aes(x=name,y=num_na_cg), stat="identity") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+}
+
+#' Create a bar plot to visualize detection fractions
+#'
+#' This function generates a bar plot to visualize detection fractions using ggplot2. It plots data from a data frame, where 'name' is used on the x-axis and 'frac_dt' on the y-axis.
+#'
+#' @param df A data frame containing the data to be plotted, with columns 'name' and 'frac_dt'.
+#'
+#' @return A ggplot2 bar plot for visualizing detection fractions.
+#'
+#' @import ggplot2
+#'
+#' @export
+plot_Detection<-function(df){
+  ggplot(df) + geom_bar(aes(x=name,y=frac_dt), stat="identity") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+}
+
+#' Create a volcano plot to visualize differential methylation analysis results
+#'
+#' This function generates a volcano plot to visualize differential methylation analysis results using ggplot2. It takes a data frame 'dt' as input, groups the data by 'dmrtool', 'ID', and 'fdr', calculates summary statistics, and creates a plot.
+#'
+#' @param dt A data frame containing the data for differential methylation analysis.
+#'
+#' @return A ggplot2 volcano plot showing differential methylation analysis results.
+#'
+#' @import ggplot2
+#' @import dplyr
+#'
+#' @export
+my_volcanomean<-function(dt){
+  volcano <- data.frame(dt) %>% group_by(dmrtool,ID,fdr) %>% 
+    summarise( no.cpgs=n(), mean.deltabetas=mean(deltabetas), .groups='drop' ) %>%
+    ggplot( aes(x = mean.deltabetas, y = -log10(fdr)) ) +
+    geom_point( aes(color=ifelse(fdr>0.05,"3notsig",ifelse(mean.deltabetas>0,"1up","2down"))), alpha=0.5 ) +
+    scale_colour_manual(values = c("blue", "red", "lightgray")) +
+    geom_hline(yintercept = -log10(0.05), linetype = "dashed", col="red") +
+    guides(color = "none") + facet_grid(. ~ dmrtool) +
+    theme_minimal() + ggtitle("A : mean deltabetas")
+  return(volcano)
+}
+
+#' Create a volcano plot to visualize differential methylation analysis results with harmonized mean
+#'
+#' This function generates a volcano plot to visualize differential methylation analysis results using ggplot2. It takes a data frame 'dt' as input, groups the data by 'dmrtool', 'ID', and 'fdr', calculates summary statistics with a modified 'mean.deltabetas' calculation, and creates a plot.
+#'
+#' @param dt A data frame containing the data for differential methylation analysis.
+#'
+#' @return A ggplot2 volcano plot showing differential methylation analysis results with modified mean calculation.
+#'
+#' @import ggplot2
+#' @import dplyr
+#'
+#' @export
+my_volcanohmean<-function(dt){
+  volcano <- data.frame(dt) %>% group_by(dmrtool,ID,fdr) %>% 
+    summarise( no.cpgs=n(), mean.deltabetas= (n() / sum(1/deltabetas)), .groups='drop' ) %>%
+    ggplot( aes(x = mean.deltabetas, y = -log10(fdr)) ) +
+    geom_point( aes(color=ifelse(fdr>0.05,"3notsig",ifelse(mean.deltabetas>0,"1up","2down"))), alpha=0.5 ) +
+    scale_colour_manual(values = c("blue", "red", "lightgray")) +
+    geom_hline(yintercept = -log10(0.05), linetype = "dashed", col="red") +
+    guides(color = "none") + facet_grid(. ~ dmrtool) +
+    theme_minimal() + ggtitle("A : mean deltabetas")
+  return(volcano)
+}
+
+
+#' Create a volcano plot to visualize differential methylation analysis results with max value
+#'
+#' This function generates a volcano plot to visualize differential methylation analysis results using ggplot2. It takes a data frame 'dt' as input, groups the data by 'dmrtool', 'ID', and 'fdr', calculates summary statistics with a modified 'mean.deltabetas' calculation, and creates a plot.
+#'
+#' @param dt A data frame containing the data for differential methylation analysis.
+#'
+#' @return A ggplot2 volcano plot showing differential methylation analysis results with modified mean calculation.
+#'
+#' @import ggplot2
+#' @import dplyr
+#'
+#' @export
+my_volcanomax<-function(dt){
+  volcano <- data.frame(dt) %>% group_by(dmrtool,ID,fdr) %>% 
+    summarise( no.cpgs=n(), max.deltabetas=max(deltabetas), .groups='drop' ) %>%
+    ggplot( aes(x = max.deltabetas, y = -log10(fdr)) ) +
+    geom_point( aes(color=ifelse(fdr>0.05,"3notsig",ifelse(max.deltabetas>0,"1up","2down"))), alpha=0.5 ) +
+    scale_colour_manual(values = c("blue", "red", "lightgray")) +
+    geom_hline(yintercept = -log10(0.05), linetype = "dashed", col="red") +
+    guides(color = "none") + facet_grid(. ~ dmrtool) +
+    theme_minimal() + ggtitle("B : max deltabetas")
+  return(volcano)
+}
+
+#' Create a volcano plot to visualize statistical results
+#'
+#' This function generates a volcano plot to visualize statistical results using ggplot2. It takes a data frame 'df' as input, where 'deltabetas' and 'P.Value' are used as x and y coordinates. The points in the plot are colored based on significance and effect size.
+#'
+#' @param df A data frame containing the data for statistical results with columns 'deltabetas' and 'P.Value'.
+#'
+#' @return A ggplot2 volcano plot showing statistical results.
+#'
+#' @import ggplot2
+#'
+#' @export
+my_volcano<-function(df){
+  
+  p <- ggplot( data.frame(df), aes(x = deltabetas, y = -log10(adj.P.Val) ) ) + 
+    geom_point( aes(color=ifelse(adj.P.Val>0.05,"lightgray",ifelse(deltabetas>0,"blue","red"))), alpha=0.5 ) +
+    scale_colour_manual(values = c("blue", "lightgray", "red")) +
+    geom_hline(yintercept = -log10(0.05), linetype = "dashed", col="red") +
+    guides(color = "none") +
+    theme_minimal()
+  
+  return(p)
+}
+
+
+#' Create a Venn diagram to visualize intersections of probe IDs
+#'
+#' This function generates a Venn diagram to visualize the intersections of probe IDs from different sets. It takes a data frame 'dt' as input and a list 'a' containing the names of sets to be intersected.
+#'
+#' @param dt A data frame containing the data.
+#' @param a A list of set names to be intersected.
+#'
+#' @return A ggvenn Venn diagram showing the intersections between sets.
+#'
+#' @import ggvenn
+#' @import dplyr
+#'
+#' @export
+my_venn_<-function(dt,a){
+  
+  b <- list(`DMRcate` = dt %>% dplyr::filter(dmrtool=="dmrcate") %>% dplyr::pull(probeID) %>% unique(),
+            `DMRff` = dt %>% dplyr::filter(dmrtool=="dmrff") %>% dplyr::pull(probeID) %>% unique(),
+            `combp` = dt %>% dplyr::filter(dmrtool=="combp") %>% dplyr::pull(probeID) %>% unique(),
+            `ipdmr` = dt %>% dplyr::filter(dmrtool=="ipdmr") %>% dplyr::pull(probeID) %>% unique()
+  )
+  a<-Filter(length, a)
+  b<-Filter(length, b)
+  venn<-ggvenn( b, names(b) ) + ggtitle("C")
+  return(venn)
+}
+
+#' Create a Venn diagram to visualize intersections of IDs for different tools
+#'
+#' This function generates a Venn diagram to visualize the intersections of IDs obtained from different analysis tools. It takes a data frame 'dt' as input and automatically extracts IDs for each tool before passing them to the 'my_venn_' function.
+#'
+#' @param dt A data frame containing the data.
+#'
+#' @return A ggvenn Venn diagram showing the intersections between IDs obtained from different tools.
+#'
+#' @import dplyr
+#'
+#' @export
+my_venn<-function(dt){
+  
+  a <- list(`DMRcate` = dt %>% dplyr::filter(dmrtool=="dmrcate") %>% dplyr::pull(ID) %>% unique(),
+            `DMRff` = dt %>% dplyr::filter(dmrtool=="dmrff") %>% dplyr::pull(ID) %>% unique(),
+            `combp` = dt %>% dplyr::filter(dmrtool=="combp") %>% dplyr::pull(ID) %>% unique(),
+            `ipdmr` = dt %>% dplyr::filter(dmrtool=="ipdmr") %>% dplyr::pull(ID) %>% unique()
+  )
+  return(my_venn_(dt,a))
+}
+
+#' Create a Venn diagram to visualize intersections of IDs for different tools
+#'
+#' This function generates a Venn diagram to visualize the intersections of IDs obtained from different analysis tools. It takes a data frame 'dt' as input and automatically extracts IDs for each tool before passing them to the 'my_venn_' function.
+#'
+#' @param dt A data frame containing the data.
+#'
+#' @return A ggvenn Venn diagram showing the intersections between IDs obtained from different tools.
+#'
+#' @import dplyr
+#'
+#' @export
+my_venn_oriented<-function(dt){
+  
+  a <- list(`DMRcate` = dt %>% dplyr::filter(dmrtool=="dmrcate") %>% dplyr::pull(IDo) %>% unique(),
+            `DMRff` = dt %>% dplyr::filter(dmrtool=="dmrff") %>% dplyr::pull(IDo) %>% unique(),
+            `combp` = dt %>% dplyr::filter(dmrtool=="combp") %>% dplyr::pull(IDo) %>% unique(),
+            `ipdmr` = dt %>% dplyr::filter(dmrtool=="ipdmr") %>% dplyr::pull(IDo) %>% unique()
+  )
+  return(my_venn_(dt,a))
+}
+
+#' Create a density plot of DMR lengths grouped by dmrtool
+#'
+#' This function generates a density plot of DMR (Differentially Methylated Region) lengths grouped by 'dmrtool'. It takes a data frame 'dt' as input, calculates the length of each DMR, and then creates the density plot.
+#'
+#' @param dt A data frame containing the data.
+#'
+#' @return A ggplot2 density plot showing DMR length distributions grouped by 'dmrtool'.
+#'
+#' @import dplyr
+#' @import ggplot2
+#'
+#' @export
+my_density<-function(dt){
+  
+  density <- dt %>% group_by(dmrtool,ID,start,end) %>% 
+    summarise( no.cpgs=n(), .groups='drop' ) %>%
+    mutate(length=end-start) %>%
+    ggdensity(x = "length",
+              add = "mean", rug = TRUE,
+              color = "dmrtool", fill = "dmrtool",
+              palette = c("#00AFBB", "#E7B800", "#FC4E07", "#59981A"),
+              title = "D") + scale_x_continuous(trans='log2')
+  
+  return(density)
+}
+
+
+#' Create a violin plot of DMR lengths grouped by dmrtool
+#'
+#' This function generates a violin plot of DMR (Differentially Methylated Region) lengths grouped by 'dmrtool'. It takes a data frame 'dt' as input, calculates the length of each DMR, and then creates the violin plot.
+#'
+#' @param dt A data frame containing the data.
+#'
+#' @return A ggplot2 violin plot showing DMR length distributions grouped by 'dmrtool'.
+#'
+#' @import dplyr
+#' @import ggplot2
+#'
+#' @export
+my_violin<-function(dt){
+  violin<-dt %>% group_by(dmrtool,ID,start,end) %>% summarise( no.cpgs=n(), .groups='drop' ) %>%
+    mutate(length=end-start) %>%
+    ggviolin(x = "dmrtool", y = "length", fill = "dmrtool",
+             palette = c("#00AFBB", "#E7B800", "#FC4E07", "#59981A"),
+             title = "E")
+  return(violin)
+}
+
+#' Create a genome track plot with CpG, DMRs, and probe annotations
+#'
+#' This function generates a genome track plot that includes various annotations, such as CpG islands, DMRs (Differentially Methylated Regions), and probe annotations. It takes a data frame 'dt' containing the probe information, a matrix 'betas' containing beta values, and additional parameters for specifying the genome region to display.
+#'
+#' @param dt A data frame containing the probe information.
+#' @param betas A matrix containing beta values.
+#' @param genome The genome assembly version (e.g., "hg19").
+#' @param chromosome The chromosome to display (e.g., "Chr1").
+#' @param start The start position of the genome region to display.
+#' @param end The end position of the genome region to display.
+#'
+#' @return A genome track plot displaying CpG islands, DMRs, and probe annotations.
+#'
+#' @import dplyr
+#' @import GenomeInfoDb
+#' @import Gviz
+#'
+#' @export
+my_track<-function(dt,betas,genome="hg19",chromosome="Chr1",start=0,end=5000){
+  
+  cpgs <- dt %>% dplyr::pull(probeID) %>% unlist()
+  
+  foo <- dt %>% group_by(probeID,chr,pos) %>% 
+    summarise(.groups='drop') %>% 
+    merge(betas[cpgs,] %>% data.frame() %>% 
+            rownames_to_column("probeID"), by="probeID") %>% 
+    arrange(pos) %>% mutate(start=pos, end=pos) %>% dplyr::select(-c(probeID,pos))
+  
+  if(nrow(foo)<1) return(NULL)
+  
+  dmrcate<-dt %>% group_by(dmrtool,chr,start,end) %>% summarise( no.cpgs=n(), .groups='drop' ) %>% filter(dmrtool=="dmrcate")
+  dmrff<-dt %>% group_by(dmrtool,chr,start,end) %>% summarise( no.cpgs=n(), .groups='drop' ) %>% filter(dmrtool=="dmrff")
+  combp<-dt %>% group_by(dmrtool,chr,start,end) %>% summarise( no.cpgs=n(), .groups='drop' ) %>% filter(dmrtool=="combp")
+  ipdmr<-dt %>% group_by(dmrtool,chr,start,end) %>% summarise( no.cpgs=n(), .groups='drop' ) %>% filter(dmrtool=="ipdmr")
+  
+  #Ideogram track
+  itrack <- IdeogramTrack(genome = genome, chromosome = chromosome)
+  #Annotation track, title ="CpG"
+  atrack0 <- AnnotationTrack(cpgIslands, genome = genome, name = "CpG", chr = chromosome, from = start, to = end)
+  #Annotation track
+  aTrack1 <- AnnotationTrack(range = dmrcate, name = "DMRcate", chr = chromosome, from = start, to = end)
+  aTrack2 <- AnnotationTrack(range = dmrff, name = "DMRff", chr = chromosome, from = start, to = end)
+  aTrack3 <- AnnotationTrack(range = combp, name = "combp", chr = chromosome, from = start, to = end)
+  aTrack4 <- AnnotationTrack(range = ipdmr, name = "ipdmr", chr = chromosome, from = start, to = end)
+  
+  foo <- makeGRangesFromDataFrame(foo,keep.extra.columns = TRUE)
+  
+  dtrack<-DataTrack(foo, name = "probes", groups = sampleSheet$Group, type = "confint", showSampleNames = TRUE, cex.sampleNames = 0.6, genome=genome, chr=chromosome)
+  plotTracks(dtrack)
+  plotTracks(list(itrack, gtrack,dtrack, atrack0,aTrack1,aTrack2,aTrack3,aTrack4), chr=chromosome ,from = start, to = end)
+  
+}
+
+#' Create a DMR plot for visualizing beta values with confidence intervals
+#'
+#' This function generates a DMR (Differentially Methylated Region) plot for visualizing beta values with confidence intervals. It takes a data frame 'dt' containing the required data, a grouping variable 'group', and a title for the plot.
+#'
+#' @param dt A data frame containing the required data.
+#' @param group A grouping variable for distinguishing different groups in the plot.
+#' @param title A title for the plot.
+#'
+#' @return A ggplot2 plot displaying beta values with confidence intervals for different groups.
+#'
+#' @import ggplot2
+#'
+#' @export
+my_dmrplot<-function(dt,group,title){
+  
+  ggplot(dt, aes(x=probeID, y=betas, ymin=(betas-sd/2), ymax=(betas+sd/2) , group=get(group), fill=get(group) ) ) +
+    geom_line() + 
+    geom_point() +
+    geom_ribbon(alpha=0.5) +
+    theme(axis.text.x=element_text(angle=50,hjust=1, size=10)) +
+    labs(fill=group) +
+    ggtitle(title)
+  
+}
+
+#' Create a Scatter Plot for Visualizing Beta Values
+#'
+#' This function generates a scatter plot for visualizing beta values using multidimensional scaling (MDS). It takes beta values, group information, sample names, color palette, point size, and other optional parameters for customization.
+#'
+#' @param betas A matrix of beta values (rows for CpG sites, columns for samples).
+#' @param group A vector specifying group labels for samples.
+#' @param sample_names A vector of sample names to label the points (optional).
+#' @param palette A color palette for group labels.
+#' @param size The size of points in the scatter plot.
+#' @param showlabels Logical, whether to show sample labels or not.
+#' @param ellipse Logical, whether to add ellipses around groups (optional).
+#'
+#' @return A scatter plot of beta values using multidimensional scaling.
+#'
+#' @import ggpubr
+#'
+#' @export
+my_scatterPlot<-function(betas,group,sample_names,palette,size,showlabels,ellipse){
+  
+  #get lines in betas without na
+  subset <- which(!is.na( rowSums(betas) ))
+  subset <- sample(subset,size=100000)
+  mds<-t(betas[subset,])  %>% dist() %>% cmdscale() %>% as_tibble()
+  colnames(mds) <- c("Dim.1", "Dim.2")
+  if(!showlabels) sample_names=NULL
+  
+  #K-means clustering
+  #clust <- kmeans(mds, 3)$cluster %>% as.factor()
+  #mds <- mds %>% mutate(cluster = clust)
+  mds <- mds %>% mutate(grp=group)
+  
+  # Plot MDS
+  ggscatter(mds, x = "Dim.1", y = "Dim.2", 
+            label = sample_names,
+            color = "grp",
+            palette = palette,
+            size = size, 
+            ellipse = ellipse,
+            #ellipse.type = "convex",
+            repel = TRUE,
+            max.overlaps=50)
+}
+
+
+#' Create a Manhattan Plot for GWAS Data
+#'
+#' This function generates a Manhattan plot for visualizing genome-wide association study (GWAS) data. It takes a data frame containing chromosome (chr), position (pos), and p-value (P.Value) columns as input.
+#'
+#' @param df A data frame containing GWAS data with columns chr (chromosome), pos (position), and P.Value (p-value).
+#' @param sig The significance threshold for highlighting points on the plot (default is 5e-8).
+#'
+#' @return A Manhattan plot visualizing GWAS data.
+#'
+#' @import ggplot2
+#' @import dplyr
+#'
+#' @export
+manhattan<-function(df,  sig=5e-8 ){
+  
+  df <- df  %>% data.frame() %>% 
+    mutate( chr = factor(chr,levels=c(paste0("chr",seq(1:22)),"chrX","chrY") ) )
+  
+  data_cum <- df %>% 
+    group_by(chr) %>% 
+    summarise(max_bp = max(pos)) %>% 
+    mutate(bp_add = lag(cumsum(as.numeric(max_bp)), default = 0)) %>% 
+    dplyr::select(chr, bp_add)
+  
+  gwas_data <- df  %>% 
+    inner_join(data_cum, by = "chr") %>% 
+    mutate(bp_cum = pos + bp_add)
+  
+  axis_set <- gwas_data %>% 
+    group_by(chr) %>% 
+    summarize(center = mean(bp_cum))
+  
+  ylim <- gwas_data %>% 
+    filter(P.Value == min(P.Value)) %>% 
+    mutate(ylim = abs(floor(log10(P.Value))) + 2) %>% 
+    dplyr::pull(ylim)
+  
+  p<-ggplot(gwas_data, aes(x = bp_cum, y = -log10(P.Value), 
+                           color = haven::as_factor(chr), size = -log10(P.Value))) +
+    geom_hline(yintercept = -log10(sig), color = "grey40", linetype = "dashed") + 
+    geom_point(alpha = 0.75) +
+    scale_x_continuous(label = axis_set$chr, breaks = axis_set$center) +
+    scale_y_continuous(expand = c(0,0), limits = c(0, ylim)) +
+    scale_color_manual(values = rep(c("#276FBF", "#183059"), unique(length(axis_set$chr)))) +
+    scale_size_continuous(range = c(0.5,3)) +
+    labs(x = NULL, 
+         y = "-log<sub>10</sub>(p)") + 
+    theme_minimal() +
+    theme( 
+      legend.position = "none",
+      panel.border = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      #axis.title.y = element_markdown(),
+      axis.text.x = element_text(angle = 60, size = 8, vjust = 0.5)
+    )
+  
+  return(p)
+}
+
+
+#' Create a Circos Plot for Genomic Data
+#'
+#' This function generates a Circos plot for visualizing genomic data. It uses the ggbio and GenomicRanges packages to create a circular representation of genomic data, highlighting regions of interest.
+#'
+#' @param dt A data frame containing genomic data with columns: chr (chromosome), pos (position), and deltabetas (effect).
+#' @param genome The genome version to use for plotting (e.g., "hg38", "hg19", "mm10").
+#'
+#' @return A Circos plot visualizing genomic data.
+#'
+#' @import ggbio
+#' @import GenomicRanges
+#' @import BSgenome.Hsapiens.UCSC.hg38
+#' @import BSgenome.Hsapiens.UCSC.hg19
+#' @import BSgenome.Mmusculus.UCSC.mm10
+#'
+#' @export
+circosplot<-function(dt, genome){
+  
+  require(ggbio)
+  require(GenomicRanges)
+  
+  #dt$effect=dt$deltabetas
+  
+  ranges<-dt %>% data.frame() %>% 
+    filter( !is.na(pos) ) %>%
+    filter( !is.na(deltabetas) ) %>%
+    mutate(start=pos,end=pos)
+  ranges<-makeGRangesFromDataFrame(ranges,keep.extra.columns = T)
+  
+  if (genome=="hg38"){ require(BSgenome.Hsapiens.UCSC.hg38) ; species=BSgenome.Hsapiens.UCSC.hg38}
+  if (genome=="hg19"){ require(BSgenome.Hsapiens.UCSC.hg19) ; species=BSgenome.Hsapiens.UCSC.hg19}
+  if (genome=="mm10"){ require(BSgenome.Mmusculus.UCSC.mm10) ; species=BSgenome.Mmusculus.UCSC.mm10}
+  
+  chr.len = seqlengths(species)
+  chr.len = chr.len[grep("_|M", names(chr.len), invert = T)]
+  myIdeo <- GRanges(seqnames = names(chr.len), ranges = IRanges(start = 1, chr.len))
+  seqlengths(myIdeo)<-myIdeo@ranges@width
+  seqlevels(ranges,pruning.mode="coarse")<-seqlevels(myIdeo)
+  seqinfo(ranges)<-seqinfo(myIdeo)
+  
+  #seqlevels(ranges) = names(chr.len)
+  #ranges<-keepSeqlevels(ranges, names(chr.len), pruning.mode="coarse")
+  #seqlengths(ranges)<-myIdeo@ranges@width
+  
+  g.po <-ranges[ranges$deltabetas < 0 ]
+  g.per<-ranges[ranges$deltabetas > 0 ]
+  
+  p<- ggbio() + circle(myIdeo, geom = "ideo", fill = "gray70", radius = 39, trackWidth = 2)
+  
+  if (length(g.po) > 0){
+    values(g.po)$id = "hypo"
+    p <- p + circle(g.po, geom = "point", size = 1, aes(x = midpoint, y = "deltabetas", color = id), radius = 19, trackWidth = 20) + scale_colour_manual(values = c("magenta", "green")) 
+  }
+  if (length(g.per) > 0){	
+    values(g.per)$id = "hyper"
+    p <- p + circle(g.per, geom = "point", size = 1, aes(x = midpoint, y = "deltabetas", color = id), radius = 41, trackWidth = 20)
+  }
+  # bug in ggbio waiting for fix
+  #p<- p + circle(ranges, geom = "text", aes(label = seqnames), vjust = 0, radius = 55, trackWidth = 7)
+  return(p)
+  
+}
+
+
+#' Generic function for plotting channels
+#'
+#' This generic function provides a common interface for plotting channels. The
+#' behavior of this function depends on the class of the input data.
+#'
+#' @param x Input data. Depending on its class, behavior varies.
+#'
+#' @return A plot representing the channels.
+#'
+#' @export
+setGeneric("plot_Channels", function(x) standardGeneric("plot_Channels") )
+
+
+#' Plot channels from a list
+#'
+#' This method of \code{plot_Channels} is specifically for plotting channels
+#' when the input data is a list of channel sets. It extracts and organizes
+#' the channels, creates a boxplot, and facets the plot by sentrix.
+#'
+#' @param x A list where each element represents a set of channels.
+#'
+#' @return A ggplot2 boxplot representing the channels.
+#'
+#' @export
+setMethod("plot_Channels", signature("list"), definition = function(x) {
+  sampNames=names(x)
+  if( identical(sampNames,names(x)) ) sampNames<-gsub(".*_R","R",sampNames)
+  map( x, ~tibble(UG=.$UG, UR=.$UR) ) %>% bind_rows(.id="name") %>%
+    mutate(samp=rep(sampNames,each=nrow(x[[1]]) )) %>%
+    tidyr::pivot_longer(-c(name,samp),names_to = "channel", values_to = "Intensity") %>%
+    mutate(sentrix=gsub("_.*","",name)) %>%
+    ggplot() + geom_boxplot(aes(x=samp,y=Intensity,fill=channel)) + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1) ) +
+    scale_fill_manual(values = c("#2ecc71","#c0392b")) +
+    scale_y_continuous(trans='log2') +
+    ylab("Log2 Intensity") + 
+    facet_grid(.~sentrix, scales = "free_x")
+})
+
+#' Plot channels from an RGChannelSet object
+#'
+#' This method of \code{plot_Channels} is specifically for plotting channels
+#' when the input data is an RGChannelSet object. It creates boxplots
+#' for red and green channels.
+#'
+#' @param x An RGChannelSet object containing microarray channel data.
+#'
+#' @return A ggplot2 plot with separate boxplots for red and green channels.
+#'
+#' @export
+setMethod("plot_Channels", signature("RGChannelSet"), definition = function(x) {
+  nsamp=ncol(x)
+  ylab<-"log2 intensity of both green and red channel"
+  par(xaxt='n')
+  boxplot(log2(getRed(x)+1), col = "red", boxwex = 0.25, at= 1:nsamp - 0.175, ylab=ylab, labels=sampleSheet$samples, cex=0.5)
+  boxplot(log2(getGreen(x)+1), col = "green", boxwex = 0.25, at= 1:nsamp + 0.175, axis=F , add=T, cex=0.5)
+  par(xaxt='s')
+  axis(1, at=1:nsamp, labels=SummarizedExperiment::colData(x)$Basename, tick=TRUE, las=2, cex.axis=0.8)
+  recordPlot()
+})
+
+
+#' Generic function for plotting channels
+#'
+#' This generic function provides a common interface for plotting channels. The
+#' behavior of this function depends on the class of the input data.
+#'
+#' @param x Input data. Depending on its class, behavior varies.
+#'
+#' @return A plot representing the channels.
+#'
+#' @export
+setGeneric("plot_Channels2", function(x) standardGeneric("plot_Channels2") )
+
+#' Call Plot channels from an RGChannelSet object for each sentrix
+#'
+#' This method of \code{plot_Channels} is specifically for plotting channels
+#' when the input data is an RGChannelSet object. It creates separate boxplots
+#' for each sentrix
+#'
+#' @param x An RGChannelSet object containing microarray channel data.
+#'
+#' @return A list of boxplots.
+#'
+#' @export
+setMethod("plot_Channels2", signature("RGChannelSet"), definition = function(x) {
+  
+  nsubplots <- length(sentrix)
+  stx<-gsub("_.*","",colnames(x)) %>% unique()
+  
+  lapply(1:nsubplots, function(i){
+    subsel <- grepl(stx[i], colnames(x))
+    substx <- x[, subsel]
+    plot_Channels(substx)
+  })
+  
+})
 
 

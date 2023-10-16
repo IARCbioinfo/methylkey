@@ -1,0 +1,200 @@
+---
+title: "old EBV project"
+author: Cahais Vincent
+output:
+  rmdformats::readthedown:
+    toc_depth: 3
+    theme: lumen
+params:
+  idat: "/data/mca_share/work/cahaisv/Analysis/EBV/idat"
+  sampleSheet : "/data/mca_share/work/cahaisv/Analysis/EBV/Sample_Sheet_EBV2.csv"
+  prepcode : "QCDPB"
+  output : "oldEBV"
+  groups : !r c("Treatment","Sentrix_ID","inferedsex")
+  model_sva : "~Treatment"
+  palette : "npg"
+  size : 1
+  showlabels : FALSE
+  ellipse : TRUE
+  sva: TRUE
+---
+
+```{R setup, echo=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE)
+devtools::load_all("/luca/git/methylkey/")
+library("factoextra")
+```
+
+
+# 1- SampleSheet
+
+Here is where you load your sample sheet, select the relevant columns, filter out unnecessary data, harmonize names, and ensure data integrity.<br/> Mandatory columns include "samples" and "barcode," and you should also have at least one column for your variables of interest. Avoid using spaces and special characters in the column names and values. Verify that all columns are properly identified as follows:
+
+* Ensure that columns meant to identify samples have unique values and contain only alphanumeric characters.
+
+* Use numeric data types for continuous variables.
+
+* Employ the factor data type for discrete variables.
+
+```{R sampleSheet}
+sampleSheet <- normalizePath(params$sampleSheet) %>% readr::read_delim() %>% dplyr::select(Sample_Name, barcode, Treatment) %>% filter(!is.na(Treatment)) %>% dplyr::rename(samples=1)
+sampleSheet %>% DT::datatable()
+```
+
+# 2- QCs {.tabset}
+
+Basic quality control for probes involves verifying the accuracy of signals in both the green and red channels. This evaluation helps us identify samples that should be excluded from the analysis due to experimental issues.
+
+```{R read_idats}
+meth<-sesame2Betas(params$idat, prep = params$prepcode, sampleSheet=sampleSheet, na=0.2, ncore=4)
+```
+
+## 2.1- Channels
+
+```{R channels}
+metadata(meth)$channels
+```
+
+## 2.2- Detection
+
+```{R detection}
+qcs<-metadata(meth)$qcs
+plot_Detection(qcs[1:24,])
+```
+
+## 2.3- NA
+
+```{R NA}
+plot_NA(qcs[1:24,])
+```
+
+## 2.4- Background
+
+The background level is given by mean_oob_grn and mean_oob_red.
+
+```{R background}
+plot_background(qcs) 
+```
+
+# 3- Group Control
+
+The group control step plays a vital role in identifying samples that are either inaccurately annotated or exhibit substantial deviations from their designated groups. Furthermore, it facilitates the assessment of each variable's contribution to variability, allowing us to detect the presence of batch effects.
+
+```{R mvals}
+# get mvalues with only winsorized correction, but remove XY chromosomes
+methM<-getMvals(meth, grp="Treatment", sva=NULL, win=TRUE, sex=FALSE)
+mvals<-getMvals(methM)
+```
+
+## 3.1- MDS {.tabset}
+
+```{R mds, results = "asis"}
+for(group in tolower(params$groups)){
+  cat("\n\n### ", group, "\n\n")
+  grp=methylkey::colData(methM) %>% pull(group)
+  my_scatterPlot(mvals, grp, samples(methM), params$palette, params$size, params$showlabels, params$ellipse) %>% print()
+}
+```
+
+## 3.2- PCA {.tabset}
+
+### contributions
+
+```{R pca}
+pdata<-methylkey::colData(methM) %>% dplyr::select(samples,treatment,sentrix_position,sentrix_id,inferedsex)
+pca <- makepca( mvals, pdata, nPC=9 )
+plot_PCA_contribution(pca, nPC=9)
+
+dfp <- estimate_PCA_corr(pca, pdata, nPC=9)
+dfq <- apply(dfp, 2, p.adjust, method = "fdr") %>% matrix(nrow = nrow(dfp), dimnames = dimnames(dfp))
+dfq %>% DT::datatable()
+```
+
+```{R pca_group, results = "asis"}
+for(group in tolower(params$groups) ){
+  cat("\n\n### ", group, "\n\n")
+  factoextra::fviz_pca_ind(pca, axes=c(1,2), habillage=methylkey::colData(methM) %>% dplyr::pull(group), addEllipses=params$ellipse ) %>% print()
+}
+```
+
+
+# 3- Data Correction
+
+At this stage, you will correct your data in accordance with QC and group controls. You can utilize the 'sva' method to mitigate batch effects, and you have the choice to either specify a model to protect your variables or leave it as 'NULL' to skip this step. Additionally, you can enable the 'win' option as a boolean to apply winsorization to your data. The 'sex' parameter, also a boolean, allows you to indicate whether you wish to retain the sexual chromosomes or exclude them from the analysis.
+
+```{R correction, asis=TRUE}
+methM<-getMvals(meth, grp="Treatment", sva=NULL, win=TRUE, sex=FALSE, sentrix2remove=list("3998426009_R06C02") )
+```
+
+```{R getMvals}
+mvals<-getMvals(methM)
+```
+
+## 3.1- MDS {.tabset}
+
+```{R mds2, results = "asis"}
+for(group in tolower(params$groups)){
+  cat("\n\n### ", group, "\n\n")
+  grp=methylkey::colData(methM) %>% pull(group)
+  my_scatterPlot(mvals, grp, samples(methM), params$palette, params$size, params$showlabels, params$ellipse) %>% print()
+}
+```
+
+## 3.2- PCA {.tabset}
+
+### contributions
+
+```{R pca2, results = "asis"}
+pdata<-methylkey::colData(methM) %>% dplyr::select(samples,treatment,sentrix_position,sentrix_id,inferedsex)
+pca <- makepca( mvals, pdata, nPC=9 )
+plot_PCA_contribution(pca, nPC=9)
+
+dfp <- estimate_PCA_corr(pca, pdata, nPC=9)
+dfq <- apply(dfp, 2, p.adjust, method = "fdr") %>% matrix(nrow = nrow(dfp), dimnames = dimnames(dfp))
+dfq %>% DT::datatable()
+```
+
+```{R pca_group2, results = "asis"}
+for(group in tolower(params$groups) ){
+  cat("\n\n### ", group, "\n\n")
+  factoextra::fviz_pca_ind(pca, axes=c(1,2), habillage=methylkey::colData(methM) %>% dplyr::pull(group), addEllipses=params$ellipse ) %>% print()
+}
+```
+
+# 4 Models {.tabset}
+
+Now you can proceed with running the regression model to identify your Differentially Methylated Positions (DMPs) and Differentially methylated region (DMRs). Define the model by specifying the 'case' and 'control' groups, and choose a method from either 'ls' or 'robust'.
+
+## 4.1 EBV
+
+```{r model, message=FALSE}
+mrs<-methyldiff2(se=methM,
+           model="~treatment",
+           case ="DMSO",
+           control="AFB1",
+           method="ls"
+)
+```
+
+### 4.1.1 DMPS
+
+```{r dmps}
+annot<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/HM450/HM450.hg38.manifest.gencode.v36.tsv.gz")
+dmps<-left_join(as_tibble(mrs@dmps),annot, by="probeID") %>% filter(adj.P.Val < 0.05)
+cat("you have ", dmps %>% nrow(), " significant dmps" )
+dmps %>% filter(adj.P.Val < 0.05) %>% DT::datatable()
+my_volcano( mrs@dmps )
+```
+
+### 4.1.1 DMRS
+
+```{r dmrs}
+dmrs<-left_join(methylkey::getDMRs(mrs),annot, by="probeID")
+dmrs %>% filter(fdr<0.05) %>% DT::datatable()
+my_venn(dmrs)
+my_density(dmrs)
+my_violin(dmrs)
+my_volcanohmean(dmrs)
+```
+
+

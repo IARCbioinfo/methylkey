@@ -4,16 +4,24 @@
 \alias{circosplot}
 \title{circosplot}
 \usage{
-circosplot(ranges, genome)
+circosplot(dt, genome)
+
+circosplot(dt, genome)
 }
 \arguments{
-\item{ranges}{GRanges object}
+\item{dt}{A data frame containing genomic data with columns: chr (chromosome), pos (position), and deltabetas (effect).}
 
-\item{genome}{(hg38,hg19,mm10)}
+\item{genome}{The genome version to use for plotting (e.g., "hg38", "hg19", "mm10").}
+
+\item{ranges}{GRanges object}
 }
 \value{
 plot
+
+A Circos plot visualizing genomic data.
 }
 \description{
 Display betas in a violin plot by group
+
+This function generates a Circos plot for visualizing genomic data. It uses the ggbio and GenomicRanges packages to create a circular representation of genomic data, highlighting regions of interest.
 }

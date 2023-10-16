@@ -19,7 +19,7 @@ library(RColorBrewer)
 
 ```{r echo = FALSE}
 load(params$meth)
-dmrs<-read_tsv(params$dmrs) %>% mutate(ID=paste0(seqnames, ":", start, "-", end))
+dmrs<-readr::read_tsv(params$dmrs) %>% mutate(ID=paste0(seqnames, ":", start, "-", end))
 ```
 
 Column {.sidebar}

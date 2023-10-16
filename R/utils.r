@@ -116,3 +116,60 @@ makeSummarizedExperimentFromBetas<-function(betas,sampleSheet){
   return(se)
 }
 
+
+
+
+#' Generic function to extract column data from an object
+#'
+#' @param x An object RGset or sdfs list.
+#' @param outfile file output name
+#'
+#' @export
+setGeneric("toGeoSubmission", function(x,outfile) standardGeneric("toGeoSubmission") )
+
+
+#' generate files to submit data to Geo database
+#'
+#' @param RGset an RGset object
+#' @param outfile file output name
+#'
+#' @export
+#'
+setMethod("toGeoSubmission", signature(x="RGChannelSet",outfile="character"), definition = function(x,outfile="rawdata2Geo.tsv"){
+  
+  Mset<-minfi::preprocessRaw(RGset)
+  meth<-minfi::getMeth(Mset)
+  colnames(meth)<-paste( minfi::pData(RGset)$Basename, "Methylated signal")
+  unmeth<-minfi::getUnmeth(Mset)
+  colnames(unmeth)<-paste( minfi::pData(RGset)$Basename, "Unmethylated signal")
+  pval<-minfi::detectionP(RGset)
+  colnames(pval)<-paste( minfi::pData(RGset)$Basename, "Detection Pval")
+  
+  MSI<-cbind(unmeth,meth,pval)
+  n<-ncol(pval)+1
+  m<-ncol(pval)*2+1
+  cols<-c(1,n,m)+rep(0:(n-2),each=3)
+  MSI<-MSI[ , cols ]
+  readr::write_tsv(as_tibble(MSI), quote=FALSE, file=outfile)
+  
+})
+
+
+#' generate files to submit data to Geo database
+#'
+#' @param Betas a Betas object
+#' @param outfile file output name
+#'
+#' @export
+#'
+setMethod("toGeoSubmission", signature(x="Betas",outfile="character"), definition = function(x,outfile="betas2Geo.tsv"){
+  
+  betas<-methylkey::getBetas(x)
+  MP<-merge(betas,pval,by="row.names")
+  rownames(MP)<-MP[,1]
+  MP<-MP[,-1]
+  cols<-c(1,n)+rep(0:(n-2),each=2)
+  MP<-MP[ , cols ]
+  write.table(MSI,sep="\t",row.names = T, quote=FALSE, file="../MatrixProcessed.tsv")
+  
+})

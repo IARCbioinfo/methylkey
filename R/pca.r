@@ -72,8 +72,6 @@ plot_PCA_contribution <- function( pca, nPC = 4, title = "" ){
 #'
 #' @import dplyr
 #' @import tidyr
-#' @import tidyr::gather
-#' @import tidyr::rownames_to_column
 #' @import purrr
 #' @import rstatix
 #' @import stats cor.test

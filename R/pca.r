@@ -40,14 +40,9 @@ makepca <- function( betas, pdata, nPC=ncol(betas) ){
 #'
 #' @return A ggplot object representing the PCA contribution plot.
 #'
-#' @examples
-#' # Example usage:
-#' # my_pca <- prcomp(my_data)
-#' # plot_PCA_contribution(my_pca, nPC = 4, title = "PCA Contribution Plot")
 #'
 #' @import ggplot2
-#' @importFrom stats prcomp
-#' @importFrom dplyr summary
+#' 
 #' @export
 #'
 plot_PCA_contribution <- function( pca, nPC = 4, title = "" ){

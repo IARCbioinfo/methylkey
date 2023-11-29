@@ -31,6 +31,8 @@ setClassUnion("List_OR_NULL", c("list", "NULL"))
 #' @slot metadata A list containing metadata or additional information about the results.
 #'
 #' @rdname MethylResultSet
+#'
+#' @export
 MethylResultSet<-setClass(
   
   "MethylResultSet",
@@ -64,6 +66,8 @@ MethylResultSet<-setClass(
 #'
 #'
 #' @rdname MethylResultSet
+#'
+#' @export
 MethylResultSet <- function(se, dmps, dmrs=NULL, pca=NULL)
 {
   new("MethylResultSet",

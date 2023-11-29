@@ -23,7 +23,7 @@ methyldiff2<-function(se=NULL, model=NULL,case=NULL,control=NULL,method="ls", ni
   
   #model="~Group";modelSVA=NULL;case="D19";control="D0";sva=FALSE;pca=TRUE;method="ls";niter=50;ncore=2;qval=0.05;pcutoff=0.2
   
-  manifest = getManifest( metadata(se)$plateform )
+  manifest = methylkey::getManifest( metadata(se)$plateform )
   pdata = data.frame(colData(se))
   mval = getMvals(se)
     

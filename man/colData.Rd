@@ -4,7 +4,7 @@
 \alias{colData}
 \title{Generic function to extract column data from an object}
 \usage{
-colData(x)
+colData(x, ...)
 }
 \arguments{
 \item{x}{An object from which to extract column data.}

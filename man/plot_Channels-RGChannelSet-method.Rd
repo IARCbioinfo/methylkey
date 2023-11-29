@@ -14,6 +14,6 @@ A ggplot2 plot with separate boxplots for red and green channels.
 }
 \description{
 This method of \code{plot_Channels} is specifically for plotting channels
-when the input data is an RGChannelSet object. It creates separate boxplots
+when the input data is an RGChannelSet object. It creates boxplots
 for red and green channels.
 }

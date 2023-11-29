@@ -29,8 +29,27 @@ makepca <- function( betas, pdata, nPC=ncol(betas) ){
 }
 
 
-###########################
-#plot contributions
+
+#' Plot PCA Contribution
+#'
+#' Visualizes the contribution of principal components (PC) in a PCA analysis.
+#'
+#' @param pca An object of class 'prcomp' containing PCA results.
+#' @param nPC Number of principal components to include in the plot.
+#' @param title Title for the plot.
+#'
+#' @return A ggplot object representing the PCA contribution plot.
+#'
+#' @examples
+#' # Example usage:
+#' # my_pca <- prcomp(my_data)
+#' # plot_PCA_contribution(my_pca, nPC = 4, title = "PCA Contribution Plot")
+#'
+#' @import ggplot2
+#' @importFrom stats prcomp
+#' @importFrom dplyr summary
+#' @export
+#'
 plot_PCA_contribution <- function( pca, nPC = 4, title = "" ){
   v_var <- summary( pca )$importance[ 2, 1:nPC ] 
   ggplot(data.frame( PCA_axis = names( v_var ), val = v_var )) +
@@ -40,8 +59,26 @@ plot_PCA_contribution <- function( pca, nPC = 4, title = "" ){
 }
 
 
-###########################
-#estimate correlation variables vs PCs
+
+#' Estimate PCA Correlation
+#'
+#' Computes correlation statistics for the contribution of variables to principal components (PC) in a PCA analysis.
+#'
+#' @param pca An object of class 'prcomp' containing PCA results.
+#' @param pdata A data frame containing variables for which the correlation with PCs will be estimated.
+#' @param nPC Number of principal components to include in the analysis.
+#'
+#' @return A matrix of p-values representing the correlation significance for each variable with each PC.
+#'
+#' @import dplyr
+#' @import tidyr
+#' @import tidyr::gather
+#' @import tidyr::rownames_to_column
+#' @import purrr
+#' @import rstatix
+#' @import stats cor.test
+#' @export
+#'
 estimate_PCA_corr<-function(pca, pdata, nPC){
   
   nPC=min( nPC,nrow(pdata) )
@@ -67,4 +104,4 @@ estimate_PCA_corr<-function(pca, pdata, nPC){
   dt_pval=cbind(wilcox,kruskal,kendall) %>% t()
   colnames(dt_pval)=paste0( "PC", 1:nPC )
   return(dt_pval)
-}
+i}

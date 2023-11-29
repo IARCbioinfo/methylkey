@@ -185,6 +185,7 @@ mrs<-methyldiff2(se=methM,
            control="NO",
            method="ls"
 )
+qqman::qq(mrs@dmps$P.Value,main=paste("QQ plot: ","lambda=", mrs@metadata$model.lambda,sep=""))
 ```
 
 ### 4.1.1 DMPS

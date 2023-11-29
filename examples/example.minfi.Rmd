@@ -148,6 +148,7 @@ mrs<-methyldiff2(model="~treatment",
            se=methM,
            method="ls"
 )
+qqman::qq(mrs@dmps$P.Value,main=paste("QQ plot: ","lambda=", mrs@metadata$model.lambda,sep=""))
 ```
 
 ### 4.1.1 DMPS
@@ -180,6 +181,7 @@ mrs<-methyldiff2(model="~treatment+sentrix_id",
            se=methM,
            method="ls"
 )
+qqman::qq(mrs@dmps$P.Value,main=paste("QQ plot: ","lambda=", mrs@metadata$model.lambda,sep=""))
 ```
 
 ### 4.2.1 DMPS

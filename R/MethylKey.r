@@ -489,6 +489,9 @@ setMethod("getMvals", signature("Betas"), definition = function(x, grp="grp", sv
     betas <- DescTools::Winsorize(betas)
   }
   
+  # calculate deltabetas
+  deltaBetas=getDeltaBetas2(betas,group)
+  
   # convert to mvalues
   betas <- beta2m(betas)
   
@@ -497,7 +500,7 @@ setMethod("getMvals", signature("Betas"), definition = function(x, grp="grp", sv
     betas <- bc_sva(betas, pdata, sva)
   }
   
-  mvals<-SummarizedExperiment( assays=list(mvals=betas), colData=pdata, rowData = getDeltaBetas2(betas,group) )
+  mvals<-SummarizedExperiment( assays=list(mvals=betas), colData=pdata, rowData = deltaBetas )
   mvals <- as(mvals,"Mvals")
   metadata(mvals)=metadata(meth)
   metadata(mvals)$grp=grp

@@ -74,7 +74,6 @@ plot_PCA_contribution <- function( pca, nPC = 4, title = "" ){
 #' @import tidyr
 #' @import purrr
 #' @import rstatix
-#' @import stats cor.test
 #' @export
 #'
 estimate_PCA_corr<-function(pca, pdata, nPC){

@@ -67,7 +67,7 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
 #' @import wateRmelon
 #'
 #' @export
-minfi2Betas<-function( idat=NULL, sampleSheet=NULL, na=0.2, compositeCellType="" ){
+minfi2Betas<-function( idat=NULL, sampleSheet=NULL, na=0.2, compositeCellType="", pval=0.2 ){
   
   require(minfi)
   require(wateRmelon)
@@ -102,8 +102,8 @@ minfi2Betas<-function( idat=NULL, sampleSheet=NULL, na=0.2, compositeCellType=""
   betas[ which(isna) ]<-NA 
   message("005")
   pvalues <-minfi::detectionP(RGset)
-  betas[ pvalues[rownames(betas), ] > params$pval ] <- NA
-  message( paste0( "Low quality probes :", sum(pvalues > params$pval), " low quality probes replaced by NA"  ) )
+  betas[ pvalues[rownames(betas), ] > pval ] <- NA
+  message( paste0( "Low quality probes :", sum(pvalues > pval), " low quality probes replaced by NA"  ) )
   if (compositeCellType %in% compositeCellType_){
       #require(FlowSorted.Blood.EPIC)
     #require(FlowSorted.BloodExtended.EPIC)

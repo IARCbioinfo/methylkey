@@ -42,9 +42,9 @@ getDeltaBetas2 <- function(betas, group) {
       control <- levels_list[j]
       if(case!=control){
         
-        betas_<-betas[,group %in% c(case,control)]
-        group_<-group[group %in% c(case,control)]
-        deltaBetas <- rowMeans(betas_[,group==case]) - rowMeans(betas_[,group==control])
+        #betas_<-betas[,group %in% c(case,control)]
+        #group_<-group[group %in% c(case,control)]
+        deltaBetas <- rowMeans(betas[,group==case]) - rowMeans(betas[,group==control])
         
         deltaBetas_df[[paste0(case,"_vs_",control)]] <- deltaBetas * 100
       }

@@ -130,10 +130,11 @@ setGeneric("getBetas", function(x,masked=FALSE, na=FALSE, sex=TRUE) standardGene
 #' @export
 setMethod("getBetas", signature("Betas"),
   definition = function(x, masked = FALSE, na=FALSE, sex = TRUE) {
+    if(masked & na & sex) return(rowData(x))
     mask_general_condition <- if (!masked) { rowData(x)$MASK_general == FALSE } else { TRUE }
     na_condition <- if (!na) { rowData(x)$Na == FALSE } else { TRUE }
     mask_chrm_condition <- if (!sex) { rowData(x)$MASK_chrm == FALSE } else { TRUE }
-    filtered_data <- assays(x)$betas[mask_general_condition & na_condition &  mask_chrm_condition, ]
+    filtered_data <- assays(x)$betas[which(mask_general_condition & na_condition &  mask_chrm_condition), ]
     return(filtered_data)
   }
 )
@@ -472,7 +473,7 @@ setMethod("getMvals", signature("Betas"), definition = function(x, grp="grp", sv
   assertthat::assert_that( is.null(sva) || grepl("^~", sva), msg="sva is a model string an must start by ~")
   
   # get masked betas and remove probes with too many samples
-  betas <- getBetas(meth, mask=FALSE, na=FALSE, sex=sex)
+  betas <- methylkey::getBetas(meth, mask=FALSE, na=FALSE, sex=sex)
   
   # remove samples in sentrix2remove
   sel<-which(!colData(meth)$barcode %in% sentrix2remove)
@@ -575,14 +576,15 @@ getMask<-function(mat){
       dplyr::rename(probeID=Probe_ID, MASK_general=M_general)
     manifest<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/MM285/MM285.mm10.manifest.tsv.gz", show_col_types = FALSE)
   }
-  MASK=merge(MASK,manifest[c("Probe_ID","CpG_chrm")],by.x="probeID",by.y="Probe_ID") %>% tibble() %>% dplyr::rename(MASK_chrm="CpG_chrm") %>%
+  MASK=right_join(MASK,manifest[c("Probe_ID","CpG_chrm")],by=join_by(probeID==Probe_ID)) %>% tibble() %>% dplyr::rename(MASK_chrm="CpG_chrm") %>%
     mutate(MASK_chrm=ifelse(MASK_chrm=="chrX" | MASK_chrm=="chrY",TRUE,FALSE))
   
   MASK$rs=ifelse(grepl("rs", MASK$probeID) ,TRUE,FALSE)
   MASK$ctl=ifelse(grepl("ctl", MASK$probeID),TRUE,FALSE)
   MASK<-MASK[ match(rownames(mat),MASK$probeID,nomatch = NA), ]
   
-  MASK$MASK_general <- ( MASK$MASK_general | MASK$rs | MASK$ctl | is.na(MASK$MASK_general) )
+  MASK$MASK_general <- ( MASK$MASK_general | MASK$rs | MASK$ctl )
+  MASK$MASK_general[is.na(MASK$MASK_general)] <- FALSE
   
   return(MASK)
 }

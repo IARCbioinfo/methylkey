@@ -32,7 +32,7 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
   betas=openSesame(sdfs, prep = "", func = sesame::getBetas, mask = TRUE, BPPARAM=BiocParallel::MulticoreParam(ncore))
   
   sampleSheet<-formatSampleSheet(sampleSheet)
-  inferedsex<-sapply(sdfs, function(sdf){ inferSex(sdf, platform = "EPIC", verbose = FALSE) }) %>%
+  inferedsex<-sapply(sdfs, function(sdf){ inferSex(sdf, verbose = FALSE) }) %>%
     data.frame() %>% tibble::rownames_to_column("barcode") %>% dplyr::rename(inferedsex=2)
   sampleSheet<-merge(sampleSheet, inferedsex, by="barcode") %>% dplyr::relocate(samples)
   

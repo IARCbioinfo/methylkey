@@ -197,7 +197,16 @@ setMethod("getResults", "MethylResultSet",
     return(result)
 })            
 
+#' Convert results to long format
+#'
+#' This function takes a data frame containing results from different tools 
+#' (e.g., dmrcate, ipdmr, combp, dmrff) and converts it to long format.
+#'
+#' @title Convert results to long format
+#' @param df A data frame containing the results.
+#' @return A data frame in long format.
 
+#' @export
 setGeneric("resultsToLong", function(df) standardGeneric("resultsToLong") )
 
 setMethod("resultsToLong", "data.frame", function(df){

@@ -43,7 +43,7 @@ MethylResultSet<-setClass(
     metadata="list"
   ),
   prototype(
-    manifest=DataFrame(),
+    manifest=S4Arrays::DataFrame(),
     dmps=list(),
     lambda=c(),
     metadata=list()
@@ -134,7 +134,7 @@ MethylResultSet <- function(se,model,intercept, method="ls")
   manifest=manifest[index_order,]
   
   new("MethylResultSet",
-      manifest=DataFrame( manifest ),
+      manifest=S4Arrays::DataFrame( manifest ),
       dmps=dmps,
       lambda=lambda,
       metadata=metadata

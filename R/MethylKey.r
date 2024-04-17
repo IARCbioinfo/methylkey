@@ -99,7 +99,7 @@ setGeneric("setColData", function(x, pdata) standardGeneric("setColData") )
 #'
 #' @export
 setMethod("setColData", signature("Betas"), function(x, pdata){
-  x@colData <- DataFrame(pdata)
+  x@colData <- S4Arrays::DataFrame(pdata)
   x
 })
 
@@ -451,7 +451,7 @@ newBetas<-function(betas, sampleSheet, na) {
   assertthat::assert_that(na >= 0 && na <= 1, msg="na must be between 0 and 1.")
 
   # check sampleSheet
-  sampleSheet <- formatSampleSheet(sampleSheet) %>% DataFrame()
+  sampleSheet <- formatSampleSheet(sampleSheet) %>% S4Arrays::DataFrame()
 
   # Check for missing barcodes
   missing_in_betas <- setdiff(sampleSheet$barcode, colnames(betas))

@@ -1,0 +1,141 @@
+
+## SampleSheet
+
+Here is where you load your sample sheet, select the relevant columns, filter out unnecessary data, harmonize names, and ensure data integrity.<br/> Mandatory columns include "samples" and "barcode," and you should also have at least one column for your variables of interest. Avoid using spaces and special characters in the column names and values. Verify that all columns are properly identified as follows:
+
+::: {.callout-caution}
+Ensure that columns meant to identify samples have unique values and contain only alphanumeric characters.
+:::
+
+::: {.callout-caution}
+Use numeric data types for continuous variables.
+:::
+
+::: {.callout-caution}
+Employ the factor data type for discrete variables.
+:::
+
+```{r sampleSheet}
+sampleSheet <- normalizePath(params$sampleSheet) %>% readr::read_delim()
+sampleSheet %>% DT::datatable()
+```
+
+## QCs
+
+Basic quality control for probes involves verifying the accuracy of signals in both the green and red channels. This evaluation helps us identify samples that should be excluded from the analysis due to experimental issues.
+
+### Channels Plots
+
+Run the sesame pipeline to load idats, normalise betas and generate qcs.
+
+```{R read_idats}
+#meth<-sesame2Betas(params$idat, prep = params$prepcode, sampleSheet=sampleSheet, na=0.2, ncore=4)
+meth<-readRDS("meth.rds")
+qcs<-S4Vectors::metadata(meth)$qcs
+```
+
+### Color Channels
+
+::: panel-tabset
+
+#### Barplots
+
+```{R barplots, cache=TRUE}
+sdfs<-readRDS("sdfs.rds")
+plot_Channels(sdfs) 
+```
+
+::: {.callout-tip}
+## Barplots
+
+The Red and Green Channel Barplot, visually represents the fluorescence intensities captured in the red and green channels of Illumina arrays. It provides a comparative view of signal intensities across these channels. Barplots of the same color across different samples or conditions should appear more or less aligned horizontally. Any significant misalignment may indicate technical artifacts or inconsistencies in data acquisition or processing.
+:::
+
+#### Background
+
+```{R background, cache=TRUE}
+plot_background(qcs) 
+```
+
+::: {.callout-tip}
+## Background
+
+The Background Level Plot illustrates the background intensity levels. It offers insight into the baseline fluorescence signals captured during the analysis using Illumina arrays. Significant deviations from the baseline may indicate variations in experimental conditions, sample quality, or array performance, necessitating careful examination and potential adjustment of analysis parameters.
+:::
+
+:::
+
+
+### Signal
+
+::: panel-tabset
+
+#### Detection
+
+```{R detection, cache=TRUE}
+plot_Detection(qcs[1:32,])
+```
+
+::: {.callout-tip}
+## Detection
+
+The QC Detection Plot provides a visual representation of the fraction of probes returning measurable values across sentrix wells. It aids in identifying potential issues within the data generated from Illumina arrays.
+:::
+
+#### NA values
+
+```{R NA, cache=TRUE}
+plot_NA(qcs[1:32,])
+```
+
+::: {.callout-tip}
+## NA
+
+The NA Values Plot displays the number of probes returning no values across sentrix wells. It serves as a tool for detecting missing data points within the analysis. High Number of NA Probes suggests potential issues such as probe failure, sample degradation, or technical errors, warranting further investigation and potentially data imputation techniques.
+:::
+
+:::
+
+### Betas values distribution
+
+::: panel-tabset
+
+#### Density Plot
+
+```{R Densityplot, cache=TRUE}
+densityPlot(methylkey::getBetas(meth))
+```
+
+::: {.callout-tip}
+## Densityplot
+
+The Density Plot illustrates the distribution of probes based on their level of methylation, represented by beta values. It typically displays a bimodal curve, with one peak indicating unmethylated probes and the other representing methylated probes. Any deviation from the expected bimodal distribution may suggest potential issues or sample-specificities within the data. For example, additional peaks or irregularities could indicate technical artifacts, batch effects, or aberrant methylation patterns, warranting further investigation.
+:::
+
+#### Violin Plots
+
+```{R violin, cache=TRUE}
+betas<-getBetas(meth)
+violin_plot(betas, sampleSheet$Group, numPositions=1000)
+violin_plot(betas, meth@colData$sentrix_id, numPositions=1000)
+```
+
+::: {.callout-tip}
+## Violin
+
+The Violin Plots offer an alternative representation of the distribution of probes based on their methylation levels.
+:::
+
+:::
+
+### Inferences
+
+```{R inferences, cache=TRUE}
+methylkey::colData(meth) %>% DT::datatable()
+```
+
+::: {.callout-tip}
+## Inferences
+
+The Inference Table presents the results of sex and age prediction for each sample based on their methylation levels. Sex imputation can notably help to identify mistakes in pairing samples with their corresponding barcode IDs in the sample sheet.
+:::

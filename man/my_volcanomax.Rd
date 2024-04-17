@@ -4,10 +4,10 @@
 \alias{my_volcanomax}
 \title{Create a volcano plot to visualize differential methylation analysis results with max value}
 \usage{
-my_volcanomax(dt)
+my_volcanomax(df)
 }
 \arguments{
-\item{dt}{A data frame containing the data for differential methylation analysis.}
+\item{df}{A data frame containing the data for differential methylation analysis.}
 }
 \value{
 A ggplot2 volcano plot showing differential methylation analysis results with modified mean calculation.

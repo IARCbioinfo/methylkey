@@ -1,0 +1,78 @@
+::: panel-tabset
+
+#### Differentially methylated probes
+
+```{r}
+dmps<-getDMPs(mrs,index)
+
+dmps %>% dplyr::filter(adj.P.Val<0.05) %>% 
+  arrange(adj.P.Val) %>% head(100) %>%
+  DT::datatable()
+```
+
+::: {.callout-tip}
+This table provides a comprehensive overview of DMPs, including statistical metrics, genomic coordinates, strand information, and functional annotations
+:::
+
+::: {.callout-note collapse="true"}
+
+* deltabetas: Difference in methylation levels between experimental groups (e.g., high vs. low).
+* AveExp: Average methylation level across experimental groups.
+* t: t-statistic indicating the magnitude and direction of the difference in methylation levels.
+* P.value: p-value from statistical testing, indicating the significance of the observed difference.
+* adj.P.Value: Adjusted p-value after correction for multiple testing.
+* B: Estimate of methylation difference.
+* Stdev: Standard deviation of methylation levels.
+* Goodness: Measure of model fit or goodness of fit statistic.
+
+:::
+  
+#### QQplot
+
+```{r, cache=TRUE}
+qqman::qq(dmps$P.Value,main=paste0("QQ plot: ","lambda=", mrs@lambda[[index]]))
+```
+::: {.callout-tip}
+## QQplot
+
+Quantile-Quantile (QQ) plot is a graphical tool used to assess whether the observed distribution of methylation data conforms to the expected distribution, typically assumed to be normal. In the context of methylation analysis, QQ plots help evaluate the goodness of fit of statistical models and identify potential deviations from expected distributions, such as skewness or outliers.
+:::
+
+
+#### Barplot
+
+```{r, cache=TRUE} 
+barplots_distToSS( dmps )
+```
+
+::: {.callout-tip}
+## Barplot
+
+Barplot of the distance to the transcription start site (TSS) for hyper- and hypo-methylated probes visualizes the distribution of methylation changes relative to gene promoters.
+:::
+
+#### Volcano Plot
+  
+```{r, cache=TRUE}
+volcano( dmps )
+```
+
+::: {.callout-tip}
+## Volcano Plot
+
+Points located in the left or right sides of the plot represent DMPs with large deltabetas, indicating substantial differences in methylation levels between groups. Points located to the upper regions of the plot represent DMPs with low adjusted p-values, indicating statistical significance.
+:::
+
+#### Circos Plot
+
+```{r, cache=TRUE}  
+circosplot( getDMPranges(mrs,group=index,q=0.05), "hg38" )
+```
+
+::: {.callout-tip}
+## Circos plot
+
+The Circos plot provides a holistic view of the genomic landscape, highlighting spatial patterns and chromosome-wide distributions of methylation changes.
+:::
+
+:::

@@ -1,0 +1,56 @@
+
+::: panel-tabset
+
+### MDS
+
+```{r, results='asis'}
+#| echo: false
+#| output: asis
+#| results: asis
+for(grp in params$groups){
+  cat("\n\n#### ", grp, "\n\n")
+  grp=methylkey::colData(methM) %>% pull(tolower(grp))
+  p <- my_scatterPlot(mvals, grp, samples(methM), "npg", 1, TRUE, TRUE)
+  print(p)
+}
+```
+
+::: {.callout-note}
+Multidimensional Scaling (MDS) reduces the dimensionality of the data while preserving the similarity or dissimilarity relationships between objects. It accomplishes this by projecting the data onto a lower-dimensional space while attempting to retain the original distances or dissimilarities as much as possible.
+:::
+
+### PCA
+
+```{r, cache=TRUE}
+pdata<-methylkey::colData(methM) %>% dplyr::select(samples,group,sentrix_position,sentrix_id)
+pca <- makepca( mvals, pdata, nPC=9 )
+plot_PCA_contribution(pca, nPC=9)
+```
+
+::: {.callout-note}
+PCA reduces the dimensionality of the data by transforming it into a new coordinate system called principal components. These components are linear combinations of the original variables and are ordered by the amount of variance they explain in the data.
+:::
+
+```{r, cache=TRUE}
+dfp <- estimate_PCA_corr(pca, pdata, nPC=9)
+dfq <- apply(dfp, 2, p.adjust, method = "fdr") %>% matrix(nrow = nrow(dfp), dimnames = dimnames(dfp))
+dfq %>% DT::datatable()
+```
+
+::: {.callout-note}
+The table provides insights into the contribution of each variable to the principal components, aiding in the interpretation of PCA results and the identification of key variables driving variation in the data. Corrected p-values assess the significance of the associations between variables and PCs after adjusting for multiple comparisons. Lower p-values indicate stronger evidence against the null hypothesis of no association.
+:::
+
+```{r}
+#| results: asis
+for(grp in tolower(params$groups) ){
+  cat("\n\n#### ", grp, "\n\n")
+  factoextra::fviz_pca_ind(pca, axes=c(1,2), habillage=methylkey::colData(methM) %>% dplyr::pull(tolower(grp)), addEllipses=TRUE ) %>% print()
+}
+```
+
+::: {.callout-note}
+PCA plots allow for the exploration of data structure and relationships. Points that are close together in the plot are similar in terms of their underlying variables, while those that are far apart are dissimilar. By coloring or labeling points according to additional variables, such as group membership or experimental conditions, PCA plots can reveal group-level patterns and relationships within the data.
+:::
+
+:::

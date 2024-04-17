@@ -4,7 +4,7 @@
 \alias{searchDMR_ipdmr}
 \title{Search for Differentially Methylated Regions (DMRs) using ipdmr}
 \usage{
-searchDMR_ipdmr(dmps, maxgap = 1000)
+searchDMR_ipdmr(dmps, maxgap = 1000, bin.size = 310, seed = 0.05)
 }
 \arguments{
 \item{dmps}{A data frame containing CpG site information, including chromosome, position, p-value, and probe IDs.}

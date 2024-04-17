@@ -2,7 +2,7 @@
 % Please edit documentation in R/plots.r
 \name{my_venn}
 \alias{my_venn}
-\title{Create a Venn diagram to visualize intersections of IDs for different tools}
+\title{Create a Venn diagram to visualize intersections of IDs for different dmrtools}
 \usage{
 my_venn(dt)
 }
@@ -10,8 +10,8 @@ my_venn(dt)
 \item{dt}{A data frame containing the data.}
 }
 \value{
-A ggvenn Venn diagram showing the intersections between IDs obtained from different tools.
+A ggvenn Venn diagram showing the intersections between IDs obtained from different dmrtools.
 }
 \description{
-This function generates a Venn diagram to visualize the intersections of IDs obtained from different analysis tools. It takes a data frame 'dt' as input and automatically extracts IDs for each tool before passing them to the 'my_venn_' function.
+This function generates a Venn diagram to visualize the intersections of IDs obtained from different analysis dmrtools. It takes a data frame 'dt' as input and automatically extracts IDs for each dmrtool before passing them to the 'my_venn_' function.
 }

@@ -6,9 +6,9 @@
 \alias{MethylResultSet-class}
 \title{MethylResultSet Class}
 \usage{
-MethylResultSet(se, dmps, dmrs = NULL, pca = NULL)
+MethylResultSet(se, model, intercept, method = "ls")
 
-MethylResultSet(se, dmps, dmrs = NULL, pca = NULL)
+MethylResultSet(se, model, intercept, method = "ls")
 }
 \arguments{
 \item{se}{A MethylSet object containing DNA methylation data.}

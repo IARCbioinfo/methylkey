@@ -4,7 +4,7 @@
 \alias{colData,NULL-method}
 \title{Method for extracting column data from a "NULL" object}
 \usage{
-\S4method{colData}{`NULL`}(x)
+\S4method{colData}{NULL}(x)
 }
 \arguments{
 \item{x}{A "NULL" object.}

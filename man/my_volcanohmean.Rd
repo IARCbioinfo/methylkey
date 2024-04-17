@@ -4,10 +4,10 @@
 \alias{my_volcanohmean}
 \title{Create a volcano plot to visualize differential methylation analysis results with harmonized mean}
 \usage{
-my_volcanohmean(dt)
+my_volcanohmean(df)
 }
 \arguments{
-\item{dt}{A data frame containing the data for differential methylation analysis.}
+\item{df}{A data frame containing the data for differential methylation analysis.}
 }
 \value{
 A ggplot2 volcano plot showing differential methylation analysis results with modified mean calculation.

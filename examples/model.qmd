@@ -1,0 +1,23 @@
+
+
+The results of the linear regression model is annotated with probe annotations provided by the Zhou Lab manifest or any other relevant annotation dataset.
+
+```{r}
+#mrs@manifest=DataFrame(left_join(as_tibble(mrs@manifest),annot, by="Probe_ID"))
+#saveRDS(mrs,file=paste0("mrs_",intercept,".rds"))
+mrs<-readRDS(paste0("mrs_",intercept,".rds"))
+```
+
+::: panel-tabset
+
+```{r}
+#| output: asis
+for(index in names(mrs@dmps)){
+  cat("\n\n### ",index,"\n\n")
+  a <- knitr::knit_child('dmps.qmd', quiet=T)
+  cat(a, sep="\n")
+}
+```
+
+:::
+

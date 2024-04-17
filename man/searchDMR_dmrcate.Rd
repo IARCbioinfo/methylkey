@@ -9,7 +9,7 @@ searchDMR_dmrcate(
   fdr = 0.05,
   maxgap = 1000,
   pcutoff = 0.2,
-  genome = "hg19"
+  genome = "hg38"
 )
 }
 \arguments{

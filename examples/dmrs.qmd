@@ -1,0 +1,75 @@
+
+::: {.callout-note}
+Differentially Methylated Regions (DMRs) are contiguous genomic regions where the methylation levels exhibit statistically significant differences between experimental groups. Unlike individual differentially methylated positions (DMPs), DMRs provide a more comprehensive view of methylation changes by considering spatial continuity and local correlations in methylation patterns. DMR analysis is a crucial step in methylation studies for identifying biologically relevant regions associated with the studied conditions or phenotypes.
+:::
+
+#### group117high vs 117low
+
+::: panel-tabset
+
+```{r}
+result <- getResults( mrs,"group117high",tools=c("dmrcate","ipdmr") )
+write_tsv(result, file="PEDIAC_group117high_vs_117low.tsv")
+result <- result %>% resultsToLong()
+```
+
+#### Volcano
+  
+```{r, cache=TRUE}
+#result %>% my_volcanomax()
+#result %>% my_volcanohmean()
+result %>% my_volcanomean()
+```
+
+::: {.callout-note}
+Volcano plot, points located in the left or right sides of the plot represent DMRs with large mean deltabetas, indicating substantial differences in methylation levels between groups. Points located to the upper regions of the plot represent DMPs with low adjusted p-values, indicating statistical significance.
+:::
+
+#### DMR table  
+  
+```{r}
+result %>% dplyr::filter(fdr<0.05) %>% 
+  arrange(fdr) %>% head(100) %>%
+  DT::datatable()
+```
+
+::: {.callout-note}
+The DMR table extends the information provided in the DMPs table by annotating regions of contiguous methylation changes.
+:::
+
+#### Tools comparison
+
+::: panel-tabset
+
+##### Venn
+
+```{r, cache=TRUE}
+my_venn(result)
+```
+
+::: {.callout-note}
+Regions in the overlapping areas of the Venn diagram represent DMRs that are commonly detected by multiple tools, suggesting robustness and consistency in their identification.
+:::
+
+##### Density
+  
+```{r, cache=TRUE}
+my_density(result)
+```
+::: {.callout-note}
+Density plot of DMR lengths, distribution and variability of region lengths
+:::
+  
+##### Violin
+
+```{r, cache=TRUE}
+my_violin(result)
+```
+
+::: {.callout-note}
+Similar plot showing DMR length distribution from an other angle.
+:::
+  
+:::
+
+:::

@@ -4,7 +4,13 @@
 \alias{minfi2Betas}
 \title{Convert Illumina IDAT Files to Beta Values Using minfi}
 \usage{
-minfi2Betas(idat = NULL, sampleSheet = NULL, na = 0.2, compositeCellType = "")
+minfi2Betas(
+  idat = NULL,
+  sampleSheet = NULL,
+  na = 0.2,
+  compositeCellType = "",
+  pval = 0.2
+)
 }
 \arguments{
 \item{idat}{The path to the directory containing Illumina IDAT files.}

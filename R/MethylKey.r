@@ -7,7 +7,7 @@
 #'
 #' @family data container
 #'
-#' @import SummarizedExperiment
+#' @importClassesFrom SummarizedExperiment SummarizedExperiment
 #'
 #' @export
 setClass("Betas",
@@ -24,6 +24,8 @@ setClass("Betas",
 #'
 #' @family data container
 #'
+#' @importClassesFrom SummarizedExperiment SummarizedExperiment
+#' 
 #' @export
 setClass("Mvals",
          slots=list(),
@@ -130,14 +132,42 @@ setGeneric("getBetas", function(x,masked=FALSE, na=FALSE, sex=TRUE) standardGene
 #' @export
 setMethod("getBetas", signature("Betas"),
   definition = function(x, masked = FALSE, na=FALSE, sex = TRUE) {
-    if(masked & na & sex) return(rowData(x))
-    mask_general_condition <- if (!masked) { rowData(x)$MASK_general == FALSE } else { TRUE }
+    if(!masked & !na & sex) return(assays(x)$betas)
+    mask_general_condition <- if (!masked) { rowData(x)$M_general == FALSE } else { TRUE }
     na_condition <- if (!na) { rowData(x)$Na == FALSE } else { TRUE }
     mask_chrm_condition <- if (!sex) { rowData(x)$MASK_chrm == FALSE } else { TRUE }
-    filtered_data <- assays(x)$betas[which(mask_general_condition & na_condition &  mask_chrm_condition), ]
+    filtered_data <- assays(x)$betas[which(mask_general_condition & na_condition & mask_chrm_condition), ]
     return(filtered_data)
   }
 )
+
+#' Create a generic function for getting beta value ranges
+#'
+#' This function sets up a generic function, `getBetasRanges`, for getting beta value ranges from a Betas object.
+#'
+#' @title Create generic function for getting beta value ranges
+#' @param x A Betas object.
+#' @param masked Logical indicating whether to include masked CpGs (default is FALSE).
+#' @param na Logical indicating whether to include CpGs marked as NA (default is FALSE).
+#' @param sex Logical indicating whether to include sex chromosomes (default is TRUE).
+#' 
+#' @export
+#' 
+setGeneric("getBetasRanges", function(x,masked=FALSE, na=FALSE, sex=TRUE) standardGeneric("getBetasRanges"))
+
+setMethod("getBetasRanges", signature("Betas"),
+          definition = function(x, masked = FALSE, na=FALSE, sex = TRUE) {
+            if(!masked & !na & sex) return(assays(x)$betas)
+            mask_general_condition <- if (!masked) { rowData(x)$M_general == FALSE } else { TRUE }
+            na_condition <- if (!na) { rowData(x)$Na == FALSE } else { TRUE }
+            mask_chrm_condition <- if (!sex) { rowData(x)$MASK_chrm == FALSE } else { TRUE }
+            df = bind_cols(as.data.frame(rowData(x)), assays(x)$betas) %>% mutate()
+            filtered_data <- df[which(mask_general_condition & na_condition & mask_chrm_condition), ]
+            filtered_data <- GenomicRanges::makeGRangesFromDataFrame(filtered_data, seqnames.field="CpG_chrm", start.field="CpG_beg", end.field="CpG_end", keep.extra.columns = TRUE )
+            return(filtered_data)
+          }
+)
+
 
 #' Generic function to retrieve M-values from an "Mvals" object
 #'
@@ -435,7 +465,7 @@ newBetas<-function(betas, sampleSheet, na) {
 
   # Reorder sentrix
   rownames(sampleSheet)=sampleSheet$barcode
-  samp_order<-intersect(colnames(betas),sampleSheet$barcode)
+  samp_order<-dplyr::intersect(colnames(betas),sampleSheet$barcode)
   sampleSheet=sampleSheet[samp_order,]
   betas=betas[,samp_order]
   
@@ -468,16 +498,16 @@ newBetas<-function(betas, sampleSheet, na) {
 setMethod("getMvals", signature("Betas"), definition = function(x, grp="grp", sva=NULL, win=TRUE, sex=FALSE, sentrix2remove=list() ) {  
   
   # Check parameters 
-  assertthat::assert_that(class(meth)=="Betas", msg="meth must be of class Betas")
-  assertthat::assert_that(tolower(grp) %in% variables(meth), msg="grp must be a column in the sampleSheet of betas")
+  assertthat::assert_that(class(x)=="Betas", msg="meth must be of class Betas")
+  assertthat::assert_that(tolower(grp) %in% variables(x), msg="grp must be a column in the sampleSheet of betas")
   assertthat::assert_that( is.null(sva) || grepl("^~", sva), msg="sva is a model string an must start by ~")
   
   # get masked betas and remove probes with too many samples
-  betas <- methylkey::getBetas(meth, mask=FALSE, na=FALSE, sex=sex)
+  betas <- methylkey::getBetas(x, mask=FALSE, na=FALSE, sex=sex)
   
   # remove samples in sentrix2remove
-  sel<-which(!colData(meth)$barcode %in% sentrix2remove)
-  pdata <- colData(meth)[sel,]
+  sel<-which(!colData(x)$barcode %in% sentrix2remove)
+  pdata <- colData(x)[sel,]
   betas <- betas[,sel]
   
   # remove remaining na whith mean method
@@ -486,24 +516,27 @@ setMethod("getMvals", signature("Betas"), definition = function(x, grp="grp", sv
   
   # winsorize betas
   if (win) {
-    print("winsorize data")
+    print("Winsorize data")
     betas <- DescTools::Winsorize(betas)
   }
   
   # calculate deltabetas
+  print("Calculate deltabetas")
   deltaBetas=getDeltaBetas2(betas,group)
   
   # convert to mvalues
+  print("Convert to mvalues")
   betas <- beta2m(betas)
   
   # batch correction with sva
-  if (!is.null(sva)) { 
+  if (!is.null(sva)) {
+    print("Batch correction")
     betas <- bc_sva(betas, pdata, sva)
   }
   
   mvals<-SummarizedExperiment( assays=list(mvals=betas), colData=pdata, rowData = deltaBetas )
   mvals <- as(mvals,"Mvals")
-  metadata(mvals)=metadata(meth)
+  metadata(mvals)=metadata(x)
   metadata(mvals)$grp=grp
   metadata(mvals)$sva=sva
   metadata(mvals)$winsorized=win
@@ -526,10 +559,12 @@ getPlateform<-function(mat){
   
   p="unknown"
   if (is.null(mat)) return("unknown")
+  if ( nrow(mat) == 937690){ return("IlluminaHumanMethylationEPICv2") }
   if ( nrow(mat) == 866553){ return("IlluminaHumanMethylationEPIC") }
   if ( nrow(mat) == 486427){ return("IlluminaHumanMethylation450k") }
   if ( nrow(mat) == 27578 ){ return("IlluminaHumanMethylation27k") }
   if ( nrow(mat) == 296070 ){ return("IlluminaMouseMethylation285k") }
+  if ( nrow(mat) <= 937690){ p="IlluminaHumanMethylationEPICv2" }
   if ( nrow(mat) <= 866553){ p="IlluminaHumanMethylationEPIC" }
   if ( nrow(mat) <= 486427){ p="IlluminaHumanMethylation450k" }
   if ( nrow(mat) <= 296070){ p="IlluminaMouseMethylation285k" }
@@ -546,8 +581,6 @@ getPlateform<-function(mat){
 #'
 #' @return A masking matrix with relevant information for filtering CpG probes.
 #'
-#' @import readr
-#'
 #' @export
 getMask<-function(mat){
   
@@ -560,7 +593,8 @@ getMask<-function(mat){
     manifest<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/EPICv2/EPICv2.hg38.manifest.tsv.gz", show_col_types = FALSE)
   }
   if (plateform=="IlluminaHumanMethylationEPIC"){
-    MASK<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/EPIC/archive/202209/EPIC.hg38.mask.tsv.gz", show_col_types = FALSE)
+    MASK<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/EPIC/archive/202209/EPIC.hg38.mask.tsv.gz", show_col_types = FALSE) %>% 
+      dplyr::rename(Probe_ID=probeID, M_general=MASK_general)
     manifest<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/EPIC/EPIC.hg38.manifest.tsv.gz", show_col_types = FALSE)
   }
   if (plateform=="IlluminaHumanMethylationEPIC+"){
@@ -568,27 +602,26 @@ getMask<-function(mat){
     manifest<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/EPIC+/EPIC+.hg38.manifest.tsv.gz", show_col_types = FALSE)
   }
   if (plateform=="IlluminaHumanMethylation450k"){
-    MASK<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/HM450/archive/202209/HM450.hg38.mask.tsv.gz", show_col_types = FALSE)
+    MASK<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/HM450/archive/202209/HM450.hg38.mask.tsv.gz", show_col_types = FALSE) %>%
+      dplyr::rename(Probe_ID=probeID, M_general=MASK_general)
     manifest<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/HM450/HM450.hg38.manifest.tsv.gz", show_col_types = FALSE)
   }
   if(plateform=="IlluminaMouseMethylation285k"){
-    MASK<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/MM285/MM285.mm10.mask.tsv.gz", show_col_types = FALSE) %>%
-      dplyr::rename(probeID=Probe_ID, MASK_general=M_general)
+    MASK<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/MM285/MM285.mm10.mask.tsv.gz", show_col_types = FALSE)
     manifest<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/MM285/MM285.mm10.manifest.tsv.gz", show_col_types = FALSE)
   }
-  MASK=right_join(MASK,manifest[c("Probe_ID","CpG_chrm")],by=join_by(probeID==Probe_ID)) %>% tibble() %>% dplyr::rename(MASK_chrm="CpG_chrm") %>%
-    mutate(MASK_chrm=ifelse(MASK_chrm=="chrX" | MASK_chrm=="chrY",TRUE,FALSE))
+  MASK=right_join(MASK,manifest[c("Probe_ID","CpG_chrm","CpG_beg","CpG_end")],by="Probe_ID") %>% tibble() %>%
+    mutate(MASK_chrm=ifelse(CpG_chrm=="chrX" | CpG_chrm=="chrY",TRUE,FALSE))
   
-  MASK$rs=ifelse(grepl("rs", MASK$probeID) ,TRUE,FALSE)
-  MASK$ctl=ifelse(grepl("ctl", MASK$probeID),TRUE,FALSE)
-  MASK<-MASK[ match(rownames(mat),MASK$probeID,nomatch = NA), ]
+  MASK$rs=ifelse(grepl("rs", MASK$Probe_ID) ,TRUE,FALSE)
+  MASK$ctl=ifelse(grepl("ctl", MASK$Probe_ID),TRUE,FALSE)
+  MASK<-MASK[ match(rownames(mat),MASK$Probe_ID,nomatch = NA), ]
   
-  MASK$MASK_general <- ( MASK$MASK_general | MASK$rs | MASK$ctl )
-  MASK$MASK_general[is.na(MASK$MASK_general)] <- FALSE
+  MASK$M_general <- ( MASK$M_general | MASK$rs | MASK$ctl )
+  MASK$M_general[is.na(MASK$M_general)] <- FALSE
   
   return(MASK)
 }
-
 
 
 #' getAnnotedManifest
@@ -626,8 +659,8 @@ getManifest<-function(plateform){
   }
   
   manifest<-manifest %>% 
-    dplyr::rename(probeID=Probe_ID,chr=CpG_chrm, pos=CpG_beg, strand=mapYD_A ) %>% 
-    dplyr::select(probeID,chr,pos,strand) %>%
+    dplyr::rename(chr=CpG_chrm, pos=CpG_beg, strand=mapYD_A) %>% 
+    dplyr::select(Probe_ID,chr,pos,strand) %>%
     mutate(pos=pos+1) %>% mutate(strand = ifelse(is.na(strand), NA, ifelse(strand == "f", "+", "-")))
   
   return(manifest)

@@ -18,6 +18,7 @@ getDeltaBetas<-function(betas,group, case="TT", control="NT"){
   return(deltaBetas)
 }
 
+
 #' Calculate delta betas between all groups
 #'
 #' This function calculates delta betas (changes in methylation levels) between different groups based on methylation beta values. It computes the difference in methylation levels for all possible combinations of groups.
@@ -51,7 +52,7 @@ getDeltaBetas2 <- function(betas, group) {
     }
   }
   
-  return(data.frame(deltaBetas_df))
+  return(data.frame(deltaBetas_df, check.names = FALSE))
 }
 
 #' beta2m

@@ -13,7 +13,7 @@
 #' 
 bc_sva<-function(mval,pdata,model){
   
-  formula1 <- as.formula(model)
+  formula1 <- as.formula(tolower(model))
   design<-model.matrix(formula1,data=pdata)
   if(nrow(design) > ncol(mval)){ stop("Missing samples in betas ! ") }
   if(nrow(design) < ncol(mval)){ stop("Missing samples in pdata ! ") }

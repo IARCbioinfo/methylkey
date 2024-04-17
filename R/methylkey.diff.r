@@ -19,57 +19,65 @@
 #'
 #' @export
 #' 
-methyldiff2<-function(se=NULL, model=NULL,case=NULL,control=NULL,method="ls", niter=50, ncore=2, fdr=0.05, pcutoff=0.2, maxgap=1000, genome="hg38"){
+methyldiff<-function(se=NULL, model=NULL,intercept=NULL,method="ls", niter=50, ncore=2, fdr=0.05, pcutoff=0.2, maxgap=1000, genome="hg38"){
   
   #model="~Group";modelSVA=NULL;case="D19";control="D0";sva=FALSE;pca=TRUE;method="ls";niter=50;ncore=2;qval=0.05;pcutoff=0.2
   
   manifest = methylkey::getManifest( metadata(se)$plateform )
   pdata = data.frame(colData(se))
   mval = getMvals(se)
+  model = tolower(model)
     
-  #relevel according to case and control
+  #relevel intercept
   grp_g<-strsplit(model,"~|\\+")[[1]][2]
-  pdata[,grp_g] <- relevel(as.factor(unlist(pdata[,grp_g])), case)
-  pdata[,grp_g] <- relevel(as.factor(unlist(pdata[,grp_g])), control)
+  pdata[,grp_g] <- relevel(as.factor(unlist(pdata[,grp_g])), intercept)
   
-  #pull first group and sample names into vectors
-  grp_g <- pdata[,grp_g] %>% as.factor()
-  samples <- pdata$samples
+  #pull first group into vectors
+  #grp_g <- pdata[,grp_g] %>% as.factor() # can be numeric
   
-  #regression analysis
-  regression<-m_regression(mval,pdata, model, method=method, niter=niter, ncore=ncore )
-  deltaBetas<-rowData(methM)[ rownames(regression$table), paste0(case,"_vs_",control) ]
-  dmps<-data.frame(probeID=rownames(regression$table), regression$table, deltabetas=deltaBetas) %>%
-    dplyr::select("probeID","P.Value","adj.P.Val","t","Coefficient","Stdev","deltabetas","goodness") %>%
-    tidyr::separate(probeID, sep="_", into=c("probeID","x"),remove=TRUE, fill="right") %>%
-    dplyr::mutate(status=ifelse(deltabetas>0,"hyper","hypo")) %>%
-    dplyr::left_join(manifest,by="probeID") %>%
-    tidyr::unite("probeID", c(probeID,x),sep="_", na.rm=TRUE, remove=TRUE) %>%
-    dplyr::arrange(desc(adj.P.Val))
+  # DMPs analysis
+  dmps <- m_regression(mval, pdata, model, method=method, niter=niter, ncore=ncore )
   
-  dmrcate_table<-searchDMR_dmrcate(dmps,fdr=fdr,pcutoff=pcutoff,maxgap=maxgap,genome=genome) %>%
-    dplyr::rename(fdr="HMFDR")
+  # reformat output
+  for( x in names(dmps)){
+    print(x)
+    contrast<-paste0(gsub(grp_g,"",x),"_vs_",intercept)
+    add_deltabetas = contrast %in% names(rowData(methM))
+    dmps[[x]]$topTable <- dmps[[x]]$topTable %>%
+      { if(add_deltabetas) dplyr::mutate(deltabetas = rowData(methM)[ rownames(dmps[[x]]$topTable), contrast ] ) else .  } %>% # add delta betas
+      { if(add_deltabetas) dplyr::mutate(status=ifelse(deltabetas>0,"hyper","hypo")) else .  } %>%
+      tibble::rownames_to_column("Probe_ID") %>%
+      dplyr::left_join(manifest,by="Probe_ID") %>%
+      dplyr::arrange(desc(adj.P.Val))
+  }
+  
+  # DMRs analysis
+  dmrcate_table=NULL
+  tryCatch({
+    dmrcate_table<-searchDMR_dmrcate(dmps,fdr=fdr,pcutoff=pcutoff,maxgap=maxgap,genome=genome) %>%
+      dplyr::rename(fdr="HMFDR")
+  },error = function(e){print(e)})
   #dmrff_table<-searchDMR_dmrff(dmps, mval[dmps$probeID,], maxgap=1000) %>%
     #dplyr::rename(no.cpgs="n", fdr="p.adjust")
   #combp_table<-searchDMR_combp(dmps, maxgap=maxgap) %>%
     #dplyr::rename(no.cpgs="nprobe")
-  ipdmr_table<-searchDMR_ipdmr(dmps, maxgap=maxgap) %>%
-    dplyr::rename(no.cpgs="nprobe")
+  ipdmr_table=NULL
+  tryCatch({
+    ipdmr_table<-searchDMR_ipdmr(dmps, maxgap=maxgap) %>%
+      dplyr::rename(no.cpgs="nprobe")
+  },error = function(e){print(e)})
   
-  mrs<-MethylResultSet(se,dmps=dmps,dmrs=list(
+  mrs<-MethylResultSet(se,dmps,dmrs=list(
     dmrcate=dmrcate_table,
     #dmrff=dmrff_table,
     #combp=combp_table,
     ipdmr=ipdmr_table))
   mrs@metadata=se@metadata
   mrs@metadata$model=model
-  mrs@metadata$model=model
-  mrs@metadata$model.case=case
-  mrs@metadata$model.control=control
+  mrs@metadata$model.intercept=intercept
   mrs@metadata$model.method=method
   mrs@metadata$model.method.niter=niter
   mrs@metadata$model.method.ncore=ncore
-  mrs@metadata$model.lambda=regression$lambda
   mrs@metadata$dmrs.fdr=fdr
   mrs@metadata$dmrs.pcutoff=pcutoff
   mrs@metadata$dmrs.maxgap=maxgap

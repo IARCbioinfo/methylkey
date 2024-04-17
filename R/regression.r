@@ -1,159 +1,4 @@
-#' methyldiff
-#'
-#' differential analysis,
-#' 
-#' @param betas matrix of betas
-#' @param pdata sample Sheet (dataframe)
-#' @param model model to apply with sva (string) eg: "~group+gender"
-#' @param case case group
-#' @param control control group
-#' @param method <limma> ls or robust
-#' @param niter <limma> number of iteration for robust method
-#' @param ncore <limma> number of core to use for limma
-#' @param qval cutoff for significant probes
-#' @param sva run sva correction before regression
-#' @param modelSVA model to use for batch correction
-#'
-#' @return toptable for all probes
-#'
-#' @export
-#' 
-methyldiff<-function(se=NULL,model="~group",case=NULL,control=NULL,method="ls",niter=50,ncore=2,qval=0.05){
-  
-  withProgress(message = 'methyldiff', value = 0.1, {
-  
-    mval=getMvals(se)
-    print("mval=")
-    print(dim(mval))
-    betas=betas_masked_no_na(se)
-    pdata=colData(se)
-    
-    #get manifest
-    incProgress(1/8, detail = "get manifest")
-    manifest=getAnnotedManifest(metadata(se)$plateform)
-    
-    save(mval, betas, pdata, method, niter, ncore, qval, manifest, file="/luca/git/shinydmr/test/debug.rda")
-    
-    #relevel according to case and control
-    incProgress(1/8, detail = "relevel")
-    grp_g<-strsplit(model,"~|\\+")[[1]][2]
-    print(grp_g)
-    pdata[,grp_g] <- relevel(as.factor(unlist(pdata[,grp_g])), case)
-    pdata[,grp_g] <- relevel(as.factor(unlist(pdata[,grp_g])), control)
-    
-    #pull first group and sample names into vectors
-    grp_g<- pdata %>% dplyr::pull(grp_g) %>% as.factor()
-    
-    # remove NA in betas again !!
-    betas <- betas[rownames(mval),]
-    betas <- replaceByMean( betas, groups = grp_g )
 
-    samples <- pdata$samples %>% as.factor()
-    #regression analysis
-    incProgress(1/8, detail = "regression analysis")
-    regression<-m_regression(mval,pdata, model, method=method, niter=niter, ncore=ncore )
-    incProgress(1/8, detail = "calculate delta betas")
-    deltaBetas<-getDeltaBetas(betas[rownames(regression$table),],grp_g,case,control)*100
-    incProgress(1/8, detail = "summarize results")
-    table<-data.frame(probeID=rownames(regression$table), regression$table, deltabetas=deltaBetas) %>%
-      dplyr::select("probeID","P.Value","adj.P.Val","t","Coefficient","Stdev","deltabetas") %>%
-      #tidyr::separate(probeID, sep="_", into=c("probeID","x"),remove=TRUE, fill="right") %>%
-      dplyr::mutate(status=ifelse(deltabetas>0,"hyper","hypo")) %>%
-      dplyr::mutate(is.sig=adj.P.Val<qval) %>%
-      merge(manifest, by="probeID") %>%
-      #tidyr::unite("probeID", c(probeID,x),sep="_", na.rm=TRUE, remove=TRUE) %>%
-      dplyr::arrange(desc(adj.P.Val)) 
-    incProgress(1/8, detail = "done")
-    
-    #mrs<-MethylResultSet(reac$se,dmps=reac$dmps)
-    mrs<- table %>% DataFrame()
-    metadata(mrs) = metadata(se)
-    mrs@metadata$genome=getGenome(metadata(se)$plateform)
-    mrs@metadata$model=model
-    mrs@metadata$model.case=case
-    mrs@metadata$model.control=control
-    mrs@metadata$model.method=method
-    mrs@metadata$model.niter=niter
-    mrs@metadata$model.ncore=ncore
-    mrs@metadata$model.lambda=regression$lambda
-    mrs@metadata$model.is.sig=sum(table$is.sig)
-    mrs@metadata$model.id=substring(uuid::UUIDgenerate(use.time = FALSE),1,8)
-    mrs@metadata$model.date=date=format(Sys.Date(), "%Y%M%d")
-    #mrs@metadata$dmrs.qval=qval
-    #mrs@metadata$dmrs.pcutoff=pcutoff
-    #mrs@metadata$dmrs.maxgap=maxgap
-    
-    return(mrs)
-    
-  })
-}
-
-
-#' Batch Correction with SVA
-#'
-#' This function will do batch correction on mvalues,
-#' 
-#'
-#' @param mval matrix of mvalues
-#' @param pdata sample Sheet (dataframe)
-#' @param model model to apply with sva (string) eg: "~group+gender"
-#' 
-#' @return A matrix of batch corrected mvalues
-#' 
-#' @export
-#' 
-bc_sva<-function(mval,pdata,model){
-  
-  print("save")
-  save(mval, pdata, model, file="debug.rda")
-  print("done")
-  
-  formula1 <- as.formula(model)
-  design<-model.matrix(formula1,data=pdata)
-  if(nrow(design) > ncol(mval)){ stop("Missing samples in betas ! ") }
-  if(nrow(design) < ncol(mval)){ stop("Missing samples in pdata ! ") }
-  
-  if (!grepl("\\+",model)){
-    sva_m<-sva::sva(mval,design)
-  }else{
-    formula0 <- as.formula( gsub("~[^+]*\\+","~1+",model) )
-    model0<-model.matrix(formula0, data=pdata)
-    sva_m<-sva::sva(mval,design,model0)
-  }
-  
-  n.sv=sva_m$n.sv
-  message(paste0("number of surrogate variables", sva_m$n.sv))
-  if(!sva_m$n.sv) {
-    message( "0 surrogate variables have been found, batchcorrection is useless !" )
-  }else{
-    mval = t(residuals(lm(t(mval)~sva_m$sv)))
-  }
-  
-  return(mval)
-}
-
-
-
-
-#' getDeltaBetas
-#' 
-#' calculate Delta betas
-#' 
-#' @param betas array of betas values
-#' @param group group
-#' @param case case
-#' @param control control
-#' 
-#' @return vector
-#' 
-#' @export
-#' 
-getDeltaBetas<-function(betas,group, case="TT", control="NT"){
-  betas<-betas[,group %in% c(case,control)]
-  group<-group[group %in% c(case,control)]
-  deltaBetas <- rowMeans(betas[,group==case]) - rowMeans(betas[,group==control])
-  return(deltaBetas)
-}
 
 #' m_regression
 #' 
@@ -172,7 +17,7 @@ m_regression<-function(mval,pdata,model,method="ls", niter=50, ncore=4){
 
     regression=NULL
     if(method=="ls"){ 
-        regression<-m_leastsquare(mval,pdata,model)
+        regression<-m_leastsquare2(mval,pdata,model)
     }
     if(method=="ls_ruv"){ 
       regression<-m_leastsquare_ruv(mval,pdata,model)
@@ -220,10 +65,53 @@ m_leastsquare<-function(mval,pdata,model){
     sst<-rowSums(mval^2)
     ssr<-sst-fit$df.residual*fit$sigma^2
     rsq<-ssr/sst
-    table$goodness=rsq
+    table$goodness=rsq[rownames(table)]
     
     return(list(table=table, lambda=lambda ) )
 }
+
+
+
+
+#' m_leastsquare2
+#' 
+#' least square method, return the whole table
+#' 
+#' @param mval mvalues array
+#' @param pdata sampleSheet
+#' @param model model
+#' 
+#' @return regression
+#' 
+m_leastsquare2<-function(mval,pdata,model){
+  
+  formula1 <- as.formula(model)
+  design<-model.matrix(formula1,data=pdata)
+  colnames(design)<-make.names(colnames(design))
+  cmtx <- limma::makeContrasts( contrasts=colnames(design) , levels=colnames(design) )
+  
+  # lmFit
+  fit<-limma::lmFit(mval,design, pdata, ndups=1, method='ls')
+  rownames(cmtx)<-colnames(fit)
+  fitContrasts=limma::contrasts.fit(fit,cmtx)
+  eb=limma::eBayes(fitContrasts)
+  
+  # lambda
+  chisq <- qchisq(1-eb$p.value,1)
+  lambda <- apply(chisq, 2, function(x){ median(x)/qchisq(0.5,1) })
+  
+  #goodness
+  sst<-rowSums(mval^2)
+  ssr<-sst-fit$df.residual*fit$sigma^2
+  rsq<-ssr/sst
+  
+  # topTables
+  topTables<-lapply(colnames(fit), function(x){ topTables(eb,x,rsq,lambda[x]) })
+  names(topTables)<-colnames(fit)
+  
+  return(topTables)
+}
+
 
 #' m_leastsquare_ruv
 #' 

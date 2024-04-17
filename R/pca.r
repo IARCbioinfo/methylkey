@@ -39,9 +39,6 @@ makepca <- function( betas, pdata, nPC=ncol(betas) ){
 #' @param title Title for the plot.
 #'
 #' @return A ggplot object representing the PCA contribution plot.
-#'
-#'
-#' @import ggplot2
 #' 
 #' @export
 #'
@@ -65,12 +62,7 @@ plot_PCA_contribution <- function( pca, nPC = 4, title = "" ){
 #'
 #' @return A matrix of p-values representing the correlation significance for each variable with each PC.
 #'
-#' @import dplyr
-#' @import tidyr
-#' @import purrr
-#' @import rstatix
 #' @export
-#'
 estimate_PCA_corr<-function(pca, pdata, nPC){
   
   nPC=min( nPC,nrow(pdata) )

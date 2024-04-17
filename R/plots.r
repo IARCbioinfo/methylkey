@@ -10,12 +10,12 @@
 #' 
 #' @export
 #' 
-violin_plot1<-function(betas, group, numPositions=1000){
+violin_plot<-function(betas, group, numPositions=1000){
   
   cpg<-betas[runif(numPositions,1,nrow(betas)),]
   cpg<-cbind(group=as.character(group),data.table(t(cpg)) )
   cpg<-melt( cpg, id.vars="group" )
-  colnames(cpg)<-c("group","probeID","betas")
+  colnames(cpg)<-c("group","Probe_ID","betas")
   
   p1<-ggplot(cpg, aes(x=group, y=betas, fill=group)) + geom_violin() + 
     theme(axis.text.x=element_text(angle=50,hjust=1, size=14)) + 
@@ -25,122 +25,54 @@ violin_plot1<-function(betas, group, numPositions=1000){
   return(p1)
 }
 
-#' violin_plot2
+#' barplots_distToSS
 #' 
-#' Display betas in a violin plot by group
+#' Display barplot of deltabetas distribution around TSS
 #' 
-#' @param betas matrix of betas
-#' @param annot annotation table
-#' @param feature annotation feature to use.
-#' @param numPositions number of random CpG used
+#' @param dmps data.frame of dmps
+#' @param bin size of bin
 #' 
 #' @return plot
 #' 
 #' @export
 #' 
-violin_plot2<-function(betas, annot, feature, numPositions=1000){
+barplots_distToSS<-function(dmps, bin=50){
   
-  require(ggplot2)
-  require(data.table)
+  colors<-RColorBrewer::brewer.pal(5,"Spectral")
   
-  cpg<-betas[runif(numPositions,1,nrow(betas)),]
-  cpg<-melt(cpg)
-  colnames(cpg)<-c("probeID","Basename","betas")
-  cpg<-merge(annot,cpg,by="probeID")
-  
-  #violin plots
-  p1<-ggplot(cpg, aes_string(x=feature, y="betas", fill=feature)) + geom_violin() + 
-    theme(axis.text.x=element_text(angle=50,hjust=1, size=14)) + 
-    guides(fill =FALSE) +
-    ylab("Methylation %") + xlab("")
-  
-  return(p1)
-}
+  foo<-dmps %>%
+    mutate(status=ifelse(deltabetas > 0, "hyper", "hypo")) %>%
+    mutate(status=ifelse(adj.P.Val < 0.05, paste0(status,"*"), status)) %>%
+    separate_rows(distToTSS, sep = ";") %>% mutate(distToTSS=as.numeric(distToTSS)) %>%
+    mutate(distToTSS=cut_number(distToTSS, bin)) 
 
-#' violin_plot3
-#' 
-#' Display betas in a violin plot by group
-#' 
-#' @param betas matrix of betas
-#' @param group variable group
-#' @param annot annotation table
-#' @param feature annotation feature to use.
-#' @param numPositions number of random CpG used
-#' 
-#' @return plot
-#' 
-#' @export
-#' 
-violin_plot3<-function(betas, annot, group, feature, numPositions=1000){
-  
-  require(ggplot2)
-  require(data.table)
-  
-  cpg<-betas[runif(numPositions,1,nrow(betas)),]
-  cpg<-cbind(group=as.character(group),data.table(t(cpg)) )
-  cpg<-melt( cpg, id.vars="group" )
-  colnames(cpg)<-c("group","probeID","betas")
-  cpg<-merge(annot,cpg,by="probeID")
-  
-  #violin plots
-  p1<-ggplot(cpg, aes_string(x=feature, y="betas", fill=feature)) + geom_violin() + 
-    theme(axis.text.x=element_text(angle=50,hjust=1, size=14)) + 
-    guides(fill =FALSE) +
-    ylab("Methylation %") + xlab("") +
-    facet_wrap(~group)
-  
-  return(p1)
-}
+  bounds <- str_match(levels(foo$distToTSS), "\\[?\\(*(.*),(.*)\\]")
+  bounds <- data.frame(name=bounds[,1],lower=as.numeric(bounds[,2]), upper=as.numeric(bounds[,3])) %>%
+  mutate(labels=case_when(
+    lower<0 & upper >0 ~ "TSS",
+    lower< -200 & upper > -200 ~ "-200",
+    lower< -500 & upper > -500 ~ "-500",
+    lower< -1000 & upper > -1000 ~ "-1000",
+    lower< 200 & upper > 200 ~ "200",
+    lower< 500 & upper > 500 ~ "500",
+    lower< 1000 & upper > 1000 ~ "1000",
+    TRUE ~ ""
+  ))
 
+  moy=table(foo$distToTSS) %>% mean() / 2
 
-
-#' circosplot
-#' 
-#' Display betas in a violin plot by group
-#' 
-#' @param ranges GRanges object
-#' @param genome (hg38,hg19,mm10)
-#' 
-#' @return plot
-#' 
-#' @export
-#' 
-circosplot<-function(ranges, genome){
-
-	suppressPackageStartupMessages( require(ggbio) )
-
-	if (genome=="hg38"){ require(BSgenome.Hsapiens.UCSC.hg38) ; species=BSgenome.Hsapiens.UCSC.hg38}
-	if (genome=="hg19"){ require(BSgenome.Hsapiens.UCSC.hg19) ; species=BSgenome.Hsapiens.UCSC.hg19}
-  if (genome=="hg19"){ require(BSgenome.Mmusculus.UCSC.mm10) ; BSgenome.Mmusculus.UCSC.mm10}
-
-	chr.len = seqlengths(species)
-	chr.len = chr.len[grep("_|M", names(chr.len), invert = T)]
-	myIdeo <- GRanges(seqnames = names(chr.len), ranges = IRanges(start = 1, chr.len))
-	seqlengths(myIdeo)<-myIdeo@ranges@width
-
-	#seqlevels(ranges) = names(chr.len)
-	ranges<-keepSeqlevels(ranges, names(chr.len), pruning.mode="coarse")
-	seqlengths(ranges)<-myIdeo@ranges@width
-	
-	g.po <-ranges[ranges$meth.diff < 0 ]
-	g.per<-ranges[ranges$meth.diff > 0 ]
-
-	p<- ggbio() + circle(myIdeo, geom = "ideo", fill = "gray70", radius = 39, trackWidth = 2)
-	
-	if (length(g.po) > 0){
-		values(g.po)$id = "hypo"
-		p <- p + circle(g.po, geom = "point", size = 1, aes(x = midpoint, y = "meth.diff", color = id), radius = 19, trackWidth = 20) + scale_colour_manual(values = c("magenta", "green")) 
-	}
-	if (length(g.per) > 0){	
-		values(g.per)$id = "hyper"
-		p <- p + circle(g.per, geom = "point", size = 1, aes(x = midpoint, y = "meth.diff", color = id), radius = 41, trackWidth = 20)
-	}
-	# bug in ggbio waiting for fix
-	#p<- p + circle(ranges, geom = "text", aes(label = seqnames), vjust = 0, radius = 55, trackWidth = 7)
-	return(p)
+  foo %>% mutate(status = factor(status, levels = c("hyper*", "hyper", "hypo*", "hypo")) ) %>%
+    group_by(status, distToTSS) %>% count() %>%
+    mutate(n=ifelse(grepl(status,"hypo"),-n,n)) %>%
+    ggplot(aes(fill=status,x=distToTSS, y=n)) + 
+    geom_bar(position="stack", stat="identity") +
+    geom_hline(yintercept=moy, color="red") + geom_hline(yintercept=-moy,color="red") +
+    labs(x = "distance To Tss", y = "Count", title = "Methylation change by regions") +
+    theme_minimal() +
+    scale_x_discrete(labels = bounds$labels) +
+    theme(legend.text = element_text(hjust = 1,size=12), axis.text.x = element_text(angle=90, hjust=1, size =12) )
 
 }
-
 
 
 
@@ -273,13 +205,10 @@ barplots_EPIC<-function(tab=NULL,man=NULL){
 volcano<-function(df,  sig=5e-8 ){
 
   # to make it work with DMRs table.
-  df <- df %>% 
-    rename_with(~ case_when( . == "HMFDR" ~ "P.Value",  . == "maxdiff" ~ "deltabetas", TRUE ~ .) )
-    #rename(any_of(c("P.Value"="HMFDR","deltabetas"="maxdiff")))
-  
-  
-  p <- ggplot( df, aes(x = deltabetas, y = -log10(P.Value) ) ) + 
-  geom_point( aes(color=ifelse(P.Value>0.05,"lightgray",ifelse(deltabetas>0,"blue","red"))), alpha=0.5 ) +
+  df <- df %>% rename_with(~ case_when( . == "HMFDR" ~ "adj.P.Val",  . == "maxdiff" ~ "deltabetas", TRUE ~ .) )
+
+  p <- ggplot( df, aes(x = deltabetas, y = -log10(adj.P.Val) ) ) + 
+  geom_point( aes(color=ifelse(adj.P.Val>0.05,"lightgray",ifelse(deltabetas>0,"blue","red"))), alpha=0.5 ) +
   scale_colour_manual(values = c("blue", "lightgray", "red")) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed", col="red") +
   guides(color = "none") +
@@ -304,41 +233,39 @@ volcano<-function(df,  sig=5e-8 ){
 #' 
 manhattan<-function(df,  sig=5e-8 ){
   
-  df <- df  %>% 
+  df <- df  %>%
     #rename(any_of(c("P.Value"="HMFDR","chr"="seqnames","pos"="start"))) %>%
-    rename_with(~ case_when( . == "HMFDR" ~ "P.Value",  . == "seqnames" ~ "chr", TRUE ~ .) ) %>%
+    rename_with(~ case_when( . == "HMFDR" ~ "adj.P.Val",  . == "seqnames" ~ "chr", TRUE ~ .) ) %>%
     mutate(pos = if (exists('pos', where=.)) pos else start+(width/2)) %>%
     mutate( chr = factor(chr,levels=c(paste0("chr",seq(1:22)),"chrX","chrY") ) )
   
-  data_cum <- df %>% 
+  data_cum <- df %>% dplyr::filter(!is.na(chr)) %>%
     group_by(chr) %>% 
     summarise(max_bp = max(pos)) %>% 
     mutate(bp_add = lag(cumsum(as.numeric(max_bp)), default = 0)) %>% 
-    dplyr::select(chr, bp_add)
+    dplyr::select(chr, bp_add) 
+    
   
   gwas_data <- df  %>% 
     inner_join(data_cum, by = "chr") %>% 
-    mutate(bp_cum = pos + bp_add)
+    mutate(bp_cum = sum(pos,bp_add) )
   
   axis_set <- gwas_data %>% 
     group_by(chr) %>% 
     summarize(center = mean(bp_cum))
   
-  ylim <- gwas_data %>% 
-    filter(P.Value == min(P.Value)) %>% 
-    mutate(ylim = abs(floor(log10(P.Value))) + 2) %>% 
-    dplyr::pull(ylim)
+  ylim = min(gwas_data$adj.P.Val)
+  sig = abs(floor(log10(ylim))) + 2
   
-  p<-ggplot(gwas_data, aes(x = bp_cum, y = -log10(P.Value), 
-                           color = haven::as_factor(chr), size = -log10(P.Value))) +
+  p<-ggplot(gwas_data, aes(x = bp_cum, y = -log10(adj.P.Val), 
+                           color = haven::as_factor(chr), size = -log10(adj.P.Val))) +
     geom_hline(yintercept = -log10(sig), color = "grey40", linetype = "dashed") + 
     geom_point(alpha = 0.75) +
     scale_x_continuous(label = axis_set$chr, breaks = axis_set$center) +
     scale_y_continuous(expand = c(0,0), limits = c(0, ylim)) +
     scale_color_manual(values = rep(c("#276FBF", "#183059"), unique(length(axis_set$chr)))) +
     scale_size_continuous(range = c(0.5,3)) +
-    labs(x = NULL, 
-         y = "-log<sub>10</sub>(p)") + 
+    labs(x = NULL, y = "-log<sub>10</sub>(p)") + 
     theme_minimal() +
     theme( 
       legend.position = "none",
@@ -412,8 +339,6 @@ manhattan<-function(df,  sig=5e-8 ){
 #'
 #' @return A ggplot2 scatter plot with custom annotations.
 #'
-#' @import ggplot2
-#'
 #' @export
 plot_background<-function(df){
   ggplot(df,
@@ -432,8 +357,6 @@ plot_background<-function(df){
 #'
 #' @return A ggplot2 scatter plot for visualizing channel switching.
 #'
-#' @import ggplot2
-#'
 #' @export
 plot_channel_switch<-function(df){
   ggplot(df) + geom_point(aes(InfI_switch_G2R, InfI_switch_R2G))
@@ -446,8 +369,6 @@ plot_channel_switch<-function(df){
 #' @param df A data frame containing the data to be plotted, with columns 'name' and 'num_na_cg'.
 #'
 #' @return A ggplot2 bar plot for visualizing missing values (NA).
-#'
-#' @import ggplot2
 #'
 #' @export
 plot_NA<-function(df){
@@ -463,8 +384,6 @@ plot_NA<-function(df){
 #'
 #' @return A ggplot2 bar plot for visualizing detection fractions.
 #'
-#' @import ggplot2
-#'
 #' @export
 plot_Detection<-function(df){
   ggplot(df) + geom_bar(aes(x=name,y=frac_dt), stat="identity") +
@@ -473,18 +392,15 @@ plot_Detection<-function(df){
 
 #' Create a volcano plot to visualize differential methylation analysis results
 #'
-#' This function generates a volcano plot to visualize differential methylation analysis results using ggplot2. It takes a data frame 'dt' as input, groups the data by 'dmrtool', 'ID', and 'fdr', calculates summary statistics, and creates a plot.
+#' This function generates a volcano plot to visualize differential methylation analysis results using ggplot2. It takes a data frame 'dt' as input, groups the data by 'dmrdmrtool', 'ID', and 'fdr', calculates summary statistics, and creates a plot.
 #'
-#' @param dt A data frame containing the data for differential methylation analysis.
+#' @param df A data frame containing the data for differential methylation analysis.
 #'
 #' @return A ggplot2 volcano plot showing differential methylation analysis results.
 #'
-#' @import ggplot2
-#' @import dplyr
-#'
 #' @export
-my_volcanomean<-function(dt){
-  volcano <- data.frame(dt) %>% group_by(dmrtool,ID,fdr) %>% 
+my_volcanomean<-function(df){
+  volcano <- df %>% group_by(dmrtool,ID,fdr) %>% 
     summarise( no.cpgs=n(), mean.deltabetas=mean(deltabetas), .groups='drop' ) %>%
     ggplot( aes(x = mean.deltabetas, y = -log10(fdr)) ) +
     geom_point( aes(color=ifelse(fdr>0.05,"3notsig",ifelse(mean.deltabetas>0,"1up","2down"))), alpha=0.5 ) +
@@ -499,16 +415,13 @@ my_volcanomean<-function(dt){
 #'
 #' This function generates a volcano plot to visualize differential methylation analysis results using ggplot2. It takes a data frame 'dt' as input, groups the data by 'dmrtool', 'ID', and 'fdr', calculates summary statistics with a modified 'mean.deltabetas' calculation, and creates a plot.
 #'
-#' @param dt A data frame containing the data for differential methylation analysis.
+#' @param df A data frame containing the data for differential methylation analysis.
 #'
 #' @return A ggplot2 volcano plot showing differential methylation analysis results with modified mean calculation.
 #'
-#' @import ggplot2
-#' @import dplyr
-#'
 #' @export
-my_volcanohmean<-function(dt){
-  volcano <- data.frame(dt) %>% group_by(dmrtool,ID,fdr) %>% 
+my_volcanohmean<-function(df){
+  volcano <- df %>% group_by(dmrtool,ID,fdr) %>% 
     summarise( no.cpgs=n(), mean.deltabetas= (n() / sum(1/deltabetas)), .groups='drop' ) %>%
     ggplot( aes(x = mean.deltabetas, y = -log10(fdr)) ) +
     geom_point( aes(color=ifelse(fdr>0.05,"3notsig",ifelse(mean.deltabetas>0,"1up","2down"))), alpha=0.5 ) +
@@ -524,17 +437,14 @@ my_volcanohmean<-function(dt){
 #'
 #' This function generates a volcano plot to visualize differential methylation analysis results using ggplot2. It takes a data frame 'dt' as input, groups the data by 'dmrtool', 'ID', and 'fdr', calculates summary statistics with a modified 'mean.deltabetas' calculation, and creates a plot.
 #'
-#' @param dt A data frame containing the data for differential methylation analysis.
+#' @param df A data frame containing the data for differential methylation analysis.
 #'
 #' @return A ggplot2 volcano plot showing differential methylation analysis results with modified mean calculation.
 #'
-#' @import ggplot2
-#' @import dplyr
-#'
 #' @export
-my_volcanomax<-function(dt){
-  volcano <- data.frame(dt) %>% group_by(dmrtool,ID,fdr) %>% 
-    summarise( no.cpgs=n(), max.deltabetas=max(deltabetas), .groups='drop' ) %>%
+my_volcanomax<-function(df){
+  volcano <- df %>% group_by(dmrtool, ID, fdr) %>% 
+    summarise( max.deltabetas=max(deltabetas), .groups='drop' ) %>%
     ggplot( aes(x = max.deltabetas, y = -log10(fdr)) ) +
     geom_point( aes(color=ifelse(fdr>0.05,"3notsig",ifelse(max.deltabetas>0,"1up","2down"))), alpha=0.5 ) +
     scale_colour_manual(values = c("blue", "red", "lightgray")) +
@@ -552,8 +462,6 @@ my_volcanomax<-function(dt){
 #'
 #' @return A ggplot2 volcano plot showing statistical results.
 #'
-#' @import ggplot2
-#'
 #' @export
 my_volcano<-function(df){
   
@@ -567,7 +475,6 @@ my_volcano<-function(df){
   return(p)
 }
 
-
 #' Create a Venn diagram to visualize intersections of probe IDs
 #'
 #' This function generates a Venn diagram to visualize the intersections of probe IDs from different sets. It takes a data frame 'dt' as input and a list 'a' containing the names of sets to be intersected.
@@ -577,16 +484,13 @@ my_volcano<-function(df){
 #'
 #' @return A ggvenn Venn diagram showing the intersections between sets.
 #'
-#' @import ggvenn
-#' @import dplyr
-#'
 #' @export
 my_venn_<-function(dt,a){
   
-  b <- list(`DMRcate` = dt %>% dplyr::filter(dmrtool=="dmrcate") %>% dplyr::pull(probeID) %>% unique(),
-            `DMRff` = dt %>% dplyr::filter(dmrtool=="dmrff") %>% dplyr::pull(probeID) %>% unique(),
-            `combp` = dt %>% dplyr::filter(dmrtool=="combp") %>% dplyr::pull(probeID) %>% unique(),
-            `ipdmr` = dt %>% dplyr::filter(dmrtool=="ipdmr") %>% dplyr::pull(probeID) %>% unique()
+  b <- list(`DMRcate` = dt %>% dplyr::filter(dmrtool=="dmrcate") %>% dplyr::pull(Probe_ID) %>% unique(),
+            `DMRff` = dt %>% dplyr::filter(dmrtool=="dmrff") %>% dplyr::pull(Probe_ID) %>% unique(),
+            `combp` = dt %>% dplyr::filter(dmrtool=="combp") %>% dplyr::pull(Probe_ID) %>% unique(),
+            `ipdmr` = dt %>% dplyr::filter(dmrtool=="ipdmr") %>% dplyr::pull(Probe_ID) %>% unique()
   )
   a<-Filter(length, a)
   b<-Filter(length, b)
@@ -594,15 +498,13 @@ my_venn_<-function(dt,a){
   return(venn)
 }
 
-#' Create a Venn diagram to visualize intersections of IDs for different tools
+#' Create a Venn diagram to visualize intersections of IDs for different dmrtools
 #'
-#' This function generates a Venn diagram to visualize the intersections of IDs obtained from different analysis tools. It takes a data frame 'dt' as input and automatically extracts IDs for each tool before passing them to the 'my_venn_' function.
+#' This function generates a Venn diagram to visualize the intersections of IDs obtained from different analysis dmrtools. It takes a data frame 'dt' as input and automatically extracts IDs for each dmrtool before passing them to the 'my_venn_' function.
 #'
 #' @param dt A data frame containing the data.
 #'
-#' @return A ggvenn Venn diagram showing the intersections between IDs obtained from different tools.
-#'
-#' @import dplyr
+#' @return A ggvenn Venn diagram showing the intersections between IDs obtained from different dmrtools.
 #'
 #' @export
 my_venn<-function(dt){
@@ -615,15 +517,13 @@ my_venn<-function(dt){
   return(my_venn_(dt,a))
 }
 
-#' Create a Venn diagram to visualize intersections of IDs for different tools
+#' Create a Venn diagram to visualize intersections of IDs for different dmrtools
 #'
-#' This function generates a Venn diagram to visualize the intersections of IDs obtained from different analysis tools. It takes a data frame 'dt' as input and automatically extracts IDs for each tool before passing them to the 'my_venn_' function.
+#' This function generates a Venn diagram to visualize the intersections of IDs obtained from different analysis dmrtools. It takes a data frame 'dt' as input and automatically extracts IDs for each dmrtool before passing them to the 'my_venn_' function.
 #'
 #' @param dt A data frame containing the data.
 #'
-#' @return A ggvenn Venn diagram showing the intersections between IDs obtained from different tools.
-#'
-#' @import dplyr
+#' @return A ggvenn Venn diagram showing the intersections between IDs obtained from different dmrtools.
 #'
 #' @export
 my_venn_oriented<-function(dt){
@@ -644,14 +544,13 @@ my_venn_oriented<-function(dt){
 #'
 #' @return A ggplot2 density plot showing DMR length distributions grouped by 'dmrtool'.
 #'
-#' @import dplyr
-#' @import ggplot2
-#'
 #' @export
 my_density<-function(dt){
   
-  density <- dt %>% group_by(dmrtool,ID,start,end) %>% 
+  density <- dt %>% group_by(dmrtool,ID) %>% 
     summarise( no.cpgs=n(), .groups='drop' ) %>%
+    separate(ID, into=c("chr","start","end"), sep="-") %>%
+    mutate(start=as.numeric(start), end=as.numeric(end)) %>%
     mutate(length=end-start) %>%
     ggdensity(x = "length",
               add = "mean", rug = TRUE,
@@ -671,12 +570,12 @@ my_density<-function(dt){
 #'
 #' @return A ggplot2 violin plot showing DMR length distributions grouped by 'dmrtool'.
 #'
-#' @import dplyr
-#' @import ggplot2
-#'
 #' @export
 my_violin<-function(dt){
-  violin<-dt %>% group_by(dmrtool,ID,start,end) %>% summarise( no.cpgs=n(), .groups='drop' ) %>%
+  violin<-dt %>% group_by(dmrtool,ID) %>% 
+    separate(ID, into=c("chr","start","end"), sep="-") %>%
+    mutate(start=as.numeric(start), end=as.numeric(end)) %>%
+    #summarise( no.cpgs=n(), .groups='drop' ) %>%
     mutate(length=end-start) %>%
     ggviolin(x = "dmrtool", y = "length", fill = "dmrtool",
              palette = c("#00AFBB", "#E7B800", "#FC4E07", "#59981A"),
@@ -697,20 +596,16 @@ my_violin<-function(dt){
 #'
 #' @return A genome track plot displaying CpG islands, DMRs, and probe annotations.
 #'
-#' @import dplyr
-#' @import GenomeInfoDb
-#' @import Gviz
-#'
 #' @export
 my_track<-function(dt,betas,genome="hg19",chromosome="Chr1",start=0,end=5000){
   
-  cpgs <- dt %>% dplyr::pull(probeID) %>% unlist()
+  cpgs <- dt %>% dplyr::pull(Probe_ID) %>% unlist()
   
-  foo <- dt %>% group_by(probeID,chr,pos) %>% 
+  foo <- dt %>% group_by(Probe_ID,chr,pos) %>% 
     summarise(.groups='drop') %>% 
     merge(betas[cpgs,] %>% data.frame() %>% 
-            rownames_to_column("probeID"), by="probeID") %>% 
-    arrange(pos) %>% mutate(start=pos, end=pos) %>% dplyr::select(-c(probeID,pos))
+            rownames_to_column("Probe_ID"), by="Probe_ID") %>% 
+    arrange(pos) %>% mutate(start=pos, end=pos) %>% dplyr::select(-c(Probe_ID,pos))
   
   if(nrow(foo)<1) return(NULL)
   
@@ -747,12 +642,10 @@ my_track<-function(dt,betas,genome="hg19",chromosome="Chr1",start=0,end=5000){
 #'
 #' @return A ggplot2 plot displaying beta values with confidence intervals for different groups.
 #'
-#' @import ggplot2
-#'
 #' @export
 my_dmrplot<-function(dt,group,title){
   
-  ggplot(dt, aes(x=probeID, y=betas, ymin=(betas-sd/2), ymax=(betas+sd/2) , group=get(group), fill=get(group) ) ) +
+  ggplot(dt, aes(x=Probe_ID, y=betas, ymin=(betas-sd/2), ymax=(betas+sd/2) , group=get(group), fill=get(group) ) ) +
     geom_line() + 
     geom_point() +
     geom_ribbon(alpha=0.5) +
@@ -775,8 +668,6 @@ my_dmrplot<-function(dt,group,title){
 #' @param ellipse Logical, whether to add ellipses around groups (optional).
 #'
 #' @return A scatter plot of beta values using multidimensional scaling.
-#'
-#' @import ggpubr
 #'
 #' @export
 my_scatterPlot<-function(betas,group,sample_names,palette,size,showlabels,ellipse){
@@ -814,9 +705,6 @@ my_scatterPlot<-function(betas,group,sample_names,palette,size,showlabels,ellips
 #' @param sig The significance threshold for highlighting points on the plot (default is 5e-8).
 #'
 #' @return A Manhattan plot visualizing GWAS data.
-#'
-#' @import ggplot2
-#' @import dplyr
 #'
 #' @export
 manhattan<-function(df,  sig=5e-8 ){
@@ -867,38 +755,24 @@ manhattan<-function(df,  sig=5e-8 ){
 }
 
 
-#' Create a Circos Plot for Genomic Data
-#'
-#' This function generates a Circos plot for visualizing genomic data. It uses the ggbio and GenomicRanges packages to create a circular representation of genomic data, highlighting regions of interest.
-#'
-#' @param dt A data frame containing genomic data with columns: chr (chromosome), pos (position), and deltabetas (effect).
-#' @param genome The genome version to use for plotting (e.g., "hg38", "hg19", "mm10").
-#'
-#' @return A Circos plot visualizing genomic data.
-#'
-#' @import ggbio
-#' @import GenomicRanges
-#' @import BSgenome.Hsapiens.UCSC.hg38
-#' @import BSgenome.Hsapiens.UCSC.hg19
-#' @import BSgenome.Mmusculus.UCSC.mm10
-#'
+#' circosplot
+#' 
+#' Display betas in a violin plot by group
+#' 
+#' @param ranges GRanges object
+#' @param genome (hg38,hg19,mm10)
+#' 
+#' @return plot
+#' 
 #' @export
-circosplot<-function(dt, genome){
+#' 
+circosplot<-function(ranges, genome){
   
-  require(ggbio)
-  require(GenomicRanges)
-  
-  #dt$effect=dt$deltabetas
-  
-  ranges<-dt %>% data.frame() %>% 
-    filter( !is.na(pos) ) %>%
-    filter( !is.na(deltabetas) ) %>%
-    mutate(start=pos,end=pos)
-  ranges<-makeGRangesFromDataFrame(ranges,keep.extra.columns = T)
+  suppressPackageStartupMessages( require(ggbio) )
   
   if (genome=="hg38"){ require(BSgenome.Hsapiens.UCSC.hg38) ; species=BSgenome.Hsapiens.UCSC.hg38}
   if (genome=="hg19"){ require(BSgenome.Hsapiens.UCSC.hg19) ; species=BSgenome.Hsapiens.UCSC.hg19}
-  if (genome=="mm10"){ require(BSgenome.Mmusculus.UCSC.mm10) ; species=BSgenome.Mmusculus.UCSC.mm10}
+  if (genome=="mm10"){ require(BSgenome.Mmusculus.UCSC.mm10) ; BSgenome.Mmusculus.UCSC.mm10}
   
   chr.len = seqlengths(species)
   chr.len = chr.len[grep("_|M", names(chr.len), invert = T)]
@@ -906,10 +780,6 @@ circosplot<-function(dt, genome){
   seqlengths(myIdeo)<-myIdeo@ranges@width
   seqlevels(ranges,pruning.mode="coarse")<-seqlevels(myIdeo)
   seqinfo(ranges)<-seqinfo(myIdeo)
-  
-  #seqlevels(ranges) = names(chr.len)
-  #ranges<-keepSeqlevels(ranges, names(chr.len), pruning.mode="coarse")
-  #seqlengths(ranges)<-myIdeo@ranges@width
   
   g.po <-ranges[ranges$deltabetas < 0 ]
   g.per<-ranges[ranges$deltabetas > 0 ]
@@ -925,10 +795,11 @@ circosplot<-function(dt, genome){
     p <- p + circle(g.per, geom = "point", size = 1, aes(x = midpoint, y = "deltabetas", color = id), radius = 41, trackWidth = 20)
   }
   # bug in ggbio waiting for fix
-  #p<- p + circle(ranges, geom = "text", aes(label = seqnames), vjust = 0, radius = 55, trackWidth = 7)
+  p<- p + circle(myIdeo, geom = "text", aes(label = seqnames), vjust = 0, radius = 60, trackWidth = 7, size=2)
   return(p)
   
 }
+
 
 
 #' Generic function for plotting channels

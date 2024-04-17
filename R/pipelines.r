@@ -10,10 +10,6 @@
 #'
 #' @return An object of class "MethyLumiMethyLumiSet" containing beta values and associated metadata, including quality control statistics and plots.
 #'
-#' @import sesame
-#' @import sesameData
-#' @import wateRmelon
-#'
 #' @export
 sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, ncore=4 ){
   
@@ -32,9 +28,11 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
   betas=openSesame(sdfs, prep = "", func = sesame::getBetas, mask = TRUE, BPPARAM=BiocParallel::MulticoreParam(ncore))
   
   sampleSheet<-formatSampleSheet(sampleSheet)
-  inferedsex<-sapply(sdfs, function(sdf){ inferSex(sdf, verbose = FALSE) }) %>%
-    data.frame() %>% tibble::rownames_to_column("barcode") %>% dplyr::rename(inferedsex=2)
-  sampleSheet<-merge(sampleSheet, inferedsex, by="barcode") %>% dplyr::relocate(samples)
+  tryCatch({
+    inferedsex<-sapply(sdfs, function(sdf){ inferSex(sdf, verbose = FALSE) }) %>%
+      data.frame() %>% tibble::rownames_to_column("barcode") %>% dplyr::rename(inferedsex=2)
+    sampleSheet<-merge(sampleSheet, inferedsex, by="barcode") %>% dplyr::relocate(samples)
+  },error = function(e){print(e)})
   
   age<-wateRmelon::agep(betas, method='all') %>% tibble::rownames_to_column("barcode")
   sampleSheet<-merge(sampleSheet,age, by="barcode") %>% dplyr::relocate(samples)
@@ -45,8 +43,10 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
   qcs = openSesame(sdfs, prep="", func=sesameQC_calcStats, BPPARAM=BiocParallel::MulticoreParam(ncore))
   metadata(meth)$qcs = purrr::map( qcs, ~sesameQC_getStats(.) ) %>% bind_rows(.id="name")
   
-  stx<-gsub("_.*","",names(sdfs))
-  lapply(unique(stx), function(x){ plot_Channels(sdfs[stx==x]) })
+  saveRDS(sdfs,"sdfs.rds")
+  
+  #stx<-gsub("_.*","",names(sdfs))
+  #lapply(unique(stx), function(x){ plot_Channels(sdfs[stx==x]) })
   #metadata(meth)$RedGrnQQ=lapply(names(sdfs), function(x){ sesameQC_plotRedGrnQQ(sdfs[[x]]) })
   
   return(meth)
@@ -62,9 +62,6 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
 #' @param compositeCellType A composite cell type to estimate cell counts, e.g., "Blood," "CordBloodCombined," etc.
 #'
 #' @return An object of class "MethyLumiMethyLumiSet" containing beta values and associated metadata, including quality control statistics and plots.
-#'
-#' @import minfi
-#' @import wateRmelon
 #'
 #' @export
 minfi2Betas<-function( idat=NULL, sampleSheet=NULL, na=0.2, compositeCellType="", pval=0.2 ){
@@ -83,7 +80,7 @@ minfi2Betas<-function( idat=NULL, sampleSheet=NULL, na=0.2, compositeCellType=""
   assertthat::assert_that( is.data.frame(sampleSheet), msg="Please provide a sampleSheet" )
   assertthat::assert_that(na >= 0 && na <= 1, msg="na must be between 0 and 1.")
   
-  RGset<-read.metharray.exp(base = idat, targets=sampleSheet, force=TRUE)
+  RGset<-minfi::read.metharray.exp(base = idat, targets=sampleSheet, force=TRUE)
   message("003")
   GMsetEx <- minfi::mapToGenome(RGset) 
   estSex  <- minfi::getSex(GMsetEx)

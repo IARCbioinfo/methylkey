@@ -16,12 +16,20 @@
 #' @import sesame
 #' @import sesameData
 #' @importFrom wateRmelon agep
-#' @importFrom minfi read.metharray.exp mapToGenome getSex preprocessRaw fixMethOutliers getQC getBeta preprocessFunnorm detectionP estimateCellCounts 
+#' @importFrom minfi read.metharray.exp mapToGenome getSex preprocessRaw fixMethOutliers getQC getBeta preprocessFunnorm detectionP estimateCellCounts densityPlot 
 #' @importFrom FlowSorted.Blood.EPIC estimateCellCounts2
 #' @importFrom GenomeInfoDb seqinfo
+#' @importFrom S4Vectors metadata
+#' 
 #' @import Gviz
 #' @import ENmix
 #' @import dmrff
+#' 
+#' 
+#' @export SummarizedExperiment
+# #' @exportMethod metadata
+# #' @exportMethod densityPlot
+#' 
 #' 
 NULL
 #> NULL

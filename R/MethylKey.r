@@ -536,11 +536,11 @@ setMethod("getMvals", signature("Betas"), definition = function(x, grp="grp", sv
   
   mvals<-SummarizedExperiment( assays=list(mvals=betas), colData=pdata, rowData = deltaBetas )
   mvals <- as(mvals,"Mvals")
-  metadata(mvals)=metadata(x)
-  metadata(mvals)$grp=grp
-  metadata(mvals)$sva=sva
-  metadata(mvals)$winsorized=win
-  metadata(mvals)$sex=sex
+  metadata(mvals)<-metadata(x)
+  metadata(mvals)$grp<-grp
+  metadata(mvals)$sva<-sva
+  metadata(mvals)$winsorized<-win
+  metadata(mvals)$sex<-sex
   
   return(mvals)
 })

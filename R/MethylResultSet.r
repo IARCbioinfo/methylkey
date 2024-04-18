@@ -51,7 +51,7 @@ MethylResultSet<-setClass(
   
 )
 
-
+# not exported
 topTables<-function(eb,x,rsq){
   
   x_table<-limma::topTable(eb, adjust="BH", number=Inf, p=1, sort.by="P", coef=x)

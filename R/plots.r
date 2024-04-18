@@ -46,7 +46,7 @@ barplots_distToSS<-function(dmps, bin=50){
     separate_rows(distToTSS, sep = ";") %>% mutate(distToTSS=as.numeric(distToTSS)) %>%
     mutate(distToTSS=cut_number(distToTSS, bin)) 
 
-  bounds <- str_match(levels(foo$distToTSS), "\\[?\\(*(.*),(.*)\\]")
+  bounds <- stringr::str_match(levels(foo$distToTSS), "\\[?\\(*(.*),(.*)\\]")
   bounds <- data.frame(name=bounds[,1],lower=as.numeric(bounds[,2]), upper=as.numeric(bounds[,3])) %>%
   mutate(labels=case_when(
     lower<0 & upper >0 ~ "TSS",
@@ -494,7 +494,7 @@ my_venn_<-function(dt,a){
   )
   a<-Filter(length, a)
   b<-Filter(length, b)
-  venn<-ggvenn( b, names(b) ) + ggtitle("C")
+  venn<-ggvenn::ggvenn( b, names(b) ) + ggtitle("C")
   return(venn)
 }
 

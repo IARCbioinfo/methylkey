@@ -19,10 +19,10 @@
 formatSampleSheet<-function(sampleSheet){
   
   sampleSheet<-sampleSheet %>% rename_with(tolower) %>% 
-    dplyr::rename(any_of(c(samples="sample",samples="sample_id"))) %>%
+  #  dplyr::rename(any_of(c(samples="sample",samples="sample_id"))) %>%
     dplyr::rename(any_of(c(barcode="basename")))
   assertthat::assert_that( "barcode" %in% colnames(sampleSheet), msg="The barcode column is missing !" )
-  assertthat::assert_that( "samples" %in% colnames(sampleSheet), msg="The samples column is missing !" )
+  #assertthat::assert_that( "samples" %in% colnames(sampleSheet), msg="The samples column is missing !" )
   
   sampleSheet <- sampleSheet  %>% 
     rename_with( make.names, unique = TRUE ) %>%

@@ -23,11 +23,13 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
   assertthat::assert_that( is.data.frame(sampleSheet), msg="Please provide a sampleSheet" )
   assertthat::assert_that(na >= 0 && na <= 1, msg="na must be between 0 and 1.")
   
+  sampleSheet<-formatSampleSheet(sampleSheet)
+  
   sdfs <- openSesame(idat, prep = prep, func = NULL, BPPARAM=BiocParallel::MulticoreParam(ncore))
+  saveRDS(sdfs,"sdfs.rds")
   
   betas=openSesame(sdfs, prep = "", func = sesame::getBetas, mask = TRUE, BPPARAM=BiocParallel::MulticoreParam(ncore))
   
-  sampleSheet<-formatSampleSheet(sampleSheet)
   tryCatch({
     inferedsex<-sapply(sdfs, function(sdf){ inferSex(sdf, verbose = FALSE) }) %>%
       data.frame() %>% tibble::rownames_to_column("barcode") %>% dplyr::rename(inferedsex=2)
@@ -42,8 +44,6 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
   
   qcs = openSesame(sdfs, prep="", func=sesameQC_calcStats, BPPARAM=BiocParallel::MulticoreParam(ncore))
   metadata(meth)$qcs = purrr::map( qcs, ~sesameQC_getStats(.) ) %>% bind_rows(.id="name")
-  
-  saveRDS(sdfs,"sdfs.rds")
   
   #stx<-gsub("_.*","",names(sdfs))
   #lapply(unique(stx), function(x){ plot_Channels(sdfs[stx==x]) })

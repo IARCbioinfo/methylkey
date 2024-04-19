@@ -6,7 +6,6 @@
 #' @import purrr
 #' @import ggplot2
 #' @import stringr
-#' @import data.table
 #' 
 #' @import rstatix
 #' @import ggpubr

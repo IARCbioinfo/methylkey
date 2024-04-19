@@ -10,6 +10,7 @@
 #' @import rstatix
 #' @import ggpubr
 #' @import ggvenn
+#' @import randomForest
 #' 
 #' @importFrom GenomicRanges makeGRangesFromDataFrame findOverlaps
 #' @import SummarizedExperiment
@@ -27,7 +28,7 @@
 #' 
 #' 
 #' @export SummarizedExperiment
-#' @exportMethod S4Vectors::metadata
+#' @export S4Vectors
 # #' @exportMethod densityPlot
 #' 
 #' 

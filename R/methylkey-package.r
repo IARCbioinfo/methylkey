@@ -27,7 +27,7 @@
 #' 
 #' 
 #' @export SummarizedExperiment
-# #' @exportMethod metadata
+#' @exportMethod S4Vectors::metadata
 # #' @exportMethod densityPlot
 #' 
 #' 

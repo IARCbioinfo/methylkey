@@ -13,6 +13,7 @@
 #' @import randomForest
 #' 
 #' @importFrom GenomicRanges makeGRangesFromDataFrame findOverlaps
+#' @importFrom S4Vectors metadata metadata<-
 #' @import SummarizedExperiment
 #' @import sesame
 #' @import sesameData
@@ -28,7 +29,8 @@
 #' 
 #' 
 #' @export SummarizedExperiment
-#' @export S4Vectors
+#' @export metadata
+#' @export metadata<-
 # #' @exportMethod densityPlot
 #' 
 #' 

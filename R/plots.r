@@ -13,9 +13,13 @@
 violin_plot<-function(betas, group, numPositions=1000){
   
   cpg<-betas[runif(numPositions,1,nrow(betas)),]
-  cpg<-cbind(group=as.character(group),data.table(t(cpg)) )
-  cpg<-melt( cpg, id.vars="group" )
-  colnames(cpg)<-c("group","Probe_ID","betas")
+  #cpg<-cbind(group=as.character(group),data.table(t(cpg)) )
+  #cpg<-melt( cpg, id.vars="group" )
+  #group <- as.character(group)
+  cpg <- data.frame(group, t(cpg)) %>% 
+    pivot_longer(!group, names_to = "Probe_ID", values_to = "betas")
+  
+  #colnames(cpg)<-c("group","Probe_ID","betas")
   
   p1<-ggplot(cpg, aes(x=group, y=betas, fill=group)) + geom_violin() + 
     theme(axis.text.x=element_text(angle=50,hjust=1, size=14)) + 

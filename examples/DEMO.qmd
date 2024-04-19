@@ -1,5 +1,5 @@
 ---
-title: "PEDIAC"
+title: "DEMO"
 format: 
   html :
     code-fold: false
@@ -23,15 +23,19 @@ params:
   idat: "idat/"
   sampleSheet: "BC80_PEDIAC_32.txt"
   prepcode : "QCDPB"
+  groups : !expr c("Group","Sentrix_ID")
 ---
 
 ```{R setup}
-library(tidyverse)
-library(data.table)
+#library(tidyverse)
+#library(data.table)
 library(DT)
-library(SummarizedExperiment)
+#library(SummarizedExperiment)
 library(knitr)
 
+#library(ggvenn)
+#library(stringr)
+#library(methylkey)
 devtools::load_all("/luca/git/methylkey/")
 ```
 
@@ -43,58 +47,59 @@ annot<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/mai
 
 {{< include qcs.qmd >}}
 
----
+------------------------------------------------------------------------
 
 ## Group Control
 
 In the Group Control step, multidimensional statistical methods such as Multidimensional Scaling (MDS) and Principal Component Analysis (PCA) are employed to visualize and assess the variability within the data. The primary objectives include evaluating differences between groups and identifying potential batch effects.
 
-```{R GC_mvals}
+```{r groupControl}
 # get mvalues with only winsorized correction, but remove XY chromosomes
-methM<-methylkey::getMvals(meth,  grp="Group", sva=NULL, win=TRUE, sex=FALSE)
+methM<- getMvals(meth,  grp="Group", sva=NULL, win=TRUE, sex=FALSE)
 # saveRDS(methM,file="methM.rds")
 # methM <- readRDS("methM.rds")
-mvals<-methylkey::getMvals(methM)
+mvals <- getMvals(methM)
 ```
 
-::: {.callout-warning}
+::: callout-warning
 In this analysis, the primary variable of interest is "Group," and deltabetas will be calculated accordingly. If you intend to utilize another variable for your model, it is necessary to call getMvals again to ensure proper calculation and alignment with the chosen variable.
 :::
 
 {{< include group.qmd >}}
 
----
+------------------------------------------------------------------------
 
 ## Data Correction
 
 In the Data Correction step, we aim to mitigate batch effects, which are systematic variations in data introduced during sample processing or experimental procedures. To address batch effects, we employ the Surrogate Variable Analysis (SVA) method.
 
 ```{R correction}
-#methM<-getMvals(meth, grp="Group", sva="~Group", win=TRUE, sex=FALSE, sentrix2remove=list() )
+methM <- getMvals(meth, grp="Group", sva="~Group", win=TRUE, sex=FALSE, sentrix2remove=list() )
 #saveRDS(methM,file="methM_sva_Group.rds")
-methM <- readRDS("methM_sva_Group.rds")
+#methM <- readRDS("methM_sva_Group.rds")
+mvals <- getMvals(methM)
 ```
 
 {{< include group.qmd >}}
 
----
+------------------------------------------------------------------------
 
 We've observed that there's no significant batch effect requiring correction here, especially considering that the sva method effectively eliminates all variability. Hence, we'll proceed with the analysis using the uncorrected data.
 
 ```{R C_Mvals, echo=TRUE}
-mvals<-getMvals(methM)
+methM <- readRDS("methM.rds")
+mvals <- getMvals(methM)
 ```
 
----
+------------------------------------------------------------------------
 
 # Models
 
-::: {.callout-note}
+::: callout-note
 In this section, we employ linear regression analysis to assess differences between groups and identify probes that exhibit differential methylation patterns. Linear regression allows us to evaluate the association between methylation levels (dependent variable) and group membership or other covariates (independent variables), while accounting for potential confounding factors.
 :::
 
 ```{r mvals2}
-#| eval: false
 methM <- readRDS("methM.rds")
 ```
 
@@ -103,36 +108,34 @@ methM <- readRDS("methM.rds")
 The model assesses the orientation, amplitude, and significance of the differences in methylation levels between the reference group and each of the other groups.
 
 ```{r}
-#| eval: false
 mrs<-MethylResultSet(
   se=methM,
-  model=group,
-  intercept="117low",
+  model="~Group",
+  intercept="low",
   method="ls"
 )
 ```
 
 ```{r}
-intercept="117low"
+intercept="low"
 ```
 
 {{< include model.qmd >}}
 
-## Group, 117high_vs_117low (DMRS) 
+## Group, high_vs_low (DMRS)
 
 {{< include dmrs.qmd >}}
 
----
+------------------------------------------------------------------------
 
 ## Group, intercept=Normal
 
 The model assesses the orientation, amplitude, and significance of the differences in methylation levels between the reference group and each of the other groups.
 
 ```{r}
-#| eval: false
 mrs<-MethylResultSet(
   se=methM,
-  model=group,
+  model="~Group",
   intercept="Normal",
   method="ls"
 )
@@ -144,29 +147,8 @@ intercept="Normal"
 
 {{< include model.qmd >}}
 
----
 
-## Group, intercept=Foetal
-
-The model assesses the orientation, amplitude, and significance of the differences in methylation levels between the reference group and each of the other groups.
-
-```{r}
-#| eval: false
-mrs<-MethylResultSet(
-  se=methM,
-  model=group,
-  intercept="Foetal",
-  method="ls"
-)
-```
-
-```{r}
-intercept="Foetal"
-```
-
-{{< include model.qmd >}}
-
----
+------------------------------------------------------------------------
 
 # Session
 

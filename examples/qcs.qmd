@@ -30,8 +30,8 @@ Run the sesame pipeline to load idats, normalise betas and generate qcs.
 
 ```{R read_idats}
 #meth<-sesame2Betas(params$idat, prep = params$prepcode, sampleSheet=sampleSheet, na=0.2, ncore=4)
-meth<-readRDS("meth.rds")
-qcs<-S4Vectors::metadata(meth)$qcs
+meth <- readRDS("meth.rds")
+qcs  <- metadata(meth)$qcs
 ```
 
 ### Color Channels
@@ -102,8 +102,10 @@ The NA Values Plot displays the number of probes returning no values across sent
 
 #### Density Plot
 
-```{R Densityplot, cache=TRUE}
-densityPlot(methylkey::getBetas(meth))
+```{R densityplot, cache=TRUE}
+betas  <-getBetas(meth)
+subset <- sample(nrow(betas),size=10000)
+densityPlot(betas[subset,])
 ```
 
 ::: {.callout-tip}
@@ -115,7 +117,6 @@ The Density Plot illustrates the distribution of probes based on their level of 
 #### Violin Plots
 
 ```{R violin, cache=TRUE}
-betas<-getBetas(meth)
 violin_plot(betas, sampleSheet$Group, numPositions=1000)
 violin_plot(betas, meth@colData$sentrix_id, numPositions=1000)
 ```
@@ -131,7 +132,7 @@ The Violin Plots offer an alternative representation of the distribution of prob
 ### Inferences
 
 ```{R inferences, cache=TRUE}
-methylkey::colData(meth) %>% DT::datatable()
+colData(meth) %>% DT::datatable()
 ```
 
 ::: {.callout-tip}

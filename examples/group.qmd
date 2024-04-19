@@ -1,16 +1,15 @@
 
+
 ::: panel-tabset
 
 ### MDS
 
-```{r, results='asis'}
-#| echo: false
+```{r}
 #| output: asis
-#| results: asis
 for(grp in params$groups){
   cat("\n\n#### ", grp, "\n\n")
-  grp=methylkey::colData(methM) %>% pull(tolower(grp))
-  p <- my_scatterPlot(mvals, grp, samples(methM), "npg", 1, TRUE, TRUE)
+  grp = colData(methM) %>% dplyr::pull(tolower(grp))
+  p <- my_scatterPlot(mvals, grp, methylkey::samples(methM), "npg", 1, TRUE, TRUE)
   print(p)
 }
 ```
@@ -22,8 +21,8 @@ Multidimensional Scaling (MDS) reduces the dimensionality of the data while pres
 ### PCA
 
 ```{r, cache=TRUE}
-pdata<-methylkey::colData(methM) %>% dplyr::select(samples,group,sentrix_position,sentrix_id)
-pca <- makepca( mvals, pdata, nPC=9 )
+pdata <- colData(methM) %>% select(samples,group,sentrix_position,sentrix_id)
+pca   <- makepca(mvals, pdata, nPC=9)
 plot_PCA_contribution(pca, nPC=9)
 ```
 
@@ -45,7 +44,7 @@ The table provides insights into the contribution of each variable to the princi
 #| results: asis
 for(grp in tolower(params$groups) ){
   cat("\n\n#### ", grp, "\n\n")
-  factoextra::fviz_pca_ind(pca, axes=c(1,2), habillage=methylkey::colData(methM) %>% dplyr::pull(tolower(grp)), addEllipses=TRUE ) %>% print()
+  factoextra::fviz_pca_ind(pca, axes=c(1,2), habillage=colData(methM) %>% dplyr::pull(tolower(grp)), addEllipses=TRUE ) %>% print()
 }
 ```
 

@@ -133,10 +133,10 @@ mrs<-MethylResultSet(
   intercept="low",
   method="ls"
 )
-intercept="low" # required by model.qmd
+intercept="low" # required by dmps.qmd
 ```
 
-{{< include model.qmd >}}
+{{< include dmps.qmd >}}
 
 ## Group, high_vs_low (DMRS)
 
@@ -158,7 +158,7 @@ mrs<-MethylResultSet(
 intercept="Normal"
 ```
 
-{{< include model.qmd >}}
+{{< include dmps.qmd >}}
 
 ------------------------------------------------------------------------
 

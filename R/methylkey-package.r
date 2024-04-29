@@ -13,7 +13,7 @@
 #' @import randomForest
 #' 
 #' @importFrom GenomicRanges makeGRangesFromDataFrame findOverlaps
-#' @importFrom S4Vectors metadata metadata<-
+#' @importFrom S4Vectors metadata metadata<- DataFrame
 #' @import SummarizedExperiment
 #' @import sesame
 #' @import sesameData
@@ -21,7 +21,6 @@
 #' @importFrom minfi read.metharray.exp mapToGenome getSex preprocessRaw fixMethOutliers getQC getBeta preprocessFunnorm detectionP estimateCellCounts densityPlot 
 #' @importFrom FlowSorted.Blood.EPIC estimateCellCounts2
 #' @importFrom GenomeInfoDb seqinfo
-#' @importFrom S4Vectors metadata
 #' 
 #' @import Gviz
 #' @import ENmix
@@ -29,8 +28,6 @@
 #' 
 #' 
 #' @export SummarizedExperiment
-#' @export readr
-#' @export tydir
 #' @export DataFrame
 #' @export metadata
 #' @export metadata<-

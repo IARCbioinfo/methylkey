@@ -21,7 +21,7 @@ Multidimensional Scaling (MDS) reduces the dimensionality of the data while pres
 ### PCA
 
 ```{r, cache=TRUE}
-pdata <- colData(methM) %>% select(samples,group,sentrix_position,sentrix_id)
+#pdata <- colData(methM) %>% dplyr::select(samples,folate,Sex,Litter,sentrix_position,sentrix_id)
 pca   <- makepca(mvals, pdata, nPC=9)
 plot_PCA_contribution(pca, nPC=9)
 ```

@@ -4,7 +4,12 @@
 
 ```{r}
 dmps<-getDMPs(mrs,index)
+nbdmps<-dmps %>% filter(adj.P.Val<0.05) %>% nrow()
+```
 
+Number of significant dmps = `r nbdmps`
+
+```{r}
 dmps %>% dplyr::filter(adj.P.Val<0.05) %>% 
   arrange(adj.P.Val) %>% head(100) %>%
   DT::datatable()
@@ -66,7 +71,7 @@ Points located in the left or right sides of the plot represent DMPs with large 
 #### Circos Plot
 
 ```{r, cache=TRUE}  
-circosplot( getDMPranges(mrs,group=index,q=0.05), "hg38" )
+circosplot( getDMPranges(mrs,group=index,q=0.05), params$genome )
 ```
 
 ::: {.callout-tip}

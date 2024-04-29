@@ -49,7 +49,7 @@ searchDMR_dmrcate<-function(dmps, fdr=0.05, maxgap=1000,pcutoff=0.2,genome="hg38
   myannotation <- new("CpGannotated", ranges=sort(annotated))
   if( sum(is.na(myannotation@ranges$diff)) ){ myannotation@ranges$diff[ which(is.na(myannotation@ranges$diff)) ] <- 0 }
   
-  dmrcoutput<- DMRcate::dmrcate(myannotation,C=2, pcutoff=0.2,lambda = maxgap)
+  dmrcoutput<- DMRcate::dmrcate(myannotation,C=2, pcutoff=pcutoff, lambda = maxgap)
   table <- DMRcate::extractRanges(dmrcoutput, genome = genome)
   overlap <- GenomicRanges::findOverlaps(annotated,table,type="within")
   table <- as.data.frame(table)[subjectHits(overlap),c("seqnames","start","end","HMFDR","no.cpgs")]

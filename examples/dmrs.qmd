@@ -3,13 +3,9 @@
 Differentially Methylated Regions (DMRs) are contiguous genomic regions where the methylation levels exhibit statistically significant differences between experimental groups. Unlike individual differentially methylated positions (DMPs), DMRs provide a more comprehensive view of methylation changes by considering spatial continuity and local correlations in methylation patterns. DMR analysis is a crucial step in methylation studies for identifying biologically relevant regions associated with the studied conditions or phenotypes.
 :::
 
-#### grouphigh vs low
-
 ::: panel-tabset
 
 ```{r}
-result <- getResults( mrs,"grouphigh",tools=c("dmrcate","ipdmr") )
-readr::write_tsv(result, file="PEDIAC_grouphigh_vs_low.tsv")
 result <- result %>% resultsToLong()
 ```
 

@@ -11,6 +11,7 @@ format:
     toc-depth: 4
     page-layout: full
     lightbox: true
+    self-contained: true
 keep-md: true
 editor: visual
 theme:
@@ -27,23 +28,44 @@ params:
 ---
 
 ```{R setup}
-#library(tidyverse)
-#library(data.table)
 library(DT)
-#library(SummarizedExperiment)
 library(knitr)
-
-#library(ggvenn)
-#library(stringr)
-#library(methylkey)
-devtools::load_all("/luca/git/methylkey/")
+library(methylkey)
 ```
 
 ```{r annotation}
 annot<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/EPICv2/EPICv2.hg38.manifest.gencode.v41.tsv.gz")
 ```
 
+# SampleSheet
+
+Here is where you load your sample sheet, select the relevant columns, filter out unnecessary data, harmonize names, and ensure data integrity.<br/> Mandatory columns include "samples" and "barcode," and you should also have at least one column for your variables of interest. Avoid using spaces and special characters in the column names and values. Verify that all columns are properly identified as follows:
+
+::: callout-caution
+Ensure that columns meant to identify samples have unique values and contain only alphanumeric characters.
+:::
+
+::: callout-caution
+Use numeric data types for continuous variables.
+:::
+
+::: callout-caution
+Employ the factor data type for discrete variables.
+:::
+
+```{r sampleSheet}
+sampleSheet <- normalizePath(params$sampleSheet) %>% read_delim()
+sampleSheet %>% DT::datatable()
+```
+
 # Dataset QCs
+
+Run the sesame pipeline to load idats, normalise betas and generate qcs.
+
+```{R read_idats}
+meth <- sesame2Betas(params$idat, prep = params$prepcode, sampleSheet=sampleSheet, na=0.2, ncore=4)
+qcs  <- metadata(meth)$qcs
+```
 
 {{< include qcs.qmd >}}
 
@@ -56,9 +78,8 @@ In the Group Control step, multidimensional statistical methods such as Multidim
 ```{r groupControl}
 # get mvalues with only winsorized correction, but remove XY chromosomes
 methM<- getMvals(meth,  grp="Group", sva=NULL, win=TRUE, sex=FALSE)
-# saveRDS(methM,file="methM.rds")
-# methM <- readRDS("methM.rds")
 mvals <- getMvals(methM)
+pdata <- colData(methM) %>% dplyr::select(samples,Group,sentrix_position,sentrix_id)
 ```
 
 ::: callout-warning
@@ -75,8 +96,6 @@ In the Data Correction step, we aim to mitigate batch effects, which are systema
 
 ```{R correction}
 methM <- getMvals(meth, grp="Group", sva="~Group", win=TRUE, sex=FALSE, sentrix2remove=list() )
-#saveRDS(methM,file="methM_sva_Group.rds")
-#methM <- readRDS("methM_sva_Group.rds")
 mvals <- getMvals(methM)
 ```
 
@@ -114,10 +133,7 @@ mrs<-MethylResultSet(
   intercept="low",
   method="ls"
 )
-```
-
-```{r}
-intercept="low"
+intercept="low" # required by model.qmd
 ```
 
 {{< include model.qmd >}}
@@ -139,14 +155,10 @@ mrs<-MethylResultSet(
   intercept="Normal",
   method="ls"
 )
-```
-
-```{r}
 intercept="Normal"
 ```
 
 {{< include model.qmd >}}
-
 
 ------------------------------------------------------------------------
 

@@ -117,7 +117,7 @@ MethylResultSet <- function(se,model,intercept, method="ls")
   
   for( x in names(dmps)){
     contrast<-paste0(gsub(grp_g,"",x),"_vs_",intercept)
-    add_deltabetas = contrast %in% names(rowData(methM))
+    add_deltabetas = contrast %in% names(rowData(se))
     dmps[[x]] <- dmps[[x]] %>%
       { if(add_deltabetas) dplyr::mutate(., deltabetas = rowData(methM)[ rownames(dmps[[x]]), contrast ] ) else .  } %>% # add delta betas
       { if(add_deltabetas) dplyr::mutate(., status=ifelse(deltabetas>0,"hyper","hypo")) else .  } %>%
@@ -230,9 +230,12 @@ setGeneric("add_dmrcate", function(x,fdr=0.05,pcutoff=0.02,maxgap=1000,genome="h
 setMethod("add_dmrcate", "data.frame",
   function(x,fdr=0.05,pcutoff=0.02,maxgap=1000,genome="hg38"){
     
-    searchDMR_dmrcate(x,fdr=fdr,pcutoff=pcutoff,maxgap=maxgap,genome=genome) %>%
+    dmrs<-searchDMR_dmrcate(x,fdr=fdr,pcutoff=pcutoff,maxgap=maxgap,genome=genome) %>%
       unite("dmrcate",seqnames,start,end,sep = "-") %>%
-      unite("dmrcate",dmrcate,HMFDR,no.cpgs,sep=":")       
+      unite("dmrcate",dmrcate,HMFDR,no.cpgs,sep=":") %>% 
+      select(dmrcate,Probe_ID)
+    
+    left_join(x,dmrs,by="Probe_ID")
 })
 
 #' Create generic function for adding IPDMR results to a data frame

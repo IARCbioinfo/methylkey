@@ -29,6 +29,9 @@
 #' 
 #' 
 #' @export SummarizedExperiment
+#' @export readr
+#' @export tydir
+#' @export DataFrame
 #' @export metadata
 #' @export metadata<-
 # #' @exportMethod densityPlot

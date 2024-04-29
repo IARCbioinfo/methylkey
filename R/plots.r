@@ -776,7 +776,7 @@ circosplot<-function(ranges, genome){
   
   if (genome=="hg38"){ require(BSgenome.Hsapiens.UCSC.hg38) ; species=BSgenome.Hsapiens.UCSC.hg38}
   if (genome=="hg19"){ require(BSgenome.Hsapiens.UCSC.hg19) ; species=BSgenome.Hsapiens.UCSC.hg19}
-  if (genome=="mm10"){ require(BSgenome.Mmusculus.UCSC.mm10) ; BSgenome.Mmusculus.UCSC.mm10}
+  if (genome=="mm10"){ require(BSgenome.Mmusculus.UCSC.mm10) ; species=BSgenome.Mmusculus.UCSC.mm10}
   
   chr.len = seqlengths(species)
   chr.len = chr.len[grep("_|M", names(chr.len), invert = T)]

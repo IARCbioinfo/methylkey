@@ -1,9 +1,0 @@
----
-title: Results
-params:
-  param1: "raté"
----
-
-```{r}
-print( toto )
-```

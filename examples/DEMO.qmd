@@ -22,9 +22,10 @@ execute:
   error: false
 params:
   idat: "idat/"
-  sampleSheet: "BC80_PEDIAC_32.txt"
+  sampleSheet: "sampleSheet.txt"
   prepcode : "QCDPB"
   groups : !expr c("Group","Sentrix_ID")
+  genome : "hg38"
 ---
 
 ```{R setup}
@@ -134,6 +135,8 @@ mrs<-MethylResultSet(
   method="ls"
 )
 intercept="low" # required by dmps.qmd
+mrs@manifest=DataFrame(left_join(as_tibble(mrs@manifest),annot, by="Probe_ID")) # annotation
+result <- getResults( mrs,"grouphigh",tools=c("dmrcate","ipdmr") ) # calculate dmrs and return a dataFrame
 ```
 
 {{< include dmps.qmd >}}
@@ -156,6 +159,8 @@ mrs<-MethylResultSet(
   method="ls"
 )
 intercept="Normal"
+mrs@manifest=DataFrame(left_join(as_tibble(mrs@manifest),annot, by="Probe_ID")) # annotation
+result <- getResults( mrs,"grouphigh",tools=c("dmrcate","ipdmr") ) # calculate dmrs and return a dataFrame
 ```
 
 {{< include dmps.qmd >}}

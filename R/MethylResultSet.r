@@ -119,7 +119,7 @@ MethylResultSet <- function(se,model,intercept, method="ls")
     contrast<-paste0(gsub(grp_g,"",x),"_vs_",intercept)
     add_deltabetas = contrast %in% names(rowData(se))
     dmps[[x]] <- dmps[[x]] %>%
-      { if(add_deltabetas) dplyr::mutate(., deltabetas = rowData(methM)[ rownames(dmps[[x]]), contrast ] ) else .  } %>% # add delta betas
+      { if(add_deltabetas) dplyr::mutate(., deltabetas = rowData(se)[ rownames(dmps[[x]]), contrast ] ) else .  } %>% # add delta betas
       { if(add_deltabetas) dplyr::mutate(., status=ifelse(deltabetas>0,"hyper","hypo")) else .  } %>%
       tibble::rownames_to_column("Probe_ID") %>%
       dplyr::select(-logFC) %>%
@@ -185,15 +185,15 @@ setMethod("getDMPranges", "MethylResultSet", function(x,group=1,q=0.05){
 #' @param tools Character vector specifying the analysis tools to use (default is c("dmrcate", "ipdmr")).
 #' @param ... Additional arguments to be passed to the analysis functions.
 #' @export
-setGeneric("getResults", function(x,index,tools=c("dmrcate","ipdmr"),...) 
+setGeneric("getResults", function(x,index,tools=c("dmrcate","ipdmr"),maxgap=1000,...) 
   standardGeneric("getResults") )
 
 setMethod("getResults", "MethylResultSet",
-  function(x,index,tools=c("dmrcate","ipdmr"),...){
+  function(x,index,tools=c("dmrcate","ipdmr"),maxgap=1000,...){
     
     result<-getDMPs(mrs,index)
     result<-add_dmrcate(result,...)
-    result<-add_ipdmr(result,...)
+    result<-add_ipdmr(result,maxgap)
     return(result)
 })            
 

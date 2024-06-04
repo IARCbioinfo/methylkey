@@ -498,7 +498,7 @@ my_venn_<-function(dt,a){
   )
   a<-Filter(length, a)
   b<-Filter(length, b)
-  venn<-ggvenn::ggvenn( b, names(b) ) + ggtitle("C")
+  venn<-ggvenn::ggvenn( b, names(b) )
   return(venn)
 }
 
@@ -518,7 +518,9 @@ my_venn<-function(dt){
             `combp` = dt %>% dplyr::filter(dmrtool=="combp") %>% dplyr::pull(ID) %>% unique(),
             `ipdmr` = dt %>% dplyr::filter(dmrtool=="ipdmr") %>% dplyr::pull(ID) %>% unique()
   )
-  return(my_venn_(dt,a))
+  #return(my_venn_(dt,a))
+  if ( sum(!sapply(a,is.null))  < 2 ) return(NULL)
+  return( ggvenn::ggvenn( a, names(a) ) )
 }
 
 #' Create a Venn diagram to visualize intersections of IDs for different dmrtools

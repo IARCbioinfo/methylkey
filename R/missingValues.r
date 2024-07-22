@@ -54,7 +54,7 @@ replaceByMean<-function(betas,groups){
 	
 	#select rows containing missing values
 	probNAcont<-which(apply(betas,1,function(i) sum(is.na(i)))>0)
-
+	
 	#calculate means by group
 	meanBetas<-function(betas){
 		rmeans<-matrix( rowMeans(betas,na.rm=T), ncol=ncol(betas), nrow=nrow(betas) )
@@ -68,6 +68,11 @@ replaceByMean<-function(betas,groups){
 		if(!sum(sel)>1){ stop("You should have at least 2 samples by group !") }
 		betas[probNAcont,sel]<-meanBetas(betas[probNAcont,sel])
 	}
+	
+	#if there is remaining na, because there is no value for a group
+	probNAcont<-which(apply(betas,1,function(i) sum(is.na(i)))>0)
+	if (length(probNAcont)) betas<-betas[-probNAcont,]
+	
 	return(betas)
 }
 

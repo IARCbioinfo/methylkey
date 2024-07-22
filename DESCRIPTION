@@ -1,6 +1,6 @@
 Package: methylkey
 Title: Pipeline for methylation array analysis
-Version: 0.3.2.0009
+Version: 0.3.3.0001
 Authors@R: 
     person(given = "Vincent",
            family = "Cahais",
@@ -15,7 +15,6 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
 Imports:
   SummarizedExperiment (>= 1.28.0),
-  minfi (>= 1.44.0),
   wateRmelon (>= 2.4.0),
   sesame (>= 1.16.1),
   sesameData (>= 1.16.0),
@@ -49,6 +48,7 @@ Imports:
 Depends:
   R (>= 4.2.1)
 Suggests: 
+  minfi (>= 1.44.0),
   rmarkdown,
   knitr
 VignetteBuilder: knitr

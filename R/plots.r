@@ -519,8 +519,8 @@ my_venn<-function(dt){
             `ipdmr` = dt %>% dplyr::filter(dmrtool=="ipdmr") %>% dplyr::pull(ID) %>% unique()
   )
   #return(my_venn_(dt,a))
-  if ( sum(!sapply(a,is.null))  < 2 ) return(NULL)
-  return( ggvenn::ggvenn( a, names(a) ) )
+  if ( sum(!!sapply(a,length))  < 2 ) return(NULL)
+  return( my_venn_(dt,a) )
 }
 
 #' Create a Venn diagram to visualize intersections of IDs for different dmrtools

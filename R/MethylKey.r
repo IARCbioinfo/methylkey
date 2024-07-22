@@ -132,7 +132,7 @@ setGeneric("getBetas", function(x,masked=FALSE, na=FALSE, sex=TRUE) standardGene
 #' @export
 setMethod("getBetas", signature("Betas"),
   definition = function(x, masked = FALSE, na=FALSE, sex = TRUE) {
-    if(!masked & !na & sex) return(assays(x)$betas)
+    if(masked & na & sex) return(assays(x)$betas)
     mask_general_condition <- if (!masked) { rowData(x)$M_general == FALSE } else { TRUE }
     na_condition <- if (!na) { rowData(x)$Na == FALSE } else { TRUE }
     mask_chrm_condition <- if (!sex) { rowData(x)$MASK_chrm == FALSE } else { TRUE }
@@ -157,7 +157,7 @@ setGeneric("getBetasRanges", function(x,masked=FALSE, na=FALSE, sex=TRUE) standa
 
 setMethod("getBetasRanges", signature("Betas"),
           definition = function(x, masked = FALSE, na=FALSE, sex = TRUE) {
-            if(!masked & !na & sex) return(assays(x)$betas)
+            if(masked & na & sex) return(assays(x)$betas)
             mask_general_condition <- if (!masked) { rowData(x)$M_general == FALSE } else { TRUE }
             na_condition <- if (!na) { rowData(x)$Na == FALSE } else { TRUE }
             mask_chrm_condition <- if (!sex) { rowData(x)$MASK_chrm == FALSE } else { TRUE }
@@ -512,6 +512,7 @@ setMethod("getMvals", signature("Betas"), definition = function(x, grp="grp", sv
   
   # remove remaining na whith mean method
   group <- pdata %>% dplyr::pull(tolower(grp))
+  group <- droplevels(group)
   betas <- replaceByMean( betas, groups = group )
   
   # winsorize betas
@@ -544,6 +545,34 @@ setMethod("getMvals", signature("Betas"), definition = function(x, grp="grp", sv
   
   return(mvals)
 })
+
+
+
+#' Return a subset of Mvals data
+#'
+#' This function return a subset of Mvals data with associated sampleSheet 
+#'
+#' @param a vector of Barcode corresponding to the samples to keep.
+#'
+#' @return The new subset Mval object.
+#'
+#' @export
+subSetMval<-function(se,samples2keep){
+  
+  betas <- getMvals(se)
+  pdata = data.frame(colData(se))
+  sel<-which(colData(se)$barcode %in% samples2keep)
+  pdata   <- colData(se)[sel,]
+  pdata[] <- lapply(pdata, function(x) if(is.factor(x)) droplevels(x) else x)
+  betas <- betas[,sel]
+  
+  mvals <-SummarizedExperiment( assays=list(mvals=betas), colData=pdata, rowData = rowData(se) )
+  mvals <- as(mvals,"Mvals")
+  metadata(mvals)<-metadata(se)
+  return(mvals)
+}
+
+
 
 #' Determine the methylation array platform from the number of rows in a matrix
 #'

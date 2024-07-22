@@ -11,7 +11,7 @@
 #' @return An object of class "MethyLumiMethyLumiSet" containing beta values and associated metadata, including quality control statistics and plots.
 #'
 #' @export
-sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, ncore=4 ){
+sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, ncore=4, age_models=NULL ){
   
   require(sesame)
   require(sesameData)
@@ -30,14 +30,13 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
   
   betas=openSesame(sdfs, prep = "", func = sesame::getBetas, mask = TRUE, BPPARAM=BiocParallel::MulticoreParam(ncore))
   
-  tryCatch({
-    inferedsex<-sapply(sdfs, function(sdf){ inferSex(sdf, verbose = FALSE) }) %>%
-      data.frame() %>% tibble::rownames_to_column("barcode") %>% dplyr::rename(inferedsex=2)
-    sampleSheet<-merge(sampleSheet, inferedsex, by="barcode") %>% dplyr::relocate(samples)
-  },error = function(e){print(e)})
+  sampleSheet$inferedSex=inferSex(betas)
   
-  age<-wateRmelon::agep(betas, method='all') %>% tibble::rownames_to_column("barcode")
-  sampleSheet<-merge(sampleSheet,age, by="barcode") %>% dplyr::relocate(samples)
+  for (model_name in names(age_models)){
+    model_file=age_models[[model_name]]
+    model=read_rds(model_file)
+    sampleSheet[[model_name]]=apply(betas, 2, function(samp){predictAge(samp,model,na_fallback = TRUE)} )
+  }
   
   meth<-newBetas( betas, sampleSheet, na )
   metadata(meth)$betas.pipeline.name="sesame"
@@ -65,6 +64,10 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
 #'
 #' @export
 minfi2Betas<-function( idat=NULL, sampleSheet=NULL, na=0.2, compositeCellType="", pval=0.2 ){
+  
+  if (!requireNamespace("minfi", quietly = TRUE)) {
+    stop("Package 'minfi' is required for this function to work. Please install it.")
+  }
   
   require(minfi)
   require(wateRmelon)

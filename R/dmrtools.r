@@ -38,6 +38,10 @@
 
 
 searchDMR_dmrcate<-function(dmps, fdr=0.05, maxgap=1000,pcutoff=0.2,genome="hg38"){
+  
+  if (!requireNamespace("DMRcate", quietly = TRUE)) {
+    stop("Package 'DMRcate' is required for this function to work. Please install it.")
+  }
   require(DMRcate)
   
   dmps <- dmps %>% dplyr::filter(!str_detect(chr, "_"))
@@ -69,6 +73,10 @@ searchDMR_dmrcate<-function(dmps, fdr=0.05, maxgap=1000,pcutoff=0.2,genome="hg38
 #'
 #' @export
 searchDMR_dmrff<-function(dmps, betas, maxgap=1000){
+  
+  if (!requireNamespace("dmrff", quietly = TRUE)) {
+    stop("Package 'dmrff' is required for this function to work. Please install it.")
+  }
   require(dmrff)
   
   dmrs <- dmrff(estimate=dmps$Coefficient,
@@ -108,6 +116,10 @@ searchDMR_dmrff<-function(dmps, betas, maxgap=1000){
 #'
 #' @export
 searchDMR_combp<-function(dmps, maxgap=1000){
+  
+  if (!requireNamespace("ENmix", quietly = TRUE)) {
+    stop("Package 'ENmix' is required for this function to work. Please install it.")
+  }
   require(ENmix)
   
   data=data.frame(probe=rownames(dmps),p=dmps$P.Value,chr=dmps$chr,start=dmps$pos,end=dmps$pos)
@@ -161,6 +173,11 @@ searchDMR_combp<-function(dmps, maxgap=1000){
 # }
 
 searchDMR_ipdmr<-function(dmps, maxgap=1000, bin.size=310, seed=0.05){
+  
+  if (!requireNamespace("ENmix", quietly = TRUE)) {
+    stop("Package 'ENmix' is required for this function to work. Please install it.")
+  }
+  
   require(ENmix)
   
   data=data.frame(probe=dmps$Probe_ID,p=dmps$P.Value,chr=dmps$chr,start=dmps$pos,end=dmps$pos)

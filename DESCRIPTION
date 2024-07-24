@@ -1,6 +1,6 @@
 Package: methylkey
 Title: Pipeline for methylation array analysis
-Version: 0.3.3.0001
+Version: 0.3.3.0002
 Authors@R: 
     person(given = "Vincent",
            family = "Cahais",
@@ -15,15 +15,10 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
 Imports:
   SummarizedExperiment (>= 1.28.0),
-  wateRmelon (>= 2.4.0),
   sesame (>= 1.16.1),
   sesameData (>= 1.16.0),
-  FlowSorted.Blood.EPIC (>= 2.2.0),
   limma (>= 3.54.2),
   GenomicRanges (>= 1.50.0),
-  DMRcate (>= 2.12.0),
-  ENmix (>= 1.34.02),
-  dmrff (>= 1.0.0),
   randomForest (>= 4.7-1.1),
   qqman (>= 0.1.8),
   sva (>= 3.46.0),
@@ -40,15 +35,20 @@ Imports:
   factoextra (>= 1.0.7),
   assertthat (>= 0.2.1),
   DescTools (>= 0.99.50),
-  EpiSmokEr (>= 0.1.0),
   ggbio(>= 1.46.0),
-  BSgenome.Mmusculus.UCSC.mm10(>= 1.4.3),
-  BSgenome.Hsapiens.UCSC.hg19(>= 1.4.3),
-  BSgenome.Hsapiens.UCSC.hg38(>= 1.4.5)
 Depends:
   R (>= 4.2.1)
-Suggests: 
+Suggests:
+  DMRcate (>= 2.12.0),
+  ENmix (>= 1.34.02),
+  dmrff (>= 1.0.0),
+  wateRmelon (>= 2.4.0),
   minfi (>= 1.44.0),
+  FlowSorted.Blood.EPIC (>= 2.2.0),
+  BSgenome.Mmusculus.UCSC.mm10(>= 1.4.3),
+  BSgenome.Hsapiens.UCSC.hg19(>= 1.4.3),
+  BSgenome.Hsapiens.UCSC.hg38(>= 1.4.5),
+  EpiSmokEr (>= 0.1.0),
   rmarkdown,
   knitr
 VignetteBuilder: knitr

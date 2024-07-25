@@ -11,11 +11,10 @@
 #' @return An object of class "MethyLumiMethyLumiSet" containing beta values and associated metadata, including quality control statistics and plots.
 #'
 #' @export
-sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, ncore=4, age_models=NULL ){
+sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, ncore=4, Clock_models=NULL ){
   
   require(sesame)
   require(sesameData)
-  require(wateRmelon)
   require(purrr)
   
   #print("Warning loading data from EBV analysis")
@@ -23,24 +22,32 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
   assertthat::assert_that( is.data.frame(sampleSheet), msg="Please provide a sampleSheet" )
   assertthat::assert_that(na >= 0 && na <= 1, msg="na must be between 0 and 1.")
   
+  #format sampleSheet
   sampleSheet<-formatSampleSheet(sampleSheet)
   
+  #load idat into sdfs list
   sdfs <- openSesame(idat, prep = prep, func = NULL, BPPARAM=BiocParallel::MulticoreParam(ncore))
   saveRDS(sdfs,"sdfs.rds")
   
+  # extract betas matrix
   betas=openSesame(sdfs, prep = "", func = sesame::getBetas, mask = TRUE, BPPARAM=BiocParallel::MulticoreParam(ncore))
   
-  sampleSheet$inferedSex=inferSex(betas)
+  #infer sex
+  sampleSheet$inferedSex=apply(betas, 2, function(samp){inferSex(samp)} )
   
-  for (model_name in names(age_models)){
-    model_file=age_models[[model_name]]
+  #infer age
+  for (model_name in names(Clock_models)){
+    model_file=Clock_models[[model_name]]
     model=read_rds(model_file)
-    sampleSheet[[model_name]]=apply(betas, 2, function(samp){predictAge(samp,model,na_fallback = TRUE)} )
+    na_fallback="na_fallback" %in% names(model$param)
+    sampleSheet[[model_name]]=apply(betas, 2, function(samp){predictAge(samp,model,na_fallback)} )
   }
   
+  #create methylkey Beta object
   meth<-newBetas( betas, sampleSheet, na )
   metadata(meth)$betas.pipeline.name="sesame"
   
+  #add the qcs
   qcs = openSesame(sdfs, prep="", func=sesameQC_calcStats, BPPARAM=BiocParallel::MulticoreParam(ncore))
   metadata(meth)$qcs = purrr::map( qcs, ~sesameQC_getStats(.) ) %>% bind_rows(.id="name")
   

@@ -16,7 +16,7 @@
 #   require(DMRcate)
 #   
 #   annotated <- data.frame(chr=dmps$chr, start=dmps$pos, end=dmps$pos, strand=dmps$strand,
-#                           stat=dmps$t, diff= dmps$deltabetas, ind.fdr=dmps$adj.P.Val, is.sig=(dmps$adj.P.Val<fdr) )
+#       rawpval=dmps$P.Value, stat=dmps$t, diff= dmps$deltabetas, ind.fdr=dmps$adj.P.Val, is.sig=(dmps$adj.P.Val<fdr) )
 #   annotated<-GenomicRanges::makeGRangesFromDataFrame(annotated, keep.extra.columns=TRUE)
 #   names(annotated)<-dmps$Probe_ID
 #   myannotation <- new("CpGannotated", ranges=sort(annotated))

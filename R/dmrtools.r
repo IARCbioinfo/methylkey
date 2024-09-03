@@ -47,7 +47,7 @@ searchDMR_dmrcate<-function(dmps, fdr=0.05, maxgap=1000,pcutoff=0.2,genome="hg38
   dmps <- dmps %>% dplyr::filter(!str_detect(chr, "_"))
   
   annotated <- data.frame(chr=dmps$chr, start=dmps$pos, end=dmps$pos, strand=dmps$strand,
-                          stat=dmps$t, diff= dmps$deltabetas, ind.fdr=dmps$adj.P.Val, is.sig=(dmps$adj.P.Val<fdr) )
+        rawpval=dmps$P.Value, stat=dmps$t, diff= dmps$deltabetas, ind.fdr=dmps$adj.P.Val, is.sig=(dmps$adj.P.Val<fdr) )
   annotated<-GenomicRanges::makeGRangesFromDataFrame(annotated, keep.extra.columns=TRUE)
   names(annotated)<-dmps$Probe_ID
   myannotation <- new("CpGannotated", ranges=sort(annotated))

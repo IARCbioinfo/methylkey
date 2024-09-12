@@ -37,7 +37,7 @@
 # }
 
 
-searchDMR_dmrcate<-function(dmps, fdr=0.05, maxgap=1000,pcutoff=0.2,genome="hg38"){
+searchDMR_dmrcate<-function(dmps, fdr=0.05, maxgap=1000,pcutoff=0.2,genome="hg38",){
   
   if (!requireNamespace("DMRcate", quietly = TRUE)) {
     stop("Package 'DMRcate' is required for this function to work. Please install it.")
@@ -56,8 +56,10 @@ searchDMR_dmrcate<-function(dmps, fdr=0.05, maxgap=1000,pcutoff=0.2,genome="hg38
   dmrcoutput<- DMRcate::dmrcate(myannotation,C=2, pcutoff=pcutoff, lambda = maxgap)
   table <- DMRcate::extractRanges(dmrcoutput, genome = genome)
   overlap <- GenomicRanges::findOverlaps(annotated,table,type="within")
-  table <- as.data.frame(table)[subjectHits(overlap),c("seqnames","start","end","HMFDR","no.cpgs")]
-  
+  #table <- as.data.frame(table)[subjectHits(overlap),c("seqnames","start","end","HMFDR","no.cpgs")]
+  table <- as.data.frame(table)[subjectHits(overlap),c("seqnames","start","end","HMFDR","min_smoothed_fdr","no.cpgs")]
+  #table$HMFDR <- table$min_smoothed_fdr
+
   dmps[queryHits(overlap),] %>% bind_cols( table )
 }
 

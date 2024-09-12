@@ -390,6 +390,7 @@ plot_NA<-function(df){
 #'
 #' @export
 plot_Detection<-function(df){
+  
   ggplot(df) + geom_bar(aes(x=name,y=frac_dt), stat="identity") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 }
@@ -568,6 +569,62 @@ my_density<-function(dt){
 }
 
 
+#' Create a density plot of beta values ( copy of the density plot function in Minfi )
+#'
+#' This function generates a density plot of DMR (Differentially Methylated Region) lengths grouped by 'dmrtool'. It takes a data frame 'dt' as input, calculates the length of each DMR, and then creates the density plot.
+#'
+#' @param dat A matrix of betas.
+#' @param sampGroups for color group
+#' @param main title
+#' @param xlab x label
+#' @param pal palette
+#' @param xlim xlim
+#' @param ylim ylim
+#' @param add boolean ??
+#' @param legend boolean add legend ??
+#'
+#' @return A density plot figure.
+#'
+#' @export
+densityPlot <- function(dat, sampGroups = NULL, main = "", xlab = "Beta",
+                        pal = RColorBrewer::brewer.pal(8, "Dark2"),
+                        xlim, ylim, add = TRUE, legend = TRUE, ...) {
+    if (is(dat, "matrix")) {
+        b <- dat
+    } else {
+        stop("argument 'dat' must be an 'RGChannelSet', a 'MethylSet' or ",
+             "matrix.")
+    }
+    # NOTE: Have to ensure data are in memory as an ordinary vector before
+    #       computing density
+    d <- apply(b, 2, function(x) density(as.vector(x), na.rm = TRUE))
+    if (missing(ylim)) ylim <- range(sapply(d, function(i) range(i$y)))
+    if (missing(xlim)) xlim <- range(sapply(d, function(i) range(i$x)))
+    if (is.null(sampGroups)) {
+        sampGroups <- rep(1, ncol(b))
+    } else if (length(sampGroups) == 1) {
+        sampGroups <- rep(sampGroups, ncol(b))
+    }
+    sampGroups <- as.factor(sampGroups)
+    if (add) {
+        plot(x = 0,
+             type = "n",
+             ylim = ylim,
+             xlim = xlim,
+             ylab = "Density",
+             xlab = xlab,
+             main = main, ...)
+        abline(h = 0, col = "grey80")
+    }
+    for (i in seq_along(d)) {
+        lines(d[[i]], col = pal[sampGroups[i]])
+    }
+    if (legend & length(levels(sampGroups)) > 1) {
+        legend("topright", legend = levels(sampGroups), text.col = pal)
+    }
+}
+
+
 #' Create a violin plot of DMR lengths grouped by dmrtool
 #'
 #' This function generates a violin plot of DMR (Differentially Methylated Region) lengths grouped by 'dmrtool'. It takes a data frame 'dt' as input, calculates the length of each DMR, and then creates the violin plot.
@@ -678,6 +735,7 @@ my_dmrplot<-function(dt,group,title){
 #' @export
 my_scatterPlot<-function(betas,group,sample_names,palette,size,showlabels,ellipse){
   
+  if (is.numeric(group)) return()
   #get lines in betas without na
   subset <- which(!is.na( rowSums(betas) ))
   subset <- sample(subset,size=100000)
@@ -818,7 +876,8 @@ circosplot<-function(ranges, genome){
 #' @return A plot representing the channels.
 #'
 #' @export
-setGeneric("plot_Channels", function(x) standardGeneric("plot_Channels") )
+#setGeneric("plot_Channels", function(x) standardGeneric("plot_Channels") )
+setGeneric("plot_Channels", function(x, numPositions = 1000) standardGeneric("plot_Channels"))
 
 
 #' Plot channels from a list
@@ -832,20 +891,45 @@ setGeneric("plot_Channels", function(x) standardGeneric("plot_Channels") )
 #' @return A ggplot2 boxplot representing the channels.
 #'
 #' @export
-setMethod("plot_Channels", signature("list"), definition = function(x) {
-  sampNames=names(x)
-  if( identical(sampNames,names(x)) ) sampNames<-gsub(".*_R","R",sampNames)
-  map( x, ~tibble(UG=.$UG, UR=.$UR) ) %>% bind_rows(.id="name") %>%
-    mutate(samp=rep(sampNames,each=nrow(x[[1]]) )) %>%
-    tidyr::pivot_longer(-c(name,samp),names_to = "channel", values_to = "Intensity") %>%
-    mutate(sentrix=gsub("_.*","",name)) %>%
-    ggplot() + geom_boxplot(aes(x=samp,y=Intensity,fill=channel)) + 
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1) ) +
-    scale_fill_manual(values = c("#2ecc71","#c0392b")) +
-    scale_y_continuous(trans='log2') +
-    ylab("Log2 Intensity") + 
-    facet_grid(.~sentrix, scales = "free_x")
+# setMethod("plot_Channels", signature("list"), definition = function(x) {
+#   sampNames=names(x)
+#   if( identical(sampNames,names(x)) ) sampNames<-gsub(".*_R","R",sampNames)
+#   map( x, ~tibble(UG=.$UG, UR=.$UR) ) %>% bind_rows(.id="name") %>%
+#     mutate(samp=rep(sampNames,each=nrow(x[[1]]) )) %>%
+#     tidyr::pivot_longer(-c(name,samp),names_to = "channel", values_to = "Intensity") %>%
+#     mutate(sentrix=gsub("_.*","",name)) %>%
+#     ggplot() + geom_boxplot(aes(x=samp,y=Intensity,fill=channel)) + 
+#     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1) ) +
+#     scale_fill_manual(values = c("#2ecc71","#c0392b")) +
+#     scale_y_continuous(trans='log2') +
+#     ylab("Log2 Intensity") + 
+#     facet_grid(.~sentrix, scales = "free_x")
+# })
+setMethod("plot_Channels", signature("list"), definition = function(x, numPositions = 1000) {
+  sampNames = names(x)
+  if (identical(sampNames, names(x))) sampNames <- gsub(".*_R", "R", sampNames)
+  
+  sampled_data <- map(x, ~ {
+    if (numPositions < nrow(.)) {
+      sample_n(., numPositions)
+    } else {
+      .
+    }
+  })
+  
+  bind_rows(map(sampled_data, ~ tibble(UG = .$UG, UR = .$UR)), .id = "name") %>%
+    mutate(samp = rep(sampNames, each = numPositions)) %>%
+    tidyr::pivot_longer(-c(name, samp), names_to = "channel", values_to = "Intensity") %>%
+    mutate(sentrix = gsub("_.*", "", name)) %>%
+    ggplot() +
+    geom_boxplot(aes(x = samp, y = Intensity, fill = channel)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+    scale_fill_manual(values = c("#2ecc71", "#c0392b")) +
+    scale_y_continuous(trans = 'log2') +
+    ylab("Log2 Intensity") +
+    facet_grid(. ~ sentrix, scales = "free_x")
 })
+
 
 #' Plot channels from an RGChannelSet object
 #'

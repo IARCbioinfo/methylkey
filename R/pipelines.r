@@ -33,14 +33,16 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
   betas=openSesame(sdfs, prep = "", func = sesame::getBetas, mask = TRUE, BPPARAM=BiocParallel::MulticoreParam(ncore))
   
   #infer sex
-  sampleSheet$inferedSex=apply(betas, 2, function(samp){inferSex(samp)} )
+  #sampleSheet$inferedSex=apply(betas, 2, function(samp){inferSex(samp)} )
+  sampleSheet$inferedSex=sapply( sampleSheet$barcode, function(barcode){ inferSex(betas[,barcode]) })
   
   #infer age
   for (model_name in names(Clock_models)){
     model_file=Clock_models[[model_name]]
     model=read_rds(model_file)
     na_fallback="na_fallback" %in% names(model$param)
-    sampleSheet[[model_name]]=apply(betas, 2, function(samp){predictAge(samp,model,na_fallback)} )
+    #sampleSheet[[model_name]]=apply(betas, 2, function(samp){predictAge(samp,model,na_fallback)} )
+    sampleSheet[[model_name]]=sapply( sampleSheet$barcode, function(barcode){ predictAge(betas[,barcode],model,na_fallback) })
   }
   
   #create methylkey Beta object

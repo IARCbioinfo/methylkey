@@ -228,7 +228,7 @@ setGeneric("add_dmrcate", function(x,fdr=0.05,pcutoff=0.02,maxgap=1000,genome="h
   standardGeneric("add_dmrcate") )
 
 setMethod("add_dmrcate", "data.frame",
-  function(x,fdr=0.05,pcutoff=0.02,maxgap=1000,genome="hg38",mean="HMFDR"){
+  function(x,fdr=0.05,pcutoff=0.2,maxgap=1000,genome="hg38",mean="HMFDR"){
     if(!mean %in% c("HMFDR","min_smoothed_fdr")) { 
       warning("parameter mean should be 'HMFDR' or 'min_smoothed_fdr'; defaulting to HMFDR")
       mean<-"HMFDR"

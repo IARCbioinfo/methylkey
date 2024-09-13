@@ -37,7 +37,7 @@
 # }
 
 
-searchDMR_dmrcate<-function(dmps, fdr=0.05, maxgap=1000,pcutoff=0.05,genome="hg38",){
+searchDMR_dmrcate<-function(dmps, fdr=0.05, maxgap=1000,pcutoff=0.05,genome="hg38"){
   
   if (!requireNamespace("DMRcate", quietly = TRUE)) {
     stop("Package 'DMRcate' is required for this function to work. Please install it.")

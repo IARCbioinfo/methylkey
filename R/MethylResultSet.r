@@ -224,7 +224,7 @@ setMethod("resultsToLong", "data.frame", function(df){
 #' @title Create generic function for converting results to long format
 #' @param df A data frame containing results.
 #' @export
-setGeneric("add_dmrcate", function(x,fdr=0.05,pcutoff=0.05,maxgap=1000,genome="hg38") 
+setGeneric("add_dmrcate", function(x,fdr=0.05,pcutoff=0.05,maxgap=1000,genome="hg38",mean="HMFDR") 
   standardGeneric("add_dmrcate") )
 
 setMethod("add_dmrcate", "data.frame",

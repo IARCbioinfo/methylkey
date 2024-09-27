@@ -71,6 +71,16 @@ m_leastsquare<-function(mval,pdata,model){
 }
 
 
+# not exported
+topTables<-function(eb,x,rsq){
+  
+  x_table<-limma::topTable(eb, adjust="BH", number=Inf, p=1, sort.by="P", coef=x)
+  x_table$Coefficient=eb$coefficients[rownames(x_table),x]
+  x_table$Stdev=(sqrt(eb$s2.post) * eb$stdev.unscaled)[rownames(x_table),x]
+  x_table$goodness=rsq[rownames(x_table)]
+  
+  return(x_table)
+}
 
 
 #' m_leastsquare2
@@ -106,7 +116,7 @@ m_leastsquare2<-function(mval,pdata,model){
   rsq<-ssr/sst
   
   # topTables
-  topTables<-lapply(colnames(fit), function(x){ topTables(eb,x,rsq,lambda[x]) })
+  topTables<-lapply(colnames(fit), function(x){ topTables(eb,x,rsq) })
   names(topTables)<-colnames(fit)
   
   return(topTables)

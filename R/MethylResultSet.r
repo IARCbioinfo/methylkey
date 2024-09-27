@@ -51,16 +51,7 @@ MethylResultSet<-setClass(
   
 )
 
-# not exported
-topTables<-function(eb,x,rsq){
-  
-  x_table<-limma::topTable(eb, adjust="BH", number=Inf, p=1, sort.by="P", coef=x)
-  x_table$Coefficient=eb$coefficients[rownames(x_table),x]
-  x_table$Stdev=(sqrt(eb$s2.post) * eb$stdev.unscaled)[rownames(x_table),x]
-  x_table$goodness=rsq[rownames(x_table)]
-  
-  return(x_table)
-}
+
 
 #' Create a MethylResultSet Object
 #'
@@ -112,8 +103,6 @@ MethylResultSet <- function(se,model,intercept, method="ls")
   
   dmps<-lapply(colnames(fit)[-1], function(x){ topTables(eb,x,rsq) })
   names(dmps)<-colnames(fit)[-1]
-  
-  ### J'en suis ici, ajouter les delta betas !
   
   for( x in names(dmps)){
     contrast<-paste0(gsub(grp_g,"",x),"_vs_",intercept)

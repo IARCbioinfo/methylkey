@@ -181,8 +181,10 @@ setMethod("getResults", "MethylResultSet",
   function(x,index,tools=c("dmrcate","ipdmr"),maxgap=1000,...){
     
     result<-getDMPs(mrs,index)
-    result<-add_dmrcate(result,...)
-    result<-add_ipdmr(result,maxgap)
+    if ("dmrcate" %in% tools) { result <- add_dmrcate(result,...) }
+    if ("ipdmr" %in% tools) {result <- add_ipdmr(result,maxgap) }
+    if ("combp" %in% tools) {result <- add_combp(result,maxgap) }
+    if ("dmrff" %in% tools) {result <- add_dmrff(result, mvals, maxgap) }
     return(result)
 })            
 
@@ -254,6 +256,58 @@ setMethod("add_ipdmr", "data.frame",
     
     left_join(x,dmrs,by="Probe_ID")
 })
+
+
+#' Create generic function for adding IPDMR results to a data frame
+#'
+#' This function sets up a generic function, `add_combp`, for adding combp results to a data frame.
+#'
+#' @title Create generic function for adding combp results
+#' @param x A data frame.
+#' @param maxgap Maximum gap size for combp regions (default is 1000).
+#' @export
+setGeneric("add_combp", function(x,maxgap=1000) 
+  standardGeneric("add_combp") )
+
+setMethod("add_combp", "data.frame",
+          function(x,maxgap=1000){
+            
+            dmrs<-searchDMR_combp(x, maxgap=maxgap) %>%
+              separate_rows(probe, sep = ";") %>% 
+              dplyr::rename(Probe_ID=probe) %>% 
+              unite("combp",chr,start,end,sep = "-") %>%
+              unite("combp",combp,fdr,nprobe,sep = ":") %>%
+              mutate(combp = ifelse(!startsWith(combp, "chr"), paste0("chr", combp), combp)) %>%
+              dplyr::select(-c(p, sidak))
+            
+            left_join(x,dmrs,by="Probe_ID")
+          })
+
+
+#' Create generic function for adding IPDMR results to a data frame
+#'
+#' This function sets up a generic function, `add_dmrff`, for adding dmrff results to a data frame.
+#'
+#' @title Create generic function for adding dmrff results
+#' @param x A data frame.
+#' @param mvals matrix
+#' @param maxgap Maximum gap size for dmrff regions (default is 1000).
+#' @export
+setGeneric("add_dmrff", function(x,mvals, maxgap=1000) 
+  standardGeneric("add_dmrff") )
+
+setMethod("add_dmrff", "data.frame",
+          function(x,mvals, maxgap=1000){
+            
+            dmrs<-searchDMR_dmrff(x, mvals, maxgap=maxgap) %>%
+              separate_rows(Probe_ID, sep = ";") %>% 
+              unite("dmrff",chr,start,end,sep = "-") %>%
+              unite("dmrff",dmrff,fdr,nprobe,sep = ":") %>%
+              mutate(dmrff = ifelse(!startsWith(dmrff, "chr"), paste0("chr", dmrff), dmrff)) %>%
+              dplyr::select(-p)
+            
+            left_join(x,dmrs,by="Probe_ID")
+          })
 
 
 #' \code{getDMRs} Generic Function

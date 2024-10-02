@@ -55,6 +55,7 @@ searchDMR_dmrcate<-function(dmps, fdr=0.05, maxgap=1000,pcutoff=0.05,genome="hg3
   
   dmrcoutput<- DMRcate::dmrcate(myannotation,C=2, pcutoff=pcutoff, lambda = maxgap)
   table <- DMRcate::extractRanges(dmrcoutput, genome = genome)
+  
   overlap <- GenomicRanges::findOverlaps(annotated,table,type="within")
   #table <- as.data.frame(table)[subjectHits(overlap),c("seqnames","start","end","HMFDR","no.cpgs")]
   table <- as.data.frame(table)[subjectHits(overlap),c("seqnames","start","end","HMFDR","min_smoothed_fdr","no.cpgs")]
@@ -81,30 +82,25 @@ searchDMR_dmrff<-function(dmps, betas, maxgap=1000){
   }
   require(dmrff)
   
-  dmrs <- dmrff(estimate=dmps$Coefficient,
-                se=dmps$Stdev,
-                p.value=dmps$P.Value,
-                methylation=betas,
+  dmrs <- dmrff(estimate=as.vector(dmps$Coefficient),
+                se=as.vector(dmps$Stdev),
+                p.value=as.vector(dmps$P.Value),
+                methylation=mvals[dmps$Probe_ID,],
                 chr=as.vector(dmps$chr),
-                pos=dmps$pos,
+                pos=as.vector(dmps$pos),
                 maxgap=maxgap,
                 verbose=T)
   
-  #some ranges are inverted
-  dmrs<-dmrs %>% mutate(start = if_else(start > end, end, start), end = if_else(start > end, start, end))
+  dmrs <- dmrs[(dmrs$n >= 2), ]
+  dmrs$fdr <- p.adjust(dmrs$p.value, method = "fdr")
+  dmrs <- dmrs %>% mutate(ID=paste0(chr, ":", start, "-", end), nprobe=n, p= p.value) 
   
-  #find overlaps
-  gr1<-GenomicRanges::makeGRangesFromDataFrame(dmps, start.field = "pos", end.field = "pos")
-  gr2<-GenomicRanges::makeGRangesFromDataFrame(dmrs)
-  overlap <- GenomicRanges::findOverlaps(gr1,gr2,type="within")
-  
-  dmrs<-dmrs %>% dplyr::select(-chr) # duplicated row with dmps
-  final <- dmps[queryHits(overlap),] %>%
-  bind_cols( dmrs[subjectHits(overlap),] ) %>%
-  mutate(ID=paste0(chr, ":", start, "-", end), dmrtool="dmrff") %>%
-  tidyr::nest(probes=Probe_ID)
+  sites <- dmrff.sites(dmrs, dmps$chr, dmps$pos)
+  final<-bind_cols( Probe_ID=dmps[sites$site,"Probe_ID"], dmrs[sites$region,]) %>%
+    dplyr::select(Probe_ID, chr,start,end,fdr,nprobe, p)
   
   return(final)
+  
 }
 
 #' Search for Differentially Methylated Regions (DMRs) using combp
@@ -124,22 +120,16 @@ searchDMR_combp<-function(dmps, maxgap=1000){
   }
   require(ENmix)
   
-  data=data.frame(probe=rownames(dmps),p=dmps$P.Value,chr=dmps$chr,start=dmps$pos,end=dmps$pos)
+  data=data.frame(probe=dmps$Probe_ID,p=dmps$P.Value,chr=dmps$chr,start=dmps$pos,end=dmps$pos)
   
-  combp(data,dist.cutoff=1000,bin.size=310,seed=0.05, region_plot=FALSE,mht_plot=FALSE,nCores=10,verbose=TRUE)
+  combp<-data.frame(chr=character(),start=numeric(),end=numeric(),p=numeric(),fdr=numeric(),nprobe=numeric(),probe=character())
+  write_csv(combp,"resu_combp.csv") # avoid to reload previous results if ipdmr find 0 dmrs.
+  combp(data,dist.cutoff=1000,bin.size=310,seed=0.05, region_plot=FALSE,mht_plot=FALSE,nCores=1,verbose=TRUE)
   dmrs=readr::read_csv("resu_combp.csv")
+  dmrs <- dmrs %>% filter (nprobe >= 2) %>% dplyr:: select (- fdr) 
+  dmrs <-  dmrs %>% mutate (fdr= p.adjust(dmrs$p, method = "fdr"))
   
-  gr1<-GenomicRanges::makeGRangesFromDataFrame(dmps, start.field = "pos", end.field = "pos")
-  gr2<-GenomicRanges::makeGRangesFromDataFrame(dmrs)
-  overlap <- GenomicRanges::findOverlaps(gr1,gr2,type="within")
-  
-  dmrs<-dmrs %>% dplyr::select(-chr) # duplicated row with dmps
-  final <- dmps[queryHits(overlap),] %>%
-    bind_cols( dmrs[subjectHits(overlap),] ) %>%
-    mutate(ID=paste0(chr, ":", start, "-", end), dmrtool="combp") %>%
-    tidyr::nest(probes=Probe_ID)
-  
-  return(final)
+  return(dmrs)
 }
 
 #' Search for Differentially Methylated Regions (DMRs) using ipdmr

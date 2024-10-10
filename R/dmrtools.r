@@ -82,6 +82,8 @@ searchDMR_dmrff<-function(dmps, betas, maxgap=1000){
   }
   require(dmrff)
   
+  #dmps <- dmps %>% filter(!is.na(chr))
+  
   dmrs <- dmrff(estimate=as.vector(dmps$Coefficient),
                 se=as.vector(dmps$Stdev),
                 p.value=as.vector(dmps$P.Value),

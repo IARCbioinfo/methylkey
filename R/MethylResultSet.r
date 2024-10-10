@@ -180,7 +180,7 @@ setGeneric("getResults", function(x,index,tools=c("dmrcate","ipdmr"),maxgap=1000
 setMethod("getResults", "MethylResultSet",
   function(x,index,tools=c("dmrcate","ipdmr"),maxgap=1000,...){
     
-    result<-getDMPs(mrs,index)
+    result<-getDMPs(mrs,index) %>% filter(!is.na(chr)) %>% filter(!is.na(P.Value))
     if ("dmrcate" %in% tools) { result <- add_dmrcate(result,...) }
     if ("ipdmr" %in% tools) {result <- add_ipdmr(result,maxgap) }
     if ("combp" %in% tools) {result <- add_combp(result,maxgap) }
@@ -278,7 +278,7 @@ setMethod("add_combp", "data.frame",
               unite("combp",chr,start,end,sep = "-") %>%
               unite("combp",combp,fdr,nprobe,sep = ":") %>%
               mutate(combp = ifelse(!startsWith(combp, "chr"), paste0("chr", combp), combp)) %>%
-              dplyr::select(-c(p, sidak))
+              dplyr::select(-p)
             
             left_join(x,dmrs,by="Probe_ID")
           })

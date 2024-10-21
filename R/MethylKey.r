@@ -522,8 +522,8 @@ setMethod("getMvals", signature("Betas"), definition = function(x, grp="grp", sv
   }
   
   # calculate deltabetas
-  print("Calculate deltabetas")
-  deltaBetas=getDeltaBetas2(betas,group)
+  #print("Calculate deltabetas")
+  #deltaBetas=getDeltaBetas2(betas,group)
   
   # convert to mvalues
   print("Convert to mvalues")
@@ -535,7 +535,8 @@ setMethod("getMvals", signature("Betas"), definition = function(x, grp="grp", sv
     betas <- bc_sva(betas, pdata, sva)
   }
   
-  mvals<-SummarizedExperiment( assays=list(mvals=betas), colData=pdata, rowData = deltaBetas )
+  #mvals<-SummarizedExperiment( assays=list(mvals=betas), colData=pdata, rowData = deltaBetas )
+  mvals<-SummarizedExperiment( assays=list(mvals=betas), colData=pdata )
   mvals <- as(mvals,"Mvals")
   metadata(mvals)<-metadata(x)
   metadata(mvals)$grp<-grp

@@ -78,8 +78,8 @@ MethylResultSet <- function(se,model,intercept, method="ls")
   mval = getMvals(se)
   model = tolower(model)
   
-  grp_g<-strsplit(model,"~|\\+")[[1]][2]
-  pdata[,grp_g] <- relevel(as.factor(unlist(pdata[,grp_g])), intercept)
+  #grp_g<-strsplit(model,"~|\\+")[[1]][2]
+  #pdata[,grp_g] <- relevel(as.factor(unlist(pdata[,grp_g])), intercept)
   
   formula1 <- as.formula(model)
   design<-model.matrix(formula1,data=pdata)
@@ -101,15 +101,16 @@ MethylResultSet <- function(se,model,intercept, method="ls")
   ssr<-sst-fit$df.residual*fit$sigma^2
   rsq<-ssr/sst
   
-  dmps<-lapply(colnames(fit)[-1], function(x){ topTables(eb,x,rsq) })
-  names(dmps)<-colnames(fit)[-1]
+  dmps<-lapply(colnames(fit), function(x){ topTables(eb,x,rsq) })
+  names(dmps)<-colnames(fit)
   
   for( x in names(dmps)){
-    contrast<-paste0(gsub(grp_g,"",x),"_vs_",intercept)
-    add_deltabetas = contrast %in% names(rowData(se))
+    #contrast<-paste0(gsub(grp_g,"",x),"_vs_",intercept)
+    
+    dmps[[x]]$deltabetas<-getDeltaBetas(m2beta(mval[rownames(dmps[[x]]),]), design[, x])
+    
     dmps[[x]] <- dmps[[x]] %>%
-      { if(add_deltabetas) dplyr::mutate(., deltabetas = rowData(se)[ rownames(dmps[[x]]), contrast ] ) else .  } %>% # add delta betas
-      { if(add_deltabetas) dplyr::mutate(., status=ifelse(deltabetas>0,"hyper","hypo")) else .  } %>%
+      dplyr::mutate(status=ifelse(deltabetas>0,"hyper","hypo")) %>%
       tibble::rownames_to_column("Probe_ID") %>%
       dplyr::select(-logFC) %>%
       dplyr::arrange(Probe_ID)

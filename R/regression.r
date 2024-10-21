@@ -82,7 +82,6 @@ topTables<-function(eb,x,rsq){
   return(x_table)
 }
 
-
 #' m_leastsquare2
 #' 
 #' least square method, return the whole table
@@ -118,6 +117,10 @@ m_leastsquare2<-function(mval,pdata,model){
   # topTables
   topTables<-lapply(colnames(fit), function(x){ topTables(eb,x,rsq) })
   names(topTables)<-colnames(fit)
+  
+  for( x in names(topTables)) {
+    topTables[[x]]$deltaBtest<-getDeltaBetas(m2beta(mval), design[, x])
+  }
   
   return(topTables)
 }

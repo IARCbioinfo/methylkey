@@ -11,11 +11,8 @@
 #' 
 #' @export
 #' 
-getDeltaBetas<-function(betas,group, case="TT", control="NT"){
-  betas<-betas[,group %in% c(case,control)]
-  group<-group[group %in% c(case,control)]
-  deltaBetas <- rowMeans(betas[,group==case]) - rowMeans(betas[,group==control])
-  return(deltaBetas)
+getDeltaBetas<-function(betas,group){
+  ( rowMeans(betas[,group==1]) - rowMeans(betas[,group==0]) ) *100
 }
 
 
@@ -61,13 +58,28 @@ getDeltaBetas2 <- function(betas, group) {
 #' 
 #' @param betas array of betas values
 #' 
-#' @return vector
+#' @return matrix
 #' 
 #' @export
 #' 
 beta2m <- function (betas) {
   return(log2(betas/(1 - betas)))
 }
+
+#' beta2m
+#' 
+#' calculate mvalues
+#' 
+#' @param mvalues array of M values
+#' 
+#' @return matrix
+#' 
+#' @export
+#' 
+m2beta <- function(mvalues) {
+  return(2^mvalues / (1 + 2^mvalues))
+}
+
 
 #' CpGexcl
 #' 

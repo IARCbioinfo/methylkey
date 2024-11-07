@@ -78,8 +78,8 @@ MethylResultSet <- function(se,model,intercept, method="ls")
   mval = getMvals(se)
   model = tolower(model)
   
-  #grp_g<-strsplit(model,"~|\\+")[[1]][2]
-  #pdata[,grp_g] <- relevel(as.factor(unlist(pdata[,grp_g])), intercept)
+  grp_g<-strsplit(model,"~|\\+")[[1]][2]
+  pdata[,grp_g] <- relevel(as.factor(unlist(pdata[,grp_g])), intercept)
   
   formula1 <- as.formula(model)
   design<-model.matrix(formula1,data=pdata)
@@ -119,6 +119,7 @@ MethylResultSet <- function(se,model,intercept, method="ls")
   metadata=metadata(se)
   metadata$model=model
   metadata$intercept=intercept
+  metadata$method=method
   
   index_order=match(dmps[[1]]$Probe_ID,manifest$Probe_ID,nomatch = 0)
   manifest=manifest[index_order,]

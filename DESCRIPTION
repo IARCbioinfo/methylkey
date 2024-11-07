@@ -1,6 +1,6 @@
 Package: methylkey
 Title: Pipeline for methylation array analysis
-Version: 0.3.3.0009
+Version: 0.3.3.0010
 Authors@R: 
     person(given = "Vincent",
            family = "Cahais",

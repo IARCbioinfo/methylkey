@@ -180,7 +180,7 @@ searchDMR_ipdmr<-function(dmps, maxgap=1000, bin.size=310, seed=0.05){
   ipdmr<-data.frame(chr=character(),start=numeric(),end=numeric(),p=numeric(),fdr=numeric(),nprobe=numeric(),probe=character())
   write_csv(ipdmr,"resu_ipdmr.csv") # avoid to reload previous results if ipdmr find 0 dmrs.
   ipdmr(data, dist.cutoff=maxgap, bin.size=bin.size, seed=seed, region_plot=FALSE, mht_plot=FALSE, verbose=FALSE)
-  dmrs=readr::read_csv("resu_ipdmr.csv")
+  dmrs=readr::read_csv("resu_ipdmr.csv") %>% filter(nprobe>1)
   
   return(dmrs)
 }

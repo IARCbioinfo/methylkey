@@ -78,7 +78,7 @@ MethylResultSet <- function(se,model,intercept, method="ls")
   mval = getMvals(se)
   model = tolower(model)
   
-  grp_g<-strsplit(model,"~|\\+")[[1]][2]
+  grp_g<-strsplit(model,"~|\\+|\\*")[[1]][2]
   pdata[,grp_g] <- relevel(as.factor(unlist(pdata[,grp_g])), intercept)
   
   formula1 <- as.formula(model)

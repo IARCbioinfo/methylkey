@@ -33,8 +33,9 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
   betas=openSesame(sdfs, prep = "", func = sesame::getBetas, mask = TRUE, BPPARAM=BiocParallel::MulticoreParam(ncore))
   
   #infer sex
-  #sampleSheet$inferedSex=apply(betas, 2, function(samp){inferSex(samp)} )
-  sampleSheet$inferedSex=sapply( sampleSheet$barcode, function(barcode){ inferSex(betas[,barcode]) })
+  inferedSex  <- sapply( colnames(betas), function(barcode){ inferSex(betas[,barcode]) })
+  inferedSex  <- tibble(barcode=names(inferedSex), inferedSex=inferedSex )
+  sampleSheet <- left_join(sampleSheet, inferedSex, by = "barcode")
   
   #infer age
   for (model_name in names(Clock_models)){

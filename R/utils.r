@@ -12,7 +12,7 @@
 #' @export
 #' 
 getDeltaBetas<-function(betas,group){
-  ( rowMeans(betas[,group==1]) - rowMeans(betas[,group==0]) ) *100
+  ( rowMeans(betas[,group==1, drop = FALSE]) - rowMeans(betas[,group==0, drop = FALSE]) ) *100
 }
 
 

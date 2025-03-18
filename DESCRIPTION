@@ -1,6 +1,6 @@
 Package: methylkey
 Title: Pipeline for methylation array analysis
-Version: 0.3.3.0012
+Version: 0.3.4.0001
 Authors@R: 
     person(given = "Vincent",
            family = "Cahais",
@@ -12,7 +12,7 @@ License: `GNU General Public License v3.0`
 Encoding: UTF-8
 LazyData: false
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Imports:
   SummarizedExperiment (>= 1.28.0),
   sesame (>= 1.16.1),
@@ -36,6 +36,8 @@ Imports:
   assertthat (>= 0.2.1),
   DescTools (>= 0.99.50),
   ggbio(>= 1.46.0),
+  ggsankeyfier(>= 0.1.8),
+  patchwork(>= 1.3.0)
 Depends:
   R (>= 4.2.1)
 Suggests:

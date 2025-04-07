@@ -16,30 +16,36 @@
 #'   - `status`: Character, indicating if a node is "up", "down", or another category.
 #' @param palette A named vector of colors. The colors should be named according to the 
 #'   categories in the `status` column, with special colors for "up" and "down".
+#' @param gene_size : text size for genes
+#' @param term_size : text size for terms 
 #'
 #' @return A ggplot object representing the Sankey diagram.
 #'
-sankeyPlot_<-function(df,palette){
+sankeyPlot_<-function(df,v_space="auto",term_size=3,gene_size=1.5,palette=NULL){
+  
+  if(is.null(palette)){
+    palette <- c(
+      set_names(viridis::viridis(n_distinct(df$Term)), 
+                setdiff(unique(df$Term), c("up", "down"))),
+      "up" = "#317AC1",
+      "down" = "#E1A624"
+    )
+  }
   
   df <- df %>% 
-    mutate(logP = -log10(P.value),Term = fct_reorder(Term, gene_count)) %>%
-    arrange(gene_count,Term) %>%
-    mutate(yy=cumsum(gene_count)) %>% 
-    mutate(term_rank = as.numeric(Term)-1, offset = term_rank * max(gene_count) * 2) %>%
-    group_by(Term) %>% 
-    mutate(yy=mean(yy)+offset ) %>%
-    pivot_stages_longer(stages_from = c("Genes", "Term"), values_from = "gene_count",additional_aes_from =c("Term","Odds.Ratio","logP","yy","status")) %>%
+    group_by(Term) %>%
+    pivot_stages_longer(stages_from = c("Genes", "Term"), values_from = "gene_count",additional_aes_from =c("Term","Odds.Ratio","logP","status")) %>%
     mutate(status=ifelse(stage=="Genes",status,as.character(node)))
-
-  pos <- position_sankey( nudge_x = -0.06, v_space = "auto", order = "ascending")
-
+  
+  pos <- position_sankey( nudge_x = -0.06, v_space = v_space, order = "ascending")
+  
   sankey_plot <- ggplot(df, aes(x = stage, y = gene_count, group = node, connector = connector, edge_id = edge_id)) +
-    geom_sankeynode(v_space = "auto" , aes(fill = status)) +
-    geom_sankeyedge(v_space = "auto", aes(fill = Term, label=status)) +
-    geom_text( aes(label = node, cex=stage), position = pos, stat = "sankeynode", hjust=1 ) + 
+    geom_sankeynode(v_space = v_space , aes(fill = status)) +
+    geom_sankeyedge(v_space = v_space, aes(fill = Term, label=status)) +
+    geom_text( aes(label = node, cex=stage), position = pos, stat = "sankeynode", hjust=1 ) +
     theme_minimal() +
     scale_x_discrete(expand = expansion(add = c(0.2, 0))) +
-    scale_size_manual(values = c(1.5,3),guide="none") +
+    scale_size_manual(values = c(gene_size,term_size),guide="none") +
     scale_fill_manual(values=palette,guide="none") +
     theme(axis.title.x=element_blank(),
           axis.title.y=element_blank(),
@@ -47,7 +53,6 @@ sankeyPlot_<-function(df,palette){
           axis.ticks.y=element_blank(),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank())
-  
   return(sankey_plot)
 }
 
@@ -66,18 +71,11 @@ sankeyPlot_<-function(df,palette){
 #' 
 dotPlot_<-function(df){
   
-  dotplot_data <- df %>%
-    mutate(logP = -log10(P.value),Term = fct_reorder(Term, gene_count)) %>%
-    arrange(gene_count,Term) %>%
-    mutate(yy=cumsum(gene_count)) %>% 
-    mutate(term_rank = as.numeric(Term)-1, offset = term_rank * max(gene_count) * 2) %>%
-    group_by(Term) %>% 
-    mutate(yy=mean(yy)+offset )
-  
-  dotplot <- ggplot(dotplot_data, aes(x =Odds.Ratio, y = yy, size = gene_count, color = logP)) +
+  dotplot <- df %>% group_by(Term,P.value,yy,status,gene_count) %>% mutate(Odds.Ratio=max(Odds.Ratio)) %>%
+    ggplot(aes(x =Odds.Ratio, y = yy, size = gene_count, color = logP)) +
     geom_point(alpha = 0.8) +
     geom_rect(aes(xmin = min(Odds.Ratio)-0.05*max(Odds.Ratio), ymin = 0, xmax=max(Odds.Ratio)+0.05*max(Odds.Ratio), ymax=max(yy)+0.2*max(yy)), color = "black", fill = NA, linewidth = 0.1 ) +
-    scale_color_viridis_c() +
+    scale_color_viridis_c(name = "-log10(P.value)") +
     coord_cartesian(clip="off") +
     theme_minimal() +
     theme(axis.title.y=element_blank(),
@@ -87,9 +85,7 @@ dotPlot_<-function(df){
           legend.title = element_text(size = 9),  
           legend.key.size = unit(0.4, "cm"),
           legend.spacing.y = unit(0.2, "cm"),
-          legend.box = "horizontal",
-          legend.background = element_rect(color = "black", fill = "white", linewidth = 0.5),
-          legend.position=c(.5,.8)
+          legend.background = element_rect(color = "black", fill = "white", linewidth = 0.5)
     )
   
   return(dotplot)
@@ -115,21 +111,23 @@ dotPlot_<-function(df){
 #' 
 #' @export
 #' 
-sankeyDotPlot<-function(df,palette=NULL){
-
-  if(is.null(palette)){
-    palette <- c(
-      set_names(viridis::viridis(n_distinct(df$Term)), 
-                setdiff(unique(df$Term), c("up", "down"))),
-      "up" = "#317AC1",
-      "down" = "#E1A624"
-    )
-  }
+sankeyDotPlot<-function(df,v_space="auto",term_size=3,gene_size=1.5,palette=NULL){
   
-  sp <- sankeyPlot_(df,palette)
+  df <- df %>%
+    mutate(logP = -log10(P.value),Term = fct_reorder(Term, gene_count)) %>%
+    arrange(gene_count,Term)
+  
+  sp <- sankeyPlot_(df,v_space,term_size,gene_size,palette)
+  spb <- ggplot_build(sp)
+  df <- df %>% arrange(Term)
+  df$yy=spb$data[[2]]$yend_node
+  ymax= max(spb$data[[2]]$y, spb$data[[2]]$yend_node) 
+  ymax= ymax + 0.1 * max(ymax)
+  
   dp <- dotPlot_(df)
-  sdp<-sp + dp + plot_layout(widths = c(5, 3)) & scale_y_continuous(limits = c(0, 3100)) 
+  sdp<-sp + dp + plot_layout(widths = c(5, 3)) & scale_y_continuous(limits = c(0, ymax))
   return(sdp)
 }
+
 
 

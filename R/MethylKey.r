@@ -444,8 +444,7 @@ setMethod("nbprobes",signature("Mvals"),definition=function(x) nrow(assays(x)$mv
 #' @return A "Betas" object containing the specified beta values, sample information, and MASK information as rowData.
 #' 
 #' @export
-newBetas<-function(betas, sampleSheet, na) {
-  
+newBetas<-function(betas, sampleSheet, na ) {
   # Check parameters
   assertthat::assert_that(is.matrix(betas), msg="betas must be a matrix of numeric values.")
   assertthat::assert_that(na >= 0 && na <= 1, msg="na must be between 0 and 1.")
@@ -518,7 +517,7 @@ setMethod("getMvals", signature("Betas"), definition = function(x, grp="grp", sv
   # winsorize betas
   if (win) {
     print("Winsorize data")
-    betas <- DescTools::Winsorize(betas)
+    betas <- DescTools::Winsorize(betas, val = quantile(betas, probs = c(0.05, 0.95)))
   }
   
   # calculate deltabetas
@@ -558,21 +557,21 @@ setMethod("getMvals", signature("Betas"), definition = function(x, grp="grp", sv
 #' @return The new subset Mval object.
 #'
 #' @export
-subSetMval<-function(se,samples2keep){
+subSetMval<-function(se,samples2keep, probes2keep){
   
   betas <- getMvals(se)
   pdata = data.frame(colData(se))
-  sel<-which(colData(se)$barcode %in% samples2keep)
-  pdata   <- colData(se)[sel,]
+  col2keep<-which(colData(se)$barcode %in% samples2keep)
+  row2keep<-which(rownames(betas) %in% probes2keep)
+  pdata   <- colData(se)[col2keep,]
   pdata[] <- lapply(pdata, function(x) if(is.factor(x)) droplevels(x) else x)
-  betas <- betas[,sel]
+  betas <- betas[row2keep,col2keep]
   
-  mvals <-SummarizedExperiment( assays=list(mvals=betas), colData=pdata, rowData = rowData(se) )
+  mvals <-SummarizedExperiment( assays=list(mvals=betas), colData=pdata, rowData = rowData(se)[row2keep,] )
   mvals <- as(mvals,"Mvals")
   metadata(mvals)<-metadata(se)
   return(mvals)
 }
-
 
 
 #' Determine the methylation array platform from the number of rows in a matrix

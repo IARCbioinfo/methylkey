@@ -85,7 +85,8 @@ dotPlot_<-function(df){
           legend.title = element_text(size = 9),  
           legend.key.size = unit(0.4, "cm"),
           legend.spacing.y = unit(0.2, "cm"),
-          legend.background = element_rect(color = "black", fill = "white", linewidth = 0.5)
+          legend.background = element_rect(color = "black", fill = "white", linewidth = 0.5),
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank()
     )
   
   return(dotplot)
@@ -125,7 +126,7 @@ sankeyDotPlot<-function(df,v_space="auto",term_size=3,gene_size=1.5,palette=NULL
   ymax= ymax + 0.1 * max(ymax)
   
   dp <- dotPlot_(df)
-  sdp<-sp + dp + plot_layout(widths = c(5, 3)) & scale_y_continuous(limits = c(0, ymax))
+  sdp<-sp + dp + plot_layout(widths = c(6, 2)) & scale_y_continuous(limits = c(0, ymax))
   return(sdp)
 }
 

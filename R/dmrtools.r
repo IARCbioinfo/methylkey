@@ -45,13 +45,13 @@ searchDMR_dmrcate<-function(dmps, fdr=0.05, maxgap=1000,pcutoff=0.05,genome="hg3
   require(DMRcate)
   
   dmps <- dmps %>% dplyr::filter(!str_detect(chr, "_"))
-  
   annotated <- data.frame(chr=dmps$chr, start=dmps$pos, end=dmps$pos, strand=dmps$strand,
         rawpval=dmps$P.Value, stat=dmps$t, diff= dmps$deltabetas, ind.fdr=dmps$adj.P.Val, is.sig=(dmps$adj.P.Val<fdr) )
   annotated<-GenomicRanges::makeGRangesFromDataFrame(annotated, keep.extra.columns=TRUE)
   names(annotated)<-dmps$Probe_ID
   myannotation <- new("CpGannotated", ranges=sort(annotated))
   if( sum(is.na(myannotation@ranges$diff)) ){ myannotation@ranges$diff[ which(is.na(myannotation@ranges$diff)) ] <- 0 }
+  if(sum(annotated$is.sig)<1) {warning("No valid CpG sites remaining after filtering"); return(NULL)}
   
   dmrcoutput<- DMRcate::dmrcate(myannotation,C=2, pcutoff=pcutoff, lambda = maxgap)
   table <- DMRcate::extractRanges(dmrcoutput, genome = genome)
@@ -96,6 +96,7 @@ searchDMR_dmrff<-function(dmps, betas, maxgap=1000){
   dmrs <- dmrs[(dmrs$n >= 2), ]
   dmrs$fdr <- p.adjust(dmrs$p.value, method = "fdr")
   dmrs <- dmrs %>% mutate(ID=paste0(chr, ":", start, "-", end), nprobe=n, p= p.value) 
+  if(nrow(dmrs)<1){return(NULL)}
   
   sites <- dmrff.sites(dmrs, dmps$chr, dmps$pos)
   final<-bind_cols( Probe_ID=dmps[sites$site,"Probe_ID"], dmrs[sites$region,]) %>%

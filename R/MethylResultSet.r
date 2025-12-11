@@ -226,7 +226,10 @@ setMethod("add_dmrcate", "data.frame",
       warning("parameter mean should be 'HMFDR' or 'min_smoothed_fdr'; defaulting to HMFDR")
       mean<-"HMFDR"
     }
-    dmrs<-searchDMR_dmrcate(x,fdr=fdr,pcutoff=pcutoff,maxgap=maxgap,genome=genome) %>%
+    dmrs<-searchDMR_dmrcate(x,fdr=fdr,pcutoff=pcutoff,maxgap=maxgap,genome=genome)
+    if(is.null(dmrs)){return(x)}
+    
+    dmrs <- dmrs %>%
       unite("dmrcate",seqnames,start,end,sep = "-") %>%
       unite("dmrcate",dmrcate,!!mean,no.cpgs,sep=":") %>% 
       select(dmrcate,Probe_ID)
@@ -301,7 +304,10 @@ setGeneric("add_dmrff", function(x,mvals, maxgap=1000)
 setMethod("add_dmrff", "data.frame",
           function(x,mvals, maxgap=1000){
             
-            dmrs<-searchDMR_dmrff(x, mvals, maxgap=maxgap) %>%
+            dmrs<-searchDMR_dmrff(x, mvals, maxgap=maxgap) 
+            if(is.null(dmrs)){return(x)}
+            
+            dmrs <- dmrs %>%
               separate_rows(Probe_ID, sep = ";") %>% 
               unite("dmrff",chr,start,end,sep = "-") %>%
               unite("dmrff",dmrff,fdr,nprobe,sep = ":") %>%

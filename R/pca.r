@@ -2,7 +2,7 @@
 #' 
 #' Estimate correlation covariates vs. PCA axes
 #' 
-#' @param betas matrix of betas
+#' @param mvals matrix of m values
 #' @param pdata sampleSheet of data
 #' @param nPC maximum number of principal component to display
 #' 
@@ -10,18 +10,18 @@
 #' 
 #' @export
 #' 
-makepca <- function( betas, pdata, nPC=ncol(betas) ){
+makepca <- function( mvals, pdata, nPC=ncol(mvals) ){
   
-  invtbetas = 1/t(betas) # n x p required for prcomp
-  invtbetas[!is.finite(invtbetas)]<-min(invtbetas[is.finite(invtbetas)])
+  tmvals = t(mvals) # n x p required for prcomp
+  #tmvals[!is.finite(tmvals)]<-min(invtbetas[is.finite(tmvals)])
   
   #variance for a probe should be > 0
-  sel<-which(apply(invtbetas, 2, var)==0)
+  sel<-which(apply(tmvals, 2, var)==0)
   
   if (length(sel)) { 
-    pca = prcomp(invtbetas[,-sel],scale=T, center=T ) 
+    pca = prcomp(tmvals[,-sel],scale=T, center=T ) 
   } else { 
-    pca = prcomp(invtbetas,scale=T, center=T) 
+    pca = prcomp(tmvals,scale=T, center=T) 
   }
   rownames(pca$x)<-pdata$samples
   

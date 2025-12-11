@@ -54,7 +54,7 @@ m_leastsquare<-function(mval,pdata,model){
     fitContrasts=limma::contrasts.fit(fit,cmtx)
     eb=limma::eBayes(fitContrasts)
     chisq <- qchisq(1-eb$p.value,1)
-    lambda<-median(chisq)/qchisq(0.5,1)
+    lambda<-median(chisq,na.rm=T)/qchisq(0.5,1)
     table<-limma::topTable(eb, adjust="BH", number=Inf, p=1, sort.by="P")
 
     #MetaFile<-data.frame(probeID=rownames(eb$coefficients),Coefficient=eb$coefficients[,1],Stdev=(sqrt(eb$s2.post) * eb$stdev.unscaled)[,1], PValue=eb$p.value[,1])
@@ -107,7 +107,7 @@ m_leastsquare2<-function(mval,pdata,model){
   
   # lambda
   chisq <- qchisq(1-eb$p.value,1)
-  lambda <- apply(chisq, 2, function(x){ median(x)/qchisq(0.5,1) })
+  lambda <- apply(chisq, 2, function(x){ median(x, na.rm=T)/qchisq(0.5,1) })
   
   #goodness
   sst<-rowSums(mval^2)
@@ -153,7 +153,7 @@ m_leastsquare_ruv<-function(mval,pdata,model){
   fit <- RUVfit(Y=mval, X=pdata[,factors], ctl=ctl)
   fit2 <- RUVadj(Y=mval, fit=fit)
   chisq <- qchisq(1-fit2$C$F.p,1)
-  lambda<-median(chisq)/qchisq(0.5,1)
+  lambda<-median(chisq, na.rm=T)/qchisq(0.5,1)
   table <- topRUV(fit2, sort.by = "F.p", n=nrow(fit2$C))
   return(list(table=table, lambda=lambda, pvals=eb$p.value ) )
 }
@@ -181,7 +181,7 @@ m_robust<-function(mval,pdata,model,niter=50){
     fitContrasts=limma::contrasts.fit(fit,cmtx)
     eb=limma::eBayes(fitContrasts)
     chisq <- qchisq(1-eb$p.value,1)
-    lambda<-median(chisq)/qchisq(0.5,1)
+    lambda<-median(chisq, na.rm=T)/qchisq(0.5,1)
     table<-limma::topTable(eb, adjust="BH", number=Inf, p=1, sort.by="P")
     
     table$Coefficient=eb$coefficients[rownames(table),1]
@@ -242,7 +242,7 @@ m_logistic<-function(mval,pdata,variables,fdr, ncore=4){
     table<-table[ !is.na(table$adj.P.Val), ]
 
     chisq <- qchisq(1-table$P.Value,1)
-    lambda<- median(chisq)/qchisq(0.5,1)
+    lambda<- median(chisq, na.rm=T)/qchisq(0.5,1)
 
     return( list(table=table, lambda=lambda, pvals=table$P.Value, logreg=logreg ) )
 }

@@ -405,6 +405,7 @@ plot_Detection<-function(df){
 #'
 #' @export
 my_volcanomean<-function(df){
+  if(is.null(df) | nrow(df)<1) { return(NULL) }
   volcano <- df %>% group_by(dmrtool,ID,fdr) %>% 
     summarise( no.cpgs=n(), mean.deltabetas=mean(deltabetas), .groups='drop' ) %>%
     ggplot( aes(x = mean.deltabetas, y = -log10(fdr)) ) +
@@ -426,6 +427,7 @@ my_volcanomean<-function(df){
 #'
 #' @export
 my_volcanohmean<-function(df){
+  if(is.null(df) | nrow(df)<1) { return(NULL) }
   volcano <- df %>% group_by(dmrtool,ID,fdr) %>% 
     summarise( no.cpgs=n(), mean.deltabetas= (n() / sum(1/deltabetas)), .groups='drop' ) %>%
     ggplot( aes(x = mean.deltabetas, y = -log10(fdr)) ) +
@@ -512,7 +514,7 @@ my_venn_<-function(dt,a){
 #' @return A ggvenn Venn diagram showing the intersections between IDs obtained from different dmrtools.
 #'
 #' @export
-my_venn<-function(dt){
+my_venn_probes<-function(dt){
   
   a <- list(`DMRcate` = dt %>% dplyr::filter(dmrtool=="dmrcate") %>% dplyr::pull(ID) %>% unique(),
             `DMRff` = dt %>% dplyr::filter(dmrtool=="dmrff") %>% dplyr::pull(ID) %>% unique(),
@@ -523,6 +525,27 @@ my_venn<-function(dt){
   if ( sum(!!sapply(a,length))  < 2 ) return(NULL)
   return( my_venn_(dt,a) )
 }
+
+
+my_venn<-function(dt){
+  
+  dt <- dt %>%
+    distinct(Probe_ID, dmrtool, ID) %>%
+    group_by(Probe_ID) %>% mutate(n_tools = n_distinct(dmrtool), max=max(n_tools)) %>% ungroup() %>% 
+    filter(n_tools == max) %>% arrange(Probe_ID) %>%
+    group_by(ID,dmrtool) %>% summarise(Probe_ID=paste0(Probe_ID, collapse = ':'))
+  
+  a <- list(`DMRcate` = dt %>% dplyr::filter(dmrtool=="dmrcate") %>% dplyr::pull(Probe_ID) %>% unique(),
+            `DMRff` = dt %>% dplyr::filter(dmrtool=="dmrff") %>% dplyr::pull(Probe_ID) %>% unique(),
+            `combp` = dt %>% dplyr::filter(dmrtool=="combp") %>% dplyr::pull(Probe_ID) %>% unique(),
+            `ipdmr` = dt %>% dplyr::filter(dmrtool=="ipdmr") %>% dplyr::pull(Probe_ID) %>% unique()
+  )
+  #return(my_venn_(dt,a))
+  if ( sum(!!sapply(a,length))  < 2 ) return(NULL)
+  venn<-ggvenn::ggvenn( a, names(a) )
+  return( venn )
+}
+
 
 #' Create a Venn diagram to visualize intersections of IDs for different dmrtools
 #'

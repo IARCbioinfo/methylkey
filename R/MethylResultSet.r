@@ -94,7 +94,7 @@ MethylResultSet <- function(se,model,intercept, method="ls")
   
   # lambda
   chisq <- qchisq(1-eb$p.value,1)
-  lambda <- apply(chisq, 2, function(x){ median(x)/qchisq(0.5,1) })
+  lambda <- apply(chisq, 2, function(x){ median(x, na.rm=TRUE)/qchisq(0.5,1) })
   
   #goodness
   sst<-rowSums(mval^2)

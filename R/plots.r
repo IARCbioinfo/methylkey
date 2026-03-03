@@ -527,7 +527,70 @@ my_venn_probes<-function(dt){
 }
 
 
-my_venn<-function(dt){
+#' Génération d'un Diagramme de Venn pour DMRs basé sur le partage de sondes
+#'
+#' @description 
+#' Cette fonction calcule et affiche un diagramme de Venn comparant les régions 
+#' méthylées différentiellement (DMR) identifiées par différents outils. 
+#' Contrairement à une comparaison textuelle stricte, deux DMR sont considérés 
+#' comme identiques s'ils partagent au moins une sonde (Probe_ID) en commun.
+#'
+#' @param dt Un data.frame ou tibble contenant au minimum les colonnes suivantes :
+#' \itemize{
+#'   \item \code{Probe_ID}: Identifiant de la sonde (ex: cg00002033).
+#'   \item \code{dmrtool}: Nom de l'outil utilisé (dmrcate, dmrff, combp, ipdmr).
+#'   \item \code{ID}: Identifiant de la région DMR (ex: chr19-39307110-39307923).
+#' }
+#'
+#' @details 
+#' La fonction utilise la théorie des graphes via le package \code{igraph} pour 
+#' regrouper les DMRs en "clusters". Si un DMR de l'outil A et un DMR de l'outil B 
+#' contiennent la même sonde, ils sont assignés au même \code{Cluster_ID}. 
+#' Le diagramme de Venn compte ensuite l'intersection de ces identifiants de clusters.
+#' 
+#' @return Un objet \code{ggplot} généré par \code{ggvenn}. Retourne \code{NULL} 
+#' si moins de deux outils possèdent des données.
+#'
+#' @note 
+#' L'utilisation de \code{igraph::components} permet de gérer les cas où les outils 
+#' définissent des frontières de régions légèrement décalées mais biologiquement liées.
+#' 
+#' @export
+my_venn <- function(dt) {
+  
+  # 1. Créer un graphe de toutes les connexions Probe <-> ID
+  # Cela permet de relier les IDs qui partagent des sondes
+  edges <- dt %>% 
+    distinct(Probe_ID, ID)
+  
+  g <- graph_from_data_frame(edges, directed = FALSE)
+  
+  # 2. Identifier les composants connexes (les clusters)
+  # Chaque groupe de points connectés reçoit un ID unique
+  clusters <- igraph::components(g)$membership
+  
+  # 3. Attacher cet ID de cluster à notre table d'origine
+  dt_clustered <- dt %>%
+    mutate(Cluster_ID = clusters[ID]) %>%
+    distinct(Cluster_ID, dmrtool)
+  
+  # 4. Préparer la liste pour ggvenn
+  # On compte maintenant combien de "Clusters" chaque outil possède
+  a <- list(
+    `DMRcate` = dt_clustered %>% filter(dmrtool == "dmrcate") %>% pull(Cluster_ID),
+    `DMRff`   = dt_clustered %>% filter(dmrtool == "dmrff")   %>% pull(Cluster_ID),
+    `combp`   = dt_clustered %>% filter(dmrtool == "combp")   %>% pull(Cluster_ID),
+    `ipdmr`   = dt_clustered %>% filter(dmrtool == "ipdmr")   %>% pull(Cluster_ID)
+  )
+  
+  # 5. Nettoyage des listes vides et affichage
+  a <- a[sapply(a, length) > 0]
+  if (length(a) < 2) return(NULL)
+  
+  ggvenn::ggvenn(a, names(a))
+}
+
+my_venn_bugged<-function(dt){
   
   dt <- dt %>%
     distinct(Probe_ID, dmrtool, ID) %>%
@@ -547,24 +610,6 @@ my_venn<-function(dt){
 }
 
 
-#' Create a Venn diagram to visualize intersections of IDs for different dmrtools
-#'
-#' This function generates a Venn diagram to visualize the intersections of IDs obtained from different analysis dmrtools. It takes a data frame 'dt' as input and automatically extracts IDs for each dmrtool before passing them to the 'my_venn_' function.
-#'
-#' @param dt A data frame containing the data.
-#'
-#' @return A ggvenn Venn diagram showing the intersections between IDs obtained from different dmrtools.
-#'
-#' @export
-my_venn_oriented<-function(dt){
-  
-  a <- list(`DMRcate` = dt %>% dplyr::filter(dmrtool=="dmrcate") %>% dplyr::pull(IDo) %>% unique(),
-            `DMRff` = dt %>% dplyr::filter(dmrtool=="dmrff") %>% dplyr::pull(IDo) %>% unique(),
-            `combp` = dt %>% dplyr::filter(dmrtool=="combp") %>% dplyr::pull(IDo) %>% unique(),
-            `ipdmr` = dt %>% dplyr::filter(dmrtool=="ipdmr") %>% dplyr::pull(IDo) %>% unique()
-  )
-  return(my_venn_(dt,a))
-}
 
 #' Create a density plot of DMR lengths grouped by dmrtool
 #'

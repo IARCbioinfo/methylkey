@@ -1,0 +1,87 @@
+---
+title: "Methylation Analysis Workflow"
+subtitle: "A comprehensive guide using methylkey"
+author: "methylkey package"
+date: today
+---
+
+# Welcome to methylkey
+
+This book provides a comprehensive workflow for DNA methylation analysis using the **methylkey** R package. The workflow is organized into sequential chapters that guide you through the complete analysis pipeline.
+
+## Overview
+
+DNA methylation analysis typically involves several key steps:
+
+1. **Data Loading**: Loading IDAT files and creating methylation objects
+2. **Quality Control**: Assessing data quality and identifying potential issues
+3. **Group Control**: Explore data, find batch effects
+4. **Batch Correction**: Correcting for technical batch effects (if present)
+5. **Differential Analysis**: Identifying differentially methylated positions (DMPs) and regions (DMRs)
+
+## Getting Started
+
+Before proceeding, make sure you have:
+
+- R version 4.2.1 or higher
+- The methylkey package installed
+- Your methylation data (IDAT files or processed data)
+- Sample metadata (sample sheet)
+
+## Package Installation
+
+```r
+# Install from GitHub (recommended for latest version)
+if (!requireNamespace("devtools", quietly = TRUE)) {
+  install.packages("devtools")
+}
+devtools::install_github("IARCbioinfo/methylkey")
+```
+
+## Data Requirements
+
+### IDAT Files
+- Raw intensity data files (.idat) from Illumina methylation arrays
+- Usually come in pairs: Red and Green channel files
+- File naming convention: `SampleName_Grn.idat` and `SampleName_Red.idat`
+
+### Sample Sheet
+A CSV or TSV file containing sample metadata with columns:
+- `samples`: Unique sample identifiers
+- `barcode`: Sentrix barcode (e.g., `123456789_R01C01`)
+- Additional metadata columns (group, age, sex, etc.)
+
+## Workflow Navigation
+
+Use the table of contents to navigate through the analysis steps. Each chapter builds on the previous one and includes:
+
+- **Code examples** with detailed explanations
+- **Interactive visualizations** for data exploration
+- **Quality control checks** at each step
+- **Troubleshooting tips** for common issues
+
+## Support and Documentation
+
+- **Package documentation**: `?methylkey` or `help(package = "methylkey")`
+- **Function help**: `?function_name` for specific functions
+- **GitHub repository**: [IARCbioinfo/methylkey](https://github.com/IARCbioinfo/methylkey)
+- **Issue tracker**: Report bugs or request features
+
+## Citation
+
+If you use methylkey in your research, please cite:
+
+```
+Cahais V, et al. methylkey: Comprehensive DNA methylation analysis from Illumina arrays.
+R package version X.X.X.
+```
+
+## Session Info
+
+```{r sessionInfo}
+sessionInfo()
+```
+
+---
+
+*This book was generated using Quarto and the methylkey R package.*

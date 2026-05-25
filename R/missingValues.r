@@ -7,73 +7,79 @@
 #' 
 #' @return List of probes to exclude
 #' 
-#' @export
-#' 
-CpGNAexcl<-function(betas,nalimit=0.2){
+CpGNAexcl <- function(betas, nalimit = 0.2) {
 
-	NArow<-apply(betas,1,function(i) sum(is.na(i)))
-	exclprob<-rownames(betas)[NArow>nalimit*ncol(betas)]
-	return(exclprob)
+  NArow <- apply(betas, 1, function(i) sum(is.na(i)))
+  exclprob <- rownames(betas)[NArow > nalimit * ncol(betas)]
+  return(exclprob)
 }
-
 
 #' impute missing values
 #'
-#' impute missing values with parmr for probes with less than 'nalimit' proportion of NA values
-#' 
+#' impute missing values with pamr for probes with less than 'nalimit'
+#' proportion of NA values
+#'
 #' @param betas matrix of betas
 #' @param nalimit maximum proportion of NA accepted
-#' 
+#'
 #' @return betas matrix
-#' 
-#' @export
-#' 
-imputeNA<-function(betas,nalimit){
+#'
+imputeNA <- function(betas, nalimit = 0.2) {
 
-	require(pamr)
-	foo<-list( x=as.matrix(betas), y=colnames(betas) )
-	betas<-pamr::pamr.knnimpute(foo, rowmax=nalimit , colmax=0.95)$x
-	return(betas)
+  if (!requireNamespace("pamr", quietly = TRUE)) {
+    stop(
+      "Package 'pamr' is required for imputeNA(). ",
+      "Please install it with install.packages('pamr').",
+      call. = FALSE
+    )
+  }
+
+  foo <- list(x = as.matrix(betas), y = colnames(betas))
+  betas <- pamr::pamr.knnimpute(foo, rowmax = nalimit, colmax = 0.95)$x
+  return(betas)
 }
-
 
 #' replaceByMean
 #'
 #' Replace missing values by mean for each group
-#' 
+#'
 #' @param betas matrix of betas
 #' @param group group name
-#' 
+#'
 #' @return betas matrix
-#' 
-#' @export
-#' 
-replaceByMean<-function(betas,groups){
-	
-	print("replace missing values by means of groups")
-	
-	#select rows containing missing values
-	probNAcont<-which(apply(betas,1,function(i) sum(is.na(i)))>0)
-	
-	#calculate means by group
-	meanBetas<-function(betas){
-		rmeans<-matrix( rowMeans(betas,na.rm=T), ncol=ncol(betas), nrow=nrow(betas) )
-		betas[is.na(betas) ] <- rmeans[is.na(betas)]
-		return( betas )
-	}
+#'
+replaceByMean <- function(betas, groups) {
 
-	#replace missing values by means
-	for(group in levels(groups)){
-		sel<-groups==group
-		if(!sum(sel)>1){ stop("You should have at least 2 samples by group !") }
-		betas[probNAcont,sel]<-meanBetas(betas[probNAcont,sel])
-	}
-	
-	#if there is remaining na, because there is no value for a group
-	probNAcont<-which(apply(betas,1,function(i) sum(is.na(i)))>0)
-	if (length(probNAcont)) betas<-betas[-probNAcont,]
-	
-	return(betas)
+  # select rows containing missing values
+  probNAcont <- which(apply(betas, 1, function(i) sum(is.na(i))) > 0)
+
+  # calculate means by group
+  meanBetas <- function(betas) {
+    rmeans <- matrix(
+      rowMeans(betas, na.rm = T),
+      ncol = ncol(betas),
+      nrow = nrow(betas)
+    )
+    betas[is.na(betas)] <- rmeans[is.na(betas)]
+    return(betas)
+  }
+
+  # replace missing values by means
+  for (group in levels(groups)) {
+    sel <- groups == group
+    if (!sum(sel) > 1) {
+      stop("You should have at least 2 samples by group !")
+    }
+    betas[probNAcont, sel] <- meanBetas(betas[probNAcont, sel])
+  }
+
+  # if there is remaining na, because there is no value for a group
+  probNAcont <- which(apply(betas, 1, function(i) sum(is.na(i))) > 0)
+  if (length(probNAcont)) {
+    betas <- betas[-probNAcont, ]
+  }
+
+  return(betas)
 }
 
 

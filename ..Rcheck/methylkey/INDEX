@@ -1,0 +1,186 @@
+.dmrs.unify             .dmrs.unify Function
+Betas-class             Class Betas
+CpGNAexcl               CpG with too many NA
+CpGexcl                 CpGexcl
+List_OR_NULL-class      Define a Class Union
+MethylResultSet         MethylResultSet Class
+Mvals-class             Class Betas
+add_dmrcate             Create generic function for converting results
+                        to long format
+add_ipdmr               Create generic function for adding IPDMR
+                        results
+barplots_               barplots_
+barplots_450k           barplots_450k
+barplots_EPIC           barplots_EPIC
+barplots_MM280          barplots_MM280
+barplots_distToSS       barplots_distToSS
+bc_sva                  Batch Correction with SVA
+beta2m                  beta2m
+circosplot              circosplot
+colData                 Generic function to extract column data from an
+                        object
+colData,Betas-method    Method for extracting column data from a
+                        "Betas" object
+colData,Mvals-method    Method for extracting column data from a
+                        "Mvals" object
+colData,NULL-method     Method for extracting column data from a "NULL"
+                        object
+estimate_PCA_corr       Estimate PCA Correlation
+formatSampleSheet       Format and rename columns in a sample sheet
+                        data frame
+getBetas                Generic function to retrieve beta values from a
+                        "Betas" object
+getBetas,Betas-method   Method for retrieving beta values from a
+                        "Betas" object
+getBetasRanges          Create generic function for getting beta value
+                        ranges
+getDMPranges            Create generic function for retrieving DMP
+                        ranges
+getDMPs                 Create generic function for retrieving DMPs
+getDMRs                 getDMRs Generic Function
+getDeltaBetas           getDeltaBetas
+getDeltaBetas2          Calculate delta betas between all groups
+getManifest             getAnnotedManifest
+getMask                 Retrieve a masking matrix based on the Illumina
+                        methylation platform
+getMvals                Generic function to retrieve M-values from an
+                        "Mvals" object
+getMvals,Betas-method   Compute M-values from a "Betas" object
+getMvals,Mvals-method   Method for retrieving M-values from an "Mvals"
+                        object
+getPlateform            Determine the methylation array platform from
+                        the number of rows in a matrix
+getResults              Create generic function for retrieving
+                        methylation analysis results
+imputeNA                impute missing values
+m_leastsquare           m_leastsquare
+m_leastsquare2          m_leastsquare2
+m_leastsquare_ruv       m_leastsquare_ruv
+m_logistic              m_logistic
+m_regression            m_regression
+m_robust                m_robust
+makeFormula             makeFormula
+makeSummarizedExperimentFromBetas
+                        makeSummarizedExperimentFromBetas
+makepca                 PCA analysis
+manhattan               Manhattan
+methyldiff              Methylkey differential analysis
+minfi2Betas             Convert Illumina IDAT Files to Beta Values
+                        Using minfi
+my_density              Create a density plot of DMR lengths grouped by
+                        dmrtool
+my_dmrplot              Create a DMR plot for visualizing beta values
+                        with confidence intervals
+my_scatterPlot          Create a Scatter Plot for Visualizing Beta
+                        Values
+my_track                Create a genome track plot with CpG, DMRs, and
+                        probe annotations
+my_venn                 Create a Venn diagram to visualize
+                        intersections of IDs for different dmrtools
+my_venn_                Create a Venn diagram to visualize
+                        intersections of probe IDs
+my_venn_oriented        Create a Venn diagram to visualize
+                        intersections of IDs for different dmrtools
+my_violin               Create a violin plot of DMR lengths grouped by
+                        dmrtool
+my_volcano              Create a volcano plot to visualize statistical
+                        results
+my_volcanohmean         Create a volcano plot to visualize differential
+                        methylation analysis results with harmonized
+                        mean
+my_volcanomax           Create a volcano plot to visualize differential
+                        methylation analysis results with max value
+my_volcanomean          Create a volcano plot to visualize differential
+                        methylation analysis results
+nbprobes                Generic function to retrieve the number of
+                        probes from an object
+nbprobes,Betas-method   Method for retrieving the number of probes from
+                        a "Betas" object
+nbprobes,Mvals-method   Method for retrieving the number of probes from
+                        an "Mvals" object
+nbsamples               Generic function to retrieve the number of
+                        samples from an object
+nbsamples,Betas-method
+                        Method for retrieving the number of samples
+                        from a "Betas" object
+nbsamples,Mvals-method
+                        Method for retrieving the number of samples
+                        from an "Mvals" object
+nbsentrix               Generic function to retrieve the number of
+                        Sentrix IDs from an object
+nbsentrix,Betas-method
+                        Method for retrieving the number of Sentrix IDs
+                        from a "Betas" object
+nbsentrix,Mvals-method
+                        Method for retrieving the number of Sentrix IDs
+                        from an "Mvals" object
+newBetas                Create a new "Betas" object from beta values
+                        and a sample sheet
+plot_Channels           Generic function for plotting channels
+plot_Channels,RGChannelSet-method
+                        Plot channels from an RGChannelSet object
+plot_Channels,list-method
+                        Plot channels from a list
+plot_Channels2          Generic function for plotting channels
+plot_Channels2,RGChannelSet-method
+                        Call Plot channels from an RGChannelSet object
+                        for each sentrix
+plot_Detection          Create a bar plot to visualize detection
+                        fractions
+plot_NA                 Create a bar plot to visualize missing values
+                        (NA)
+plot_PCA_contribution   Plot PCA Contribution
+plot_background         Create a scatter plot with custom annotations
+plot_channel_switch     Create a scatter plot to visualize channel
+                        switching
+probes                  Generic function to retrieve probe names from
+                        an object
+probes,Betas-method     Method for retrieving probe names from a
+                        "Betas" object
+probes,Mvals-method     Method for retrieving probe names from an
+                        "Mvals" object
+replaceByMean           replaceByMean
+resultsToLong           Convert results to long format
+samples                 Generic function to retrieve sample information
+                        from an object
+samples,Betas-method    Method for retrieving sample information from a
+                        "Betas" object
+samples,Mvals-method    Method for retrieving sample information from
+                        an "Mvals" object
+searchDMR_combp         Search for Differentially Methylated Regions
+                        (DMRs) using combp
+searchDMR_dmrcate       Search for Differentially Methylated Regions
+                        (DMRs) using DMRcate
+searchDMR_dmrff         Search for Differentially Methylated Regions
+                        (DMRs) using DMRff
+searchDMR_ipdmr         Search for Differentially Methylated Regions
+                        (DMRs) using ipdmr
+sentrix                 Generic function to retrieve Sentrix IDs from
+                        an object
+sentrix,Betas-method    Method for retrieving Sentrix IDs from a
+                        "Betas" object
+sentrix,Mvals-method    Method for retrieving Sentrix IDs from an
+                        "Mvals" object
+sesame2Betas            Convert Illumina IDAT Files to Beta Values
+                        Using sesame
+setColData              Generic function to set column data for an
+                        object
+setColData,Betas-method
+                        Method for setting column data for a "Betas"
+                        object
+toGeoSubmission         Generic function to extract column data from an
+                        object
+toGeoSubmission,Betas,character-method
+                        generate files to submit data to Geo database
+toGeoSubmission,RGChannelSet,character-method
+                        generate files to submit data to Geo database
+variables               Generic function to retrieve variable names
+                        from an object
+variables,Betas-method
+                        Method for retrieving variable names from a
+                        "Betas" object
+variables,Mvals-method
+                        Method for retrieving variable names from an
+                        "Mvals" object
+violin_plot             violin_plot1
+volcano                 volcano

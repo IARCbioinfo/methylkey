@@ -1,0 +1,75 @@
+---
+title: "Adjusted Model / Young Only / Robust"
+subtitle: "Model ~group + gender + sentrix_id"
+format:
+  html:
+    code-summary: "Show the code"
+    code-copy: true
+    toc: true
+    toc-depth: 3
+execute:
+  warning: false
+  error: false
+params:
+   model: "~group+gender+sentrix_id"
+   intercept: "WT"
+   method: "robust"
+   genome: mm10
+   txdb: TxDb.Mmusculus.UCSC.mm10.knownGene
+   dmrtools: !expr c("dmrcate","ipdmr","combp","dmrff")
+---
+
+```{r setup}
+#| echo: False
+devtools::load_all("/home/cahaisv/git/methylkey2/")
+library(params$txdb, character.only = TRUE)
+txdb <- get(params$txdb)
+
+file_name <- knitr::current_input()
+base_name <- tools::file_path_sans_ext(file_name)
+output_dir <- paste0(base_name, "_tables")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+```
+
+```{r}
+#| code-summary: "We use mvalues without batch correction"
+methM <- readRDS("methM.rds")
+samples2keep <- colData(methM) %>% filter(age=="young") %>% pull(barcode)
+subMethM <- subSetMval(methM,samples2keep,probes(methM))
+mvals <- getMvals(methM)
+```
+
+```{r model1}
+#| code-summary: "Run model"
+#| cache: True
+mrs<-MethylResultSet(
+  se=subMethM,
+  model=params$model,
+  intercept=params$intercept,
+  method=params$method
+)
+```
+
+
+```{r model1r}
+#| output: asis
+#| echo: FALSE
+ModelName <- getModelName(mrs)
+for (index in names(mrs@dmps)[2:3]) {
+  model <- gsub("~", "", mrs@metadata$model)
+  level <- gsub(model,"",index)
+  cat ("\n\n## ", level, "\n\n")
+  res <- knitr::knit_child("model.qmd", envir = environment(), quiet = TRUE )
+  cat(res, sep = '\n')
+}
+```
+
+
+---
+
+```{r save_mrs}
+#| echo: FALSE
+# save result
+model_file_name <- paste0(ModelName, ".rds")
+saveRDS(mrs, fs::path(output_dir, model_file_name))
+```

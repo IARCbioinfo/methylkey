@@ -11,53 +11,103 @@
 #' @return An object of class "MethyLumiMethyLumiSet" containing beta values and associated metadata, including quality control statistics and plots.
 #'
 #' @export
-sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, ncore=4, Clock_models=NULL ){
-  
-  require(sesame)
-  require(sesameData)
-  require(purrr)
-  
-  #print("Warning loading data from EBV analysis")
-  assertthat::assert_that( dir.exists(idat), msg=paste0("Directory not found : ", idat) )
-  assertthat::assert_that( is.data.frame(sampleSheet), msg="Please provide a sampleSheet" )
-  assertthat::assert_that(na >= 0 && na <= 1, msg="na must be between 0 and 1.")
-  
-  #format sampleSheet
-  sampleSheet<-formatSampleSheet(sampleSheet)
-  
-  #load idat into sdfs list
-  sdfs <- openSesame(idat, prep = prep, func = NULL, BPPARAM=BiocParallel::MulticoreParam(ncore))
-  saveRDS(sdfs,"sdfs.rds")
-  
-  # extract betas matrix
-  betas=openSesame(sdfs, prep = "", func = sesame::getBetas, mask = TRUE, BPPARAM=BiocParallel::MulticoreParam(ncore))
-  
-  #infer sex
-  inferedSex  <- sapply( colnames(betas), function(barcode){ inferSex(betas[,barcode]) })
-  inferedSex  <- tibble(barcode=names(inferedSex), inferedSex=inferedSex )
-  sampleSheet <- left_join(sampleSheet, inferedSex, by = "barcode")
-  
-  #infer age
-  for (model_name in names(Clock_models)){
-    model_file=Clock_models[[model_name]]
-    model=read_rds(model_file)
-    na_fallback="na_fallback" %in% names(model$param)
-    #sampleSheet[[model_name]]=apply(betas, 2, function(samp){predictAge(samp,model,na_fallback)} )
-    sampleSheet[[model_name]]=sapply( sampleSheet$barcode, function(barcode){ predictAge(betas[,barcode],model,na_fallback) })
+sesame2Betas <- function(
+  idat = NULL,
+  prep = "QCDPB",
+  sampleSheet = NULL,
+  na = 0.2,
+  ncore = 4,
+  Clock_models = NULL
+) {
+
+  if (!requireNamespace("sesame", quietly = TRUE)) {
+    stop("Package 'sesame' is required for this function. Please install it.")
   }
-  
-  #create methylkey Beta object
-  meth<-newBetas( betas, sampleSheet, na )
-  metadata(meth)$betas.pipeline.name="sesame"
-  
-  #add the qcs
-  qcs = openSesame(sdfs, prep="", func=sesameQC_calcStats, BPPARAM=BiocParallel::MulticoreParam(ncore))
-  metadata(meth)$qcs = purrr::map( qcs, ~sesameQC_getStats(.) ) %>% bind_rows(.id="name")
-  
-  #stx<-gsub("_.*","",names(sdfs))
-  #lapply(unique(stx), function(x){ plot_Channels(sdfs[stx==x]) })
-  #metadata(meth)$RedGrnQQ=lapply(names(sdfs), function(x){ sesameQC_plotRedGrnQQ(sdfs[[x]]) })
-  
+  if (!requireNamespace("sesameData", quietly = TRUE)) {
+    stop("Package 'sesameData' is required for this function. Please install it.")
+  }
+
+  assertthat::assert_that(
+    dir.exists(idat),
+    msg = paste0("Directory not found: ", idat)
+  )
+  assertthat::assert_that(
+    is.data.frame(sampleSheet),
+    msg = "sampleSheet must be a data frame"
+  )
+  assertthat::assert_that(na >= 0 && na <= 1, msg = "na must be between 0 and 1")
+
+  # Format sampleSheet
+  sampleSheet <- formatSampleSheet(sampleSheet)
+
+  # Load IDAT into sdfs list
+  message("Loading IDAT files from sesame...")
+  sdfs <- sesame::openSesame(
+    idat,
+    prep = prep,
+    func = NULL,
+    BPPARAM = BiocParallel::MulticoreParam(ncore)
+  )
+
+  # Save sdfs object to avoid recalculating if needed later
+  saveRDS(sdfs, file = file.path("sdfs.rds"))
+
+  # Extract betas matrix
+  message("Extracting beta values...")
+  betas <- sesame::openSesame(
+    sdfs,
+    prep = "",
+    func = sesame::getBetas,
+    mask = TRUE,
+    BPPARAM = BiocParallel::MulticoreParam(ncore)
+  )
+
+  # Infer sex if betas are available
+  if (ncol(betas) > 0) {
+    message("Inferring sample sex...")
+    inferedSex <- sapply(colnames(betas), function(barcode) {
+      sesame::inferSex(betas[, barcode])
+    })
+    inferedSex <- tibble::tibble(
+      barcode = names(inferedSex),
+      inferedSex = inferedSex
+    )
+    sampleSheet <- dplyr::left_join(sampleSheet, inferedSex, by = "barcode")
+  }
+
+  # Infer age using clock models if provided
+  if (!is.null(Clock_models) && length(Clock_models) > 0) {
+    message("Computing epigenetic age...")
+    for (model_name in names(Clock_models)) {
+      model_file <- Clock_models[[model_name]]
+      if (file.exists(model_file)) {
+        model <- readr::read_rds(model_file)
+        na_fallback <- "na_fallback" %in% names(model$param)
+        sampleSheet[[model_name]] <- sapply(sampleSheet$barcode, function(barcode) {
+          sesame::predictAge(betas[, barcode], model, na_fallback)
+        })
+      }
+    }
+  }
+
+  # Create methylkey Beta object
+  message("Creating methylkey object...")
+  meth <- newBetas(betas, sampleSheet, na)
+  metadata(meth)$betas.pipeline.name <- "sesame"
+  metadata(meth)$preprocessing.method <- prep
+
+  # Add QC statistics
+  message("Computing QC statistics...")
+  qcs <- sesame::openSesame(
+    sdfs,
+    prep = "",
+    func = sesame::sesameQC_calcStats,
+    BPPARAM = BiocParallel::MulticoreParam(ncore)
+  )
+  metadata(meth)$qcs <- purrr::map(qcs, ~sesame::sesameQC_getStats(.)) |>
+    dplyr::bind_rows(.id = "barcode")
+
+  message("Sesame processing complete.")
   return(meth)
 }
 
@@ -73,89 +123,140 @@ sesame2Betas<-function( idat=NULL, prep = "QCDPB", sampleSheet=NULL, na=0.2, nco
 #' @return An object of class "MethyLumiMethyLumiSet" containing beta values and associated metadata, including quality control statistics and plots.
 #'
 #' @export
-minfi2Betas<-function( idat=NULL, sampleSheet=NULL, na=0.2, compositeCellType="", pval=0.2 ){
-  
+minfi2Betas <- function(
+  idat = NULL,
+  sampleSheet = NULL,
+  na = 0.2,
+  compositeCellType = "",
+  pval = 0.2
+) {
+
   if (!requireNamespace("minfi", quietly = TRUE)) {
-    stop("Package 'minfi' is required for this function to work. Please install it.")
+    stop("Package 'minfi' is required for this function. Please install it.")
   }
-  
-  require(minfi)
-  require(wateRmelon)
-  message("001")
-  compositeCellType_=c("Blood","CordBloodCombined","BloodExtended","CordBlood","CordBloodNorway","CordTissueAndBlood","DLPFC")
-  cellTypes = c("CD8T","CD4T", "NK","Bcell","Mono","Neu")
-  if(compositeCellType=="BloodExtended"){
-    cellTypes = c("Bas", "Bmem", "Bnv", "CD4mem", "CD4nv","CD8mem", "CD8nv", "Eos", "Mono", "Neu", "NK", "Treg")
+  if (!requireNamespace("wateRmelon", quietly = TRUE)) {
+    stop("Package 'wateRmelon' is required for this function. Please install it.")
   }
-  message("002")
-  assertthat::assert_that( dir.exists(idat), msg=paste0("Directory not found : ", idat) )
-  assertthat::assert_that( "Basename" %in% colnames(sampleSheet), msg="Basename not in sampleSheet" )
-  assertthat::assert_that( is.data.frame(sampleSheet), msg="Please provide a sampleSheet" )
-  assertthat::assert_that(na >= 0 && na <= 1, msg="na must be between 0 and 1.")
-  
-  RGset<-minfi::read.metharray.exp(base = idat, targets=sampleSheet, force=TRUE)
-  message("003")
-  GMsetEx <- minfi::mapToGenome(RGset) 
-  estSex  <- minfi::getSex(GMsetEx)
-  sampleSheet$inferedsex<-estSex$predictedSex
-  message("004")
+
+  compositeCellType_valid <- c(
+    "Blood", "CordBloodCombined", "BloodExtended", "CordBlood",
+    "CordBloodNorway", "CordTissueAndBlood", "DLPFC"
+  )
+  cellTypes_standard <- c("CD8T", "CD4T", "NK", "Bcell", "Mono", "Neu")
+  cellTypes_extended <- c(
+    "Bas", "Bmem", "Bnv", "CD4mem", "CD4nv", "CD8mem", "CD8nv",
+    "Eos", "Mono", "Neu", "NK", "Treg"
+  )
+
+  assertthat::assert_that(
+    dir.exists(idat),
+    msg = paste0("Directory not found: ", idat)
+  )
+  assertthat::assert_that(
+    "Basename" %in% colnames(sampleSheet),
+    msg = "Basename column required in sampleSheet"
+  )
+  assertthat::assert_that(
+    is.data.frame(sampleSheet),
+    msg = "sampleSheet must be a data frame"
+  )
+  assertthat::assert_that(na >= 0 && na <= 1, msg = "na must be between 0 and 1")
+  assertthat::assert_that(pval >= 0 && pval <= 1, msg = "pval must be between 0 and 1")
+
+  message("Loading IDAT files using minfi...")
+  RGset <- minfi::read.metharray.exp(
+    base = idat,
+    targets = sampleSheet,
+    force = TRUE
+  )
+
+  message("Mapping to genome...")
+  GMsetEx <- minfi::mapToGenome(RGset)
+  estSex <- minfi::getSex(GMsetEx)
+  sampleSheet$inferedsex <- estSex$predictedSex
+
+  message("Preprocessing...")
   MSet <- minfi::preprocessRaw(RGset)
   MSet <- minfi::fixMethOutliers(MSet)
-  qcs<-minfi::getQC(MSet)
-  #Normalization
+  qcs <- minfi::getQC(MSet)
+
+  # Normalization
+  message("Normalizing...")
   betas <- minfi::getBeta(RGset)
-  isna<-is.na(betas)
-  MSet<-minfi::preprocessFunnorm(RGset, sex=estSex$predictedSex)
+  isna <- is.na(betas)
+  MSet <- minfi::preprocessFunnorm(RGset, sex = estSex$predictedSex)
   betas <- minfi::getBeta(MSet)
-  #After normalization NA values are replace by values close to 0. This restore the NA status.
-  isna<-isna[ match(rownames(betas), rownames(isna)), ]
-  betas[ which(isna) ]<-NA 
-  message("005")
-  pvalues <-minfi::detectionP(RGset)
-  betas[ pvalues[rownames(betas), ] > pval ] <- NA
-  message( paste0( "Low quality probes :", sum(pvalues > pval), " low quality probes replaced by NA"  ) )
-  if (compositeCellType %in% compositeCellType_){
-      #require(FlowSorted.Blood.EPIC)
-    #require(FlowSorted.BloodExtended.EPIC)
-    # FlowSorted.BloodExtended.EPIC <- libraryDataGet('FlowSorted.BloodExtended.EPIC')
-    # FlowSorted.BloodExtended.EPIC
-    # library(FlowSorted.BloodExtended.EPIC)
-    # cc<-estimateCellCounts2(RGset, "BloodExtended", 
-    #                         cellTypes = c("Bas", "Bmem", "Bnv", "CD4mem", "CD4nv","CD8mem", "CD8nv", "Eos", "Mono", "Neu", "NK", "Treg"),
-    #                         probeSelect = "IDOL",
-    #                         referencePlatform = "IlluminaHumanMethylationEPIC",
-    #                         CustomCpGs = IDOLOptimizedCpGsBloodExtended)
-    
-    if(getPlateform(betas) == "IlluminaHumanMethylationEPIC"){
-      message("006")
-      cc<-estimateCellCounts2(RGset, compositeCellType, 
-                              cellTypes = c("CD8T","CD4T", "NK","Bcell","Mono","Neu"),
-                              referencePlatform = getPlateform(betas) )
-      sampleSheet<-cbind(sampleSheet,cc$prop)
-      sampleSheet$nlr=sampleSheet$neu/sampleSheet$nk
-    }else{
-      message("007")
-      cc<-estimateCellCounts(RGset, compositeCellType, 
-                              cellTypes = c("CD8T","CD4T", "NK","Bcell","Mono","Neu"),
-                              referencePlatform = getPlateform(betas) )
-      sampleSheet<-cbind(sampleSheet,cc)
-      sampleSheet$nlr=sampleSheet$Neu/sampleSheet$NK
+
+  # Restore NA status after normalization
+  isna <- isna[match(rownames(betas), rownames(isna)), ]
+  betas[which(isna)] <- NA
+
+  message("Applying detection p-value filter...")
+  pvalues <- minfi::detectionP(RGset)
+  n_filtered <- sum(pvalues > pval)
+  betas[pvalues[rownames(betas), ] > pval] <- NA
+  message(
+    sprintf(
+      "Marked %d low quality probes as NA (p-value > %.3f)",
+      n_filtered,
+      pval
+    )
+  )
+
+  # Estimate cell counts if requested
+  if (compositeCellType != "" && compositeCellType %in% compositeCellType_valid) {
+    message(sprintf("Estimating cell counts for: %s", compositeCellType))
+
+    if (getPlateform(betas) == "IlluminaHumanMethylationEPIC") {
+      if (!requireNamespace("FlowSorted.Blood.EPIC", quietly = TRUE)) {
+        warning("FlowSorted.Blood.EPIC package required for cell count estimation. Skipping.")
+      } else {
+        cc <- minfi::estimateCellCounts2(RGset, compositeCellType,
+          cellTypes = cellTypes_standard,
+          referencePlatform = getPlateform(betas)
+        )
+        sampleSheet <- cbind(sampleSheet, cc$prop)
+        sampleSheet$nlr <- sampleSheet$neu / sampleSheet$nk
+      }
+    } else if (getPlateform(betas) %in% c(
+      "IlluminaHumanMethylation450k",
+      "IlluminaHumanMethylation27k"
+    )) {
+      cc <- minfi::estimateCellCounts(RGset, compositeCellType,
+        cellTypes = cellTypes_standard,
+        referencePlatform = getPlateform(betas)
+      )
+      sampleSheet <- cbind(sampleSheet, cc)
+      sampleSheet$nlr <- sampleSheet$Neu / sampleSheet$NK
+    } else {
+      warning(sprintf(
+        "Cell count estimation not available for platform: %s",
+        getPlateform(betas)
+      ))
     }
-    message("008")
-    breaks <- c(-Inf, 0.7, 1, 2, 3, Inf)
-    labels <- c("bad", "average", "good", "average", "bad")
-    sampleSheet$epimmune <- cut(sampleSheet$nlr, breaks = breaks, labels = labels)
+
+    # Define immune score
+    if ("nlr" %in% colnames(sampleSheet)) {
+      breaks <- c(-Inf, 0.7, 1, 2, 3, Inf)
+      labels <- c("bad", "average", "good", "average", "bad")
+      sampleSheet$epimmune <- cut(sampleSheet$nlr,
+        breaks = breaks,
+        labels = labels
+      )
+    }
   }
-  message("009")
-  sampleSheet<-cbind(sampleSheet, wateRmelon::agep(betas, method='all'))
-  message("010")
-  meth<-newBetas( betas, sampleSheet, na )
-  message("011")
-  metadata(meth)$betas.pipeline.name="minfi"
+
+  message("Computing epigenetic age predictors...")
+  sampleSheet <- cbind(sampleSheet, wateRmelon::agep(betas, method = "all"))
+
+  message("Creating methylkey object...")
+  meth <- newBetas(betas, sampleSheet, na)
+  metadata(meth)$betas.pipeline.name <- "minfi"
   metadata(meth)$qcs <- qcs
-  message("012")
-  plot_Channels2(RGset)
-  message("013")
+  metadata(meth)$platform <- getPlateform(betas)
+  metadata(meth)$celltype_estimation <- compositeCellType
+
+  message("Minfi processing complete.")
   return(meth)
 }
 

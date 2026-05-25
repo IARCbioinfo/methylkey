@@ -1,0 +1,147 @@
+---
+title: "Quality Control and Data Assessment"
+subtitle: "Assessing data quality and identifying issues"
+format:
+  html:
+    code-summary: "Voir le code et les paramètres"
+    code-copy: true
+execute:
+  warning: false
+  error: false
+params:
+   groups: !expr c("sentrix_id","group","age","gender")
+---
+
+
+```{r}
+#| echo: False
+devtools::load_all("/home/cahaisv/git/methylkey2/")
+library(tidyverse)
+```
+
+```{r}
+#| echo: False
+#| eval: !expr "!exists('meth.rds')"
+meth <- readRDS("meth.rds")
+```
+
+```{r}
+#| echo: False
+#| eval: !expr "!exists('sdfs.rds')"
+sdfs <- readRDS("sdfs.rds")
+```
+
+```{r}
+qcs  <- metadata(meth)$qcs
+betas <- getBetas(meth)
+sampleSheet <- methylkey::colData(meth)
+```
+
+## Color Channels
+
+::: {.callout-tip}
+## Color Channels
+
+The color Channel Barplot, visually represents the fluorescence intensities captured in the red and green channels of Illumina arrays. It provides a comparative view of signal intensities across these channels. Barplots of the same color across different samples or conditions should appear more or less aligned horizontally. Any significant misalignment may indicate technical artifacts or inconsistencies in data acquisition or processing.
+:::
+
+```{r channels}
+plot_Channels(sdfs,numPositions=100000) %>% print()
+```
+
+
+## Background
+
+::: {.callout-tip}
+## Background
+
+The Background Level Plot illustrates the background intensity levels. It offers insight into the baseline fluorescence signals captured during the analysis using Illumina arrays. Significant deviations from the baseline may indicate variations in experimental conditions, sample quality, or array performance, necessitating careful examination and potential adjustment of analysis parameters.
+:::
+
+```{r background, cache=TRUE}
+plot_background(qcs) 
+```
+
+### Signal
+
+::: panel-tabset
+
+#### Detection
+
+::: {.callout-tip}
+## Detection
+
+The QC Detection Plot provides a visual representation of the fraction of probes returning measurable values across sentrix wells. It aids in identifying potential issues within the data generated from Illumina arrays.
+:::
+
+```{r detection, cache=TRUE}
+plot_Detection(qcs)
+```
+
+
+#### NA values
+
+::: {.callout-tip}
+## NA
+
+The NA Values Plot displays the number of probes returning no values across sentrix wells. It serves as a tool for detecting missing data points within the analysis. High Number of NA Probes suggests potential issues such as probe failure, sample degradation, or technical errors, warranting further investigation and potentially data imputation techniques.
+:::
+
+```{r NA, cache=TRUE}
+plot_NA(qcs)
+```
+
+:::
+
+
+### Betas values distribution
+
+::: panel-tabset
+
+#### Density Plot
+
+::: {.callout-tip}
+## Densityplot
+
+The Density Plot illustrates the distribution of probes based on their level of methylation, represented by beta values. It typically displays a bimodal curve, with one peak indicating unmethylated probes and the other representing methylated probes. Any deviation from the expected bimodal distribution may suggest potential issues or sample-specificities within the data. For example, additional peaks or irregularities could indicate technical artifacts, batch effects, or aberrant methylation patterns, warranting further investigation.
+:::
+
+```{r}
+density_plot(meth) |>
+  plotly::ggplotly(tooltip = c("text"))
+```
+
+#### Violin Plots
+
+```{r}
+for (group in tolower(params$groups)){
+  foo<-as.character(sampleSheet %>% pull(!!group))
+  violin_plot(betas, foo , numPositions=1000) %>% print()
+}
+```
+
+
+
+::: {.callout-tip}
+## Violin
+
+The Violin Plots offer an alternative representation of the distribution of probes based on their methylation levels.
+:::
+
+:::
+
+### Inferences
+
+```{r inferences, cache=TRUE}
+colData(meth) %>% DT::datatable(extensions = 'Buttons', options = list(
+                           dom = 'Blfrtip',
+                           buttons = c('copy', 'csv')))
+```
+
+::: {.callout-tip}
+## Inferences
+
+The Inference Table presents the results of sex and age prediction for each sample based on their methylation levels. Sex imputation can notably help to identify mistakes in pairing samples with their corresponding barcode IDs in the sample sheet.
+:::
+
+---

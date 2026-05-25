@@ -1,0 +1,655 @@
+* using log directory ‘/luca/git/methylkey2/..Rcheck’
+* using R version 4.5.3 (2026-03-11)
+* using platform: x86_64-pc-linux-gnu
+* R was compiled by
+    gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+    GNU Fortran (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+* running under: Ubuntu 24.04.4 LTS
+* using session charset: UTF-8
+* using options ‘--no-manual --no-build-vignettes’
+* checking for file ‘./DESCRIPTION’ ... OK
+* this is package ‘methylkey’ version ‘0.99.0’
+* package encoding: UTF-8
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... NOTE
+Found the following hidden files and directories:
+  .Rhistory
+  .gitignore
+  R/.Rhistory
+  examples/.Rhistory
+  vignettes/.gitignore
+  ..Rcheck
+  .git
+These were most likely included in error. See section ‘Package
+structure’ in the ‘Writing R Extensions’ manual.
+* checking for portable file names ... OK
+* checking for sufficient/correct file permissions ... OK
+* checking whether package ‘methylkey’ can be installed ... OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking DESCRIPTION meta-information ... NOTE
+Checking should be performed on sources prepared by ‘R CMD build’.
+Package listed in more than one of Depends, Imports, Suggests, Enhances:
+  ‘SummarizedExperiment’
+A package should be listed in only one of these fields.
+* checking top-level files ... NOTE
+File
+  LICENSE
+is not mentioned in the DESCRIPTION file.
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... WARNING
+Found the following directory with the name of a check directory:
+  ./..Rcheck
+Most likely, these were included erroneously.
+Problems with news in ‘NEWS.md’:
+  Cannot extract version info from the following section titles:
+    Installation Instructions for Testing
+    Contact
+* checking code files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking loading without being on the library search path ... OK
+* checking dependencies in R code ... NOTE
+importations '::' ou ':::' non déclarées depuis :
+  'RCurl' 'haven' 'pamr' 'tidyselect' 'viridis'
+appels 'library' ou 'require' non déclarés depuis :
+  'ENmix' 'dmrff' 'ggbio' 'pamr'
+appels 'library' ou 'require' dans le code du package :
+  'BSgenome.Hsapiens.UCSC.hg19' 'BSgenome.Hsapiens.UCSC.hg38'
+  'BSgenome.Mmusculus.UCSC.mm10' 'DMRcate' 'ENmix' 'dmrff' 'ggbio'
+  'pamr'
+  Please use :: or requireNamespace() instead.
+  See section 'Suggested packages' in the 'Writing R Extensions' manual.
+Espaces de noms dans le champ Imports non importés depuis :
+  'BiocGenerics' 'DescTools' 'ENmix' 'dmrff' 'factoextra' 'ggbio'
+  'qqman' 'wheatmap'
+  All declared Imports should be used.
+Package dans le champ Depends non importé depuis : 'methods'
+  These packages need to be imported from (in the NAMESPACE file)
+  for when this namespace is loaded but not attached.
+Objets manquants ou non exportés :
+  'methylkey::getAnnotedManifest' 'minfi::estimateCellCounts2'
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... NOTE
+.dmrs.unify: no visible binding for global variable 'ID'
+.dmrs.unify: no visible binding for global variable 'chr'
+.dmrs.unify: no visible binding for global variable 'no.cpgs'
+.dmrs.unify: no visible binding for global variable 'fdr'
+CpGexcl: no visible global function definition for
+  'getDefaultProbeList'
+MethylResultSet: no visible global function definition for 'as.formula'
+MethylResultSet: no visible global function definition for 'relevel'
+MethylResultSet: no visible global function definition for
+  'model.matrix'
+MethylResultSet: no visible global function definition for 'qchisq'
+MethylResultSet : <anonymous>: no visible global function definition
+  for 'median'
+MethylResultSet : <anonymous>: no visible global function definition
+  for 'qchisq'
+MethylResultSet: no visible binding for global variable 'deltabetas'
+MethylResultSet: no visible binding for global variable 'logFC'
+MethylResultSet: no visible binding for global variable 'Probe_ID'
+MethylResultSet: no visible global function definition for 'new'
+barplots_450k: no visible binding for global variable
+  'UCSC_RefGene_Group'
+barplots_450k: no visible binding for global variable
+  'Relation_to_Island'
+barplots_450k: no visible binding for global variable 'status'
+barplots_450k: no visible binding for global variable 'is.sig'
+barplots_EPIC: no visible binding for global variable
+  'UCSC_RefGene_Group'
+barplots_EPIC: no visible binding for global variable
+  'Relation_to_Island'
+barplots_EPIC: no visible binding for global variable 'status'
+barplots_EPIC: no visible binding for global variable 'is.sig'
+barplots_MM280: no visible binding for global variable 'Feature'
+barplots_MM280: no visible binding for global variable 'status'
+barplots_MM280: no visible binding for global variable 'is.sig'
+barplots_distToSS: no visible binding for global variable 'deltabetas'
+barplots_distToSS: no visible binding for global variable 'adj.P.Val'
+barplots_distToSS: no visible binding for global variable 'status'
+barplots_distToSS: no visible binding for global variable 'distToTSS'
+bc_sva: no visible global function definition for 'as.formula'
+bc_sva: no visible global function definition for 'model.matrix'
+bc_sva: no visible global function definition for 'residuals'
+bc_sva: no visible global function definition for 'lm'
+circosplot: no visible binding for global variable
+  'BSgenome.Hsapiens.UCSC.hg38'
+circosplot: no visible binding for global variable
+  'BSgenome.Hsapiens.UCSC.hg19'
+circosplot: no visible binding for global variable
+  'BSgenome.Mmusculus.UCSC.mm10'
+circosplot: no visible global function definition for 'seqlengths'
+circosplot: no visible global function definition for 'GRanges'
+circosplot: no visible global function definition for 'IRanges'
+circosplot: no visible global function definition for 'seqlengths<-'
+circosplot: no visible global function definition for 'seqlevels<-'
+circosplot: no visible global function definition for 'ggbio'
+circosplot: no visible global function definition for 'circle'
+circosplot: no visible binding for global variable 'midpoint'
+circosplot: no visible binding for global variable 'id'
+densityPlot: no visible global function definition for 'is'
+densityPlot : <anonymous>: no visible global function definition for
+  'density'
+densityPlot: no visible global function definition for 'abline'
+densityPlot: no visible global function definition for 'lines'
+dotPlot_: no visible binding for global variable 'Term'
+dotPlot_: no visible binding for global variable 'P.value'
+dotPlot_: no visible binding for global variable 'yy'
+dotPlot_: no visible binding for global variable 'status'
+dotPlot_: no visible binding for global variable 'gene_count'
+dotPlot_: no visible binding for global variable 'Odds.Ratio'
+dotPlot_: no visible binding for global variable 'logP'
+estimate_PCA_corr: no visible binding for global variable 'contrib'
+estimate_PCA_corr : <anonymous>: no visible binding for global variable
+  'PC'
+estimate_PCA_corr : <anonymous>: no visible global function definition
+  for 'reformulate'
+estimate_PCA_corr : <anonymous>: no visible binding for global variable
+  'p'
+estimate_PCA_corr : <anonymous>: no visible binding for global variable
+  'contrib'
+estimate_PCA_corr: no visible binding for global variable 'i'
+formatSampleSheet: no visible binding for global variable 'barcode'
+getManifest: no visible binding for global variable 'CpG_chrm'
+getManifest: no visible binding for global variable 'CpG_beg'
+getManifest: no visible binding for global variable 'mapYD_A'
+getManifest: no visible binding for global variable 'Probe_ID'
+getManifest: no visible binding for global variable 'chr'
+getManifest: no visible binding for global variable 'pos'
+getMask: no visible binding for global variable 'probeID'
+getMask: no visible binding for global variable 'MASK_general'
+getMask: no visible binding for global variable 'CpG_chrm'
+m_leastsquare: no visible global function definition for 'as.formula'
+m_leastsquare: no visible global function definition for 'model.matrix'
+m_leastsquare: no visible global function definition for 'qchisq'
+m_leastsquare: no visible global function definition for 'median'
+m_leastsquare2: no visible global function definition for 'as.formula'
+m_leastsquare2: no visible global function definition for
+  'model.matrix'
+m_leastsquare2: no visible global function definition for 'qchisq'
+m_leastsquare2 : <anonymous>: no visible global function definition for
+  'median'
+m_leastsquare2 : <anonymous>: no visible global function definition for
+  'qchisq'
+m_leastsquare_ruv: no visible global function definition for
+  'as.formula'
+m_leastsquare_ruv: no visible global function definition for
+  'model.matrix'
+m_leastsquare_ruv: no visible global function definition for 'RUVfit'
+m_leastsquare_ruv: no visible binding for global variable 'factors'
+m_leastsquare_ruv: no visible global function definition for 'RUVadj'
+m_leastsquare_ruv: no visible global function definition for 'qchisq'
+m_leastsquare_ruv: no visible global function definition for 'median'
+m_leastsquare_ruv: no visible global function definition for 'topRUV'
+m_logistic: no visible global function definition for 'mclapply'
+m_logistic : <anonymous>: no visible global function definition for
+  'coef'
+m_logistic : <anonymous>: no visible global function definition for
+  'clogit'
+m_logistic: no visible global function definition for 'rbindlist'
+m_logistic: no visible global function definition for 'p.adjust'
+m_logistic: no visible global function definition for 'qchisq'
+m_logistic: no visible global function definition for 'median'
+m_robust: no visible global function definition for 'as.formula'
+m_robust: no visible global function definition for 'model.matrix'
+m_robust: no visible global function definition for 'lmFit'
+m_robust: no visible global function definition for 'qchisq'
+m_robust: no visible global function definition for 'median'
+makeSummarizedExperimentFromBetas: no visible binding for global
+  variable 'probeID'
+makepca: no visible binding for global variable 'var'
+makepca: no visible global function definition for 'prcomp'
+manhattan: no visible binding for global variable 'chr'
+manhattan: no visible binding for global variable 'pos'
+manhattan: no visible binding for global variable 'max_bp'
+manhattan: no visible binding for global variable 'bp_add'
+manhattan: no visible binding for global variable 'bp_cum'
+manhattan: no visible binding for global variable 'P.Value'
+manhattan: warning in scale_x_continuous(label = axis_set$chr, breaks =
+  axis_set$center): correspondance partielle d'argument de 'label' par
+  rapport à 'labels'
+methyldiff: no visible global function definition for 'relevel'
+methyldiff: no visible binding for global variable 'methM'
+methyldiff: no visible binding for global variable '.'
+methyldiff: no visible binding for global variable 'deltabetas'
+methyldiff: no visible binding for global variable 'adj.P.Val'
+methyldiff: possible error in MethylResultSet(se, dmps, dmrs =
+  list(dmrcate = dmrcate_table, ipdmr = ipdmr_table)): argument
+  inutilisé (dmrs = list(dmrcate = dmrcate_table, ipdmr = ipdmr_table))
+my_density: no visible binding for global variable 'dmrtool'
+my_density: no visible binding for global variable 'ID'
+my_dmrplot: no visible binding for global variable 'Probe_ID'
+my_dmrplot: no visible binding for global variable 'betas'
+my_dmrplot: no visible binding for global variable 'sd'
+my_scatterPlot: no visible global function definition for 'dist'
+my_scatterPlot: no visible global function definition for 'cmdscale'
+my_track: no visible binding for global variable 'Probe_ID'
+my_track: no visible binding for global variable 'chr'
+my_track: no visible binding for global variable 'pos'
+my_track: no visible global function definition for
+  'rownames_to_column'
+my_track: no visible binding for global variable 'dmrtool'
+my_track: warning in AnnotationTrack(cpgIslands, genome = genome, name
+  = "CpG", chr = chromosome, from = start, to = end): correspondance
+  partielle d'argument de 'chr' par rapport à 'chromosome'
+my_track: no visible binding for global variable 'cpgIslands'
+my_track: warning in AnnotationTrack(range = dmrcate, name = "DMRcate",
+  chr = chromosome, from = start, to = end): correspondance partielle
+  d'argument de 'chr' par rapport à 'chromosome'
+my_track: warning in AnnotationTrack(range = dmrff, name = "DMRff", chr
+  = chromosome, from = start, to = end): correspondance partielle
+  d'argument de 'chr' par rapport à 'chromosome'
+my_track: warning in AnnotationTrack(range = combp, name = "combp", chr
+  = chromosome, from = start, to = end): correspondance partielle
+  d'argument de 'chr' par rapport à 'chromosome'
+my_track: warning in AnnotationTrack(range = ipdmr, name = "ipdmr", chr
+  = chromosome, from = start, to = end): correspondance partielle
+  d'argument de 'chr' par rapport à 'chromosome'
+my_track: warning in DataTrack(foo, name = "probes", groups =
+  sampleSheet$Group, type = "confint", showSampleNames = TRUE,
+  cex.sampleNames = 0.6, genome = genome, chr = chromosome):
+  correspondance partielle d'argument de 'chr' par rapport à
+  'chromosome'
+my_track: no visible binding for global variable 'sampleSheet'
+my_track: no visible binding for global variable 'gtrack'
+my_venn: no visible binding for global variable 'Probe_ID'
+my_venn: no visible binding for global variable 'ID'
+my_venn: no visible binding for global variable 'Cluster_ID'
+my_venn: no visible binding for global variable 'dmrtool'
+my_venn_: no visible binding for global variable 'dmrtool'
+my_venn_: no visible binding for global variable 'Probe_ID'
+my_venn_bugged: no visible binding for global variable 'Probe_ID'
+my_venn_bugged: no visible binding for global variable 'dmrtool'
+my_venn_bugged: no visible binding for global variable 'ID'
+my_venn_bugged: no visible binding for global variable 'n_tools'
+my_venn_probes: no visible binding for global variable 'dmrtool'
+my_venn_probes: no visible binding for global variable 'ID'
+my_violin: no visible binding for global variable 'dmrtool'
+my_violin: no visible binding for global variable 'ID'
+my_volcano: no visible binding for global variable 'deltabetas'
+my_volcano: no visible binding for global variable 'adj.P.Val'
+my_volcanohmean: no visible binding for global variable 'dmrtool'
+my_volcanohmean: no visible binding for global variable 'ID'
+my_volcanohmean: no visible binding for global variable 'fdr'
+my_volcanohmean: no visible binding for global variable 'deltabetas'
+my_volcanohmean: no visible binding for global variable
+  'mean.deltabetas'
+my_volcanomax: no visible binding for global variable 'dmrtool'
+my_volcanomax: no visible binding for global variable 'ID'
+my_volcanomax: no visible binding for global variable 'fdr'
+my_volcanomax: no visible binding for global variable 'deltabetas'
+my_volcanomax: no visible binding for global variable 'max.deltabetas'
+my_volcanomean: no visible binding for global variable 'dmrtool'
+my_volcanomean: no visible binding for global variable 'ID'
+my_volcanomean: no visible binding for global variable 'fdr'
+my_volcanomean: no visible binding for global variable 'deltabetas'
+my_volcanomean: no visible binding for global variable
+  'mean.deltabetas'
+newBetas: no visible global function definition for 'as'
+plot_Detection: no visible binding for global variable 'name'
+plot_Detection: no visible binding for global variable 'frac_dt'
+plot_NA: no visible binding for global variable 'name'
+plot_NA: no visible binding for global variable 'num_na_cg'
+plot_PCA_contribution: no visible global function definition for
+  'reorder'
+plot_PCA_contribution: no visible binding for global variable
+  'PCA_axis'
+plot_PCA_contribution: no visible binding for global variable 'val'
+plot_background: no visible binding for global variable 'mean_oob_grn'
+plot_background: no visible binding for global variable 'mean_oob_red'
+plot_background: no visible binding for global variable 'name'
+plot_channel_switch: no visible binding for global variable
+  'InfI_switch_G2R'
+plot_channel_switch: no visible binding for global variable
+  'InfI_switch_R2G'
+sankeyDotPlot: no visible binding for global variable 'P.value'
+sankeyDotPlot: no visible global function definition for 'fct_reorder'
+sankeyDotPlot: no visible binding for global variable 'Term'
+sankeyDotPlot: no visible binding for global variable 'gene_count'
+sankeyPlot_: no visible binding for global variable 'Term'
+sankeyPlot_: no visible binding for global variable 'status'
+sankeyPlot_: no visible binding for global variable 'node'
+sankeyPlot_: no visible binding for global variable 'gene_count'
+sankeyPlot_: no visible binding for global variable 'connector'
+sankeyPlot_: no visible binding for global variable 'edge_id'
+searchDMR_combp: no visible binding for global variable 'nprobe'
+searchDMR_combp: no visible binding for global variable 'fdr'
+searchDMR_combp: no visible global function definition for 'p.adjust'
+searchDMR_dmrcate: no visible binding for global variable 'chr'
+searchDMR_dmrcate: no visible global function definition for 'new'
+searchDMR_dmrcate: no visible global function definition for
+  'subjectHits'
+searchDMR_dmrcate: no visible global function definition for
+  'queryHits'
+searchDMR_dmrff: no visible global function definition for 'dmrff'
+searchDMR_dmrff: no visible binding for global variable 'mvals'
+searchDMR_dmrff: no visible global function definition for 'p.adjust'
+searchDMR_dmrff: no visible binding for global variable 'chr'
+searchDMR_dmrff: no visible binding for global variable 'p.value'
+searchDMR_dmrff: no visible global function definition for
+  'dmrff.sites'
+searchDMR_dmrff: no visible binding for global variable 'Probe_ID'
+searchDMR_dmrff: no visible binding for global variable 'fdr'
+searchDMR_dmrff: no visible binding for global variable 'nprobe'
+searchDMR_dmrff: no visible binding for global variable 'p'
+searchDMR_ipdmr: no visible binding for global variable 'nprobe'
+subSetMval: no visible global function definition for 'as'
+violin_plot: no visible global function definition for 'runif'
+volcano: no visible binding for global variable 'deltabetas'
+volcano: no visible binding for global variable 'adj.P.Val'
+add_combp,data.frame: no visible binding for global variable 'probe'
+add_combp,data.frame: no visible binding for global variable 'chr'
+add_combp,data.frame: no visible binding for global variable 'combp'
+add_combp,data.frame: no visible binding for global variable 'fdr'
+add_combp,data.frame: no visible binding for global variable 'nprobe'
+add_combp,data.frame: no visible binding for global variable 'p'
+add_dmrcate,data.frame: no visible binding for global variable
+  'dmrcate'
+add_dmrcate,data.frame: no visible binding for global variable
+  'no.cpgs'
+add_dmrcate,data.frame: no visible binding for global variable
+  'Probe_ID'
+add_dmrff,data.frame: no visible binding for global variable 'Probe_ID'
+add_dmrff,data.frame: no visible binding for global variable 'chr'
+add_dmrff,data.frame: no visible binding for global variable 'dmrff'
+add_dmrff,data.frame: no visible binding for global variable 'fdr'
+add_dmrff,data.frame: no visible binding for global variable 'nprobe'
+add_dmrff,data.frame: no visible binding for global variable 'p'
+add_ipdmr,data.frame: no visible binding for global variable 'probe'
+add_ipdmr,data.frame: no visible binding for global variable 'chr'
+add_ipdmr,data.frame: no visible binding for global variable 'ipdmr'
+add_ipdmr,data.frame: no visible binding for global variable 'fdr'
+add_ipdmr,data.frame: no visible binding for global variable 'nprobe'
+add_ipdmr,data.frame: no visible binding for global variable 'p'
+getDMPranges,MethylResultSet: no visible binding for global variable
+  'adj.P.Val'
+getMvals,Betas: no visible global function definition for 'quantile'
+getMvals,Betas: no visible global function definition for 'as'
+getResults,MethylResultSet: no visible binding for global variable
+  'chr'
+getResults,MethylResultSet: no visible binding for global variable
+  'P.Value'
+plot_Channels,RGChannelSet: no visible global function definition for
+  'par'
+plot_Channels,RGChannelSet: no visible global function definition for
+  'boxplot'
+plot_Channels,RGChannelSet: no visible global function definition for
+  'getRed'
+plot_Channels,RGChannelSet: no visible binding for global variable
+  'sampleSheet'
+plot_Channels,RGChannelSet: no visible global function definition for
+  'getGreen'
+plot_Channels,RGChannelSet: no visible global function definition for
+  'axis'
+plot_Channels,RGChannelSet: no visible global function definition for
+  'recordPlot'
+plot_Channels,list: no visible binding for global variable 'name'
+plot_Channels,list: no visible binding for global variable 'samp'
+plot_Channels,list: no visible binding for global variable 'Intensity'
+plot_Channels,list: no visible binding for global variable 'channel'
+resultsToLong,data.frame: no visible binding for global variable 'dmrs'
+resultsToLong,data.frame: no visible binding for global variable 'fdr'
+resultsToLong,data.frame: no visible binding for global variable
+  'no.cpgs'
+toGeoSubmission,RGChannelSet-character: no visible binding for global
+  variable 'RGset'
+Undefined global functions or variables:
+  . BSgenome.Hsapiens.UCSC.hg19 BSgenome.Hsapiens.UCSC.hg38
+  BSgenome.Mmusculus.UCSC.mm10 Cluster_ID CpG_beg CpG_chrm Feature
+  GRanges ID IRanges InfI_switch_G2R InfI_switch_R2G Intensity
+  MASK_general Odds.Ratio P.Value P.value PC PCA_axis Probe_ID RGset
+  RUVadj RUVfit Relation_to_Island Term UCSC_RefGene_Group abline
+  adj.P.Val as as.formula axis barcode betas boxplot bp_add bp_cum
+  channel chr circle clogit cmdscale coef combp connector contrib
+  cpgIslands deltabetas density dist distToTSS dmrcate dmrff
+  dmrff.sites dmrs dmrtool edge_id factors fct_reorder fdr frac_dt
+  gene_count getDefaultProbeList getGreen getRed ggbio gtrack i id
+  ipdmr is is.sig lines lm lmFit logFC logP mapYD_A max.deltabetas
+  max_bp mclapply mean.deltabetas mean_oob_grn mean_oob_red median
+  methM midpoint model.matrix mvals n_tools name new no.cpgs node
+  nprobe num_na_cg p p.adjust p.value par pos prcomp probe probeID
+  qchisq quantile queryHits rbindlist recordPlot reformulate relevel
+  reorder residuals rownames_to_column runif samp sampleSheet sd
+  seqlengths seqlengths<- seqlevels<- status subjectHits topRUV val var
+  yy
+Consider adding
+  importFrom("grDevices", "recordPlot")
+  importFrom("graphics", "abline", "axis", "boxplot", "lines", "par")
+  importFrom("methods", "as", "is", "new")
+  importFrom("stats", "as.formula", "cmdscale", "coef", "density",
+             "dist", "lm", "median", "model.matrix", "p.adjust",
+             "prcomp", "qchisq", "quantile", "reformulate", "relevel",
+             "reorder", "residuals", "runif", "sd", "var")
+to your NAMESPACE file (and ensure that your DESCRIPTION Imports field
+contains 'methods').
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... WARNING
+Objets code non documentés :
+  'DataFrame' 'SummarizedExperiment' 'densityPlot' 'sankeyDotPlot'
+  'subSetMval'
+Méthodes S4 non documentées :
+  generic 'add_dmrcate' and siglist 'data.frame'
+  generic 'add_ipdmr' and siglist 'data.frame'
+  generic 'getBetasRanges' and siglist 'Betas'
+  generic 'getDMPranges' and siglist 'MethylResultSet'
+  generic 'getDMPs' and siglist 'MethylResultSet'
+  generic 'getResults' and siglist 'MethylResultSet'
+  generic 'resultsToLong' and siglist 'data.frame'
+All user-level objects in a package should have documentation entries.
+See chapter ‘Writing R documentation files’ in the ‘Writing R
+Extensions’ manual.
+* checking for code/documentation mismatches ... WARNING
+Functions or methods with usage in Rd file 'my_venn_oriented.Rd' but not in code:
+  'my_venn_oriented'
+
+Codoc mismatches from Rd file 'MethylResultSet.Rd':
+MethylResultSet
+  Code : function(se, model, intercept, method = "ls", manifest = NULL)
+  Docs : function(se, model, intercept, method = "ls")
+  Noms d'arguments dans le code mais pas dans la doc :
+    manifest
+MethylResultSet
+  Code : function(se, model, intercept, method = "ls", manifest = NULL)
+  Docs : function(se, model, intercept, method = "ls")
+  Noms d'arguments dans le code mais pas dans la doc :
+    manifest
+
+Codoc mismatches from Rd file 'add_dmrcate.Rd':
+add_dmrcate
+  Code : function(x, fdr = 0.05, pcutoff = 0.05, maxgap = 1000, genome
+                 = "hg38", mean = "HMFDR")
+  Docs : function(x, fdr = 0.05, pcutoff = 0.02, maxgap = 1000, genome
+                 = "hg38")
+  Noms d'arguments dans le code mais pas dans la doc :
+    mean
+  Incohérence dans les valeurs par défaut des arguments :
+    Name: 'pcutoff' Code: 0.05 Docs: 0.02
+
+Codoc mismatches from Rd file 'colData.Rd':
+colData
+  Code : function(x, ...)
+  Docs : function(x)
+  Noms d'arguments dans le code mais pas dans la doc :
+    ...
+
+Codoc mismatches from Rd file 'getDMPranges.Rd':
+getDMPranges
+  Code : function(x, group = 1, q = 0.05)
+  Docs : function(x, group = 1, q = 0.5)
+  Incohérence dans les valeurs par défaut des arguments :
+    Name: 'q' Code: 0.05 Docs: 0.5
+
+Codoc mismatches from Rd file 'getDeltaBetas.Rd':
+getDeltaBetas
+  Code : function(betas, group)
+  Docs : function(betas, group, case = "TT", control = "NT")
+  Noms d'arguments dans la doc mais pas dans le code :
+    case control
+
+Codoc mismatches from Rd file 'getResults.Rd':
+getResults
+  Code : function(x, index, tools = c("dmrcate", "ipdmr"), maxgap =
+                 1000, mvals = NULL, ...)
+  Docs : function(x, index, tools = c("dmrcate", "ipdmr"), ...)
+  Noms d'arguments dans le code mais pas dans la doc :
+    maxgap mvals
+  Incohérence dans le nom des arguments :
+    Position: 4 Code: maxgap Docs: ...
+
+Codoc mismatches from Rd file 'makepca.Rd':
+makepca
+  Code : function(mvals, pdata, nPC = ncol(mvals))
+  Docs : function(betas, pdata, nPC = ncol(betas))
+  Noms d'arguments dans le code mais pas dans la doc :
+    mvals
+  Noms d'arguments dans la doc mais pas dans le code :
+    betas
+  Incohérence dans le nom des arguments :
+    Position: 1 Code: mvals Docs: betas
+  Incohérence dans les valeurs par défaut des arguments :
+    Name: 'nPC' Code: ncol(mvals) Docs: ncol(betas)
+
+Codoc mismatches from Rd file 'plot_Channels-list-method.Rd':
+\S4method{plot_Channels}{list}
+  Code : function(x, numPositions = 1000)
+  Docs : function(x)
+  Noms d'arguments dans le code mais pas dans la doc :
+    numPositions
+
+Codoc mismatches from Rd file 'plot_Channels.Rd':
+plot_Channels
+  Code : function(x, numPositions = 1000)
+  Docs : function(x)
+  Noms d'arguments dans le code mais pas dans la doc :
+    numPositions
+
+Codoc mismatches from Rd file 'searchDMR_dmrcate.Rd':
+searchDMR_dmrcate
+  Code : function(dmps, fdr = 0.2, maxgap = 1000, pcutoff = 0.05,
+                 genome = "hg38")
+  Docs : function(dmps, fdr = 0.05, maxgap = 1000, pcutoff = 0.2,
+                 genome = "hg38")
+  Incohérence dans les valeurs par défaut des arguments :
+    Name: 'fdr' Code: 0.2 Docs: 0.05
+    Name: 'pcutoff' Code: 0.05 Docs: 0.2
+
+Codoc mismatches from Rd file 'sesame2Betas.Rd':
+sesame2Betas
+  Code : function(idat = NULL, prep = "QCDPB", sampleSheet = NULL, na =
+                 0.2, ncore = 4, Clock_models = NULL)
+  Docs : function(idat = NULL, prep = "QCDPB", sampleSheet = NULL, na =
+                 0.2, ncore = 4)
+  Noms d'arguments dans le code mais pas dans la doc :
+    Clock_models
+
+* checking Rd \usage sections ... WARNING
+Undocumented arguments in Rd file 'CpGexcl.Rd'
+  ‘SNP’ ‘CROSS’ ‘XY’
+
+Undocumented arguments in Rd file 'MethylResultSet.Rd'
+  ‘model’ ‘intercept’ ‘method’
+Documented arguments not in \usage in Rd file 'MethylResultSet.Rd':
+  ‘dmps’ ‘dmrs’ ‘pca’
+
+Undocumented arguments in Rd file 'add_dmrcate.Rd'
+  ‘x’ ‘fdr’ ‘pcutoff’ ‘maxgap’ ‘genome’
+Documented arguments not in \usage in Rd file 'add_dmrcate.Rd':
+  ‘df’
+
+Undocumented arguments in Rd file 'getMvals.Rd'
+  ‘...’
+
+Undocumented arguments in Rd file 'm_logistic.Rd'
+  ‘variables’
+Documented arguments not in \usage in Rd file 'm_logistic.Rd':
+  ‘model’
+
+Undocumented arguments in Rd file 'm_regression.Rd'
+  ‘niter’ ‘ncore’
+
+Undocumented arguments in Rd file 'makeFormula.Rd'
+  ‘variables’
+Documented arguments not in \usage in Rd file 'makeFormula.Rd':
+  ‘model’
+
+Documented arguments not in \usage in Rd file 'manhattan.Rd':
+  ‘tab’
+
+Undocumented arguments in Rd file 'methyldiff.Rd'
+  ‘intercept’ ‘fdr’ ‘maxgap’ ‘genome’
+Documented arguments not in \usage in Rd file 'methyldiff.Rd':
+  ‘modelSVA’ ‘case’ ‘control’ ‘sva’ ‘qval’ ‘sex’
+
+Undocumented arguments in Rd file 'minfi2Betas.Rd'
+  ‘pval’
+
+Undocumented arguments in Rd file 'replaceByMean.Rd'
+  ‘groups’
+Documented arguments not in \usage in Rd file 'replaceByMean.Rd':
+  ‘group’
+
+Undocumented arguments in Rd file 'searchDMR_ipdmr.Rd'
+  ‘bin.size’ ‘seed’
+
+Undocumented arguments in Rd file 'toGeoSubmission-Betas-character-method.Rd'
+  ‘x’
+
+Undocumented arguments in Rd file 'toGeoSubmission-RGChannelSet-character-method.Rd'
+  ‘x’
+Documented arguments not in \usage in Rd file 'toGeoSubmission-RGChannelSet-character-method.Rd':
+  ‘RGset’
+
+Undocumented arguments in Rd file 'volcano.Rd'
+  ‘df’ ‘sig’
+Documented arguments not in \usage in Rd file 'volcano.Rd':
+  ‘tab’
+
+Functions with \usage entries need to have the appropriate \alias
+entries, and all their arguments documented.
+The \usage entries must correspond to syntactically valid R code.
+See chapter ‘Writing R documentation files’ in the ‘Writing R
+Extensions’ manual.
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking files in ‘vignettes’ ... OK
+* checking examples ... NONE
+* checking for unstated dependencies in ‘tests’ ... OK
+* checking tests ... ERROR
+  Running ‘testthat.R’
+Running the tests in ‘tests/testthat.R’ failed.
+Last 13 lines of output:
+  > test_check("methylkey")
+  Saving _problems/test_newBetas-16.R
+  [ FAIL 1 | WARN 1 | SKIP 0 | PASS 25 ]
+  
+  ══ Failed tests ════════════════════════════════════════════════════════════════
+  ── Error ('test_newBetas.R:16:3'): newBetas creates valid Betas object ─────────
+  Error in `newBetas(betas_matrix, ss, na = 0.2)`: Barcodes in sampleSheet not found in betas matrix: 203021070069_R03C01, 203021070069_R04C01, 203021070069_R05C01, 203021070069_R06C01, 203021070069_R07C01
+  Backtrace:
+      ▆
+   1. └─methylkey::newBetas(betas_matrix, ss, na = 0.2) at test_newBetas.R:16:3
+  
+  [ FAIL 1 | WARN 1 | SKIP 0 | PASS 25 ]
+  Error:
+  ! Test failures.
+  Execution halted
+* checking package vignettes ... NOTE
+Package has ‘vignettes’ subdirectory but apparently no vignettes.
+Perhaps the ‘VignetteBuilder’ information is missing from the
+DESCRIPTION file?
+* DONE
+Status: 1 ERROR, 4 WARNINGs, 6 NOTEs

@@ -1,0 +1,42 @@
+* installing *source* package ‘methylkey’ ...
+** this is package ‘methylkey’ version ‘0.99.0’
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+Avis : remplacement de l'importation précédente 'randomForest::combine' par 'dplyr::combine' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'randomForest::margin' par 'ggplot2::margin' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'dplyr::as_data_frame' par 'igraph::as_data_frame' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'purrr::compose' par 'igraph::compose' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'dplyr::groups' par 'igraph::groups' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'purrr::simplify' par 'igraph::simplify' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'dplyr::union' par 'igraph::union' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'igraph::crossing' par 'tidyr::crossing' lors du chargement de 'methylkey'
+Une nouvelle fonction générique est créée pour 'getBetas' dans package 'methylkey'
+dans la méthode pour 'plot_Channels' avec la signature '"RGChannelSet"' : aucune définition de la classe "RGChannelSet" n'est trouvée
+dans la méthode pour 'plot_Channels2' avec la signature '"RGChannelSet"' : aucune définition de la classe "RGChannelSet" n'est trouvée
+dans la méthode pour 'toGeoSubmission' avec la signature 'x="RGChannelSet",outfile="character"' : aucune définition de la classe "RGChannelSet" n'est trouvée
+Note: erreur possible dans 'MethylResultSet(se, dmps, ' : argument inutilisé (dmrs = list(dmrcate = dmrcate_table, ipdmr = ipdmr_table)) 
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+Avis : remplacement de l'importation précédente 'randomForest::combine' par 'dplyr::combine' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'randomForest::margin' par 'ggplot2::margin' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'dplyr::as_data_frame' par 'igraph::as_data_frame' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'purrr::compose' par 'igraph::compose' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'dplyr::groups' par 'igraph::groups' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'purrr::simplify' par 'igraph::simplify' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'dplyr::union' par 'igraph::union' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'igraph::crossing' par 'tidyr::crossing' lors du chargement de 'methylkey'
+** testing if installed package can be loaded from final location
+Avis : remplacement de l'importation précédente 'randomForest::combine' par 'dplyr::combine' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'randomForest::margin' par 'ggplot2::margin' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'dplyr::as_data_frame' par 'igraph::as_data_frame' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'purrr::compose' par 'igraph::compose' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'dplyr::groups' par 'igraph::groups' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'purrr::simplify' par 'igraph::simplify' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'dplyr::union' par 'igraph::union' lors du chargement de 'methylkey'
+Avis : remplacement de l'importation précédente 'igraph::crossing' par 'tidyr::crossing' lors du chargement de 'methylkey'
+** testing if installed package keeps a record of temporary installation path
+* DONE (methylkey)

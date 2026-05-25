@@ -1,70 +1,230 @@
-# Methylkey
-#### 05 Janvier 2021
+# methylkey: DNA Methylation Analysis from Illumina Arrays
 
 [![DOI](https://zenodo.org/badge/139563728.svg)](https://zenodo.org/badge/latestdoi/139563728)
 
-1. Installation
-2. Prepare SampleSheet
-3. Preprocessing illumina array
-  3.1 Minfi (450k and EPIC)
-  3.2 Sesame (285k Mouse)
+`methylkey` is a Bioconductor package for comprehensive analysis of DNA methylation data from Illumina methylation arrays. It supports multiple platforms (27k, 450k, EPIC, EPIC+, EPICv2, and mouse arrays) with preprocessing pipelines using both `sesame` and `minfi` packages.
 
-4. Plot QC report
-5. Differential methylation analysis
+## Features
 
-## 1. Installation :
+- **Flexible Preprocessing**: Choose between sesame or minfi pipelines
+- **Quality Control**: Comprehensive QC plots and statistics
+- **Differential Methylation**: DMP and DMR detection using multiple methods
+- **Platform Detection**: Automatic detection of array platform
+- **Sex Inference**: Automatic inference of sample sex
+- **Epigenetic Age**: Multiple clock model support
+- **Cell Type Estimation**: Blood immune cell composition estimation
+- **Standardized Output**: SummarizedExperiment-based objects for downstream analysis
 
-```bash
-install.packages("devtools") 
-library(devtools)
+## Installation
+
+### From GitHub
+
+```r
+if (!require("devtools", quietly = TRUE))
+    install.packages("devtools")
 
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-BiocManager::install()
 
 devtools::install_github("IARCbioinfo/methylkey")
 library(methylkey)
 ```
 
-## 2. Prepare sampleSheet
+### Requirements
 
-The sampleSheet is a tabular file with samples as lines and variables as columns. This file must include : 
-  * samples names ( uniques values )
-  * Barcode (eg: 203021070069_R03C01) : this code is the link between samples and idat files. The fist number (203021070069) is the sentrix id, while (R03C01) is the sentrix position. Each sample is associated with two idat files, one for the red channel (*203021070069_R03C01_red.idat*) and one for the green channel (*203021070069_R03C01_green.idat*).
-  * Any variables that describe samples : Treatment, Status, Age, CellType, ...
+- R >= 4.2.1
+- Bioconductor packages (automatically installed)
+- For minfi pipeline: `minfi`, `wateRmelon`
+- For sesame pipeline: `sesame`, `sesameData`
 
+## Quick Start
 
-## 3. Preprocessing illumina array
+### 1. Prepare Sample Sheet
 
-### 3.1 Minfi (450k and EPIC)
+Create a tab-separated file with sample information:
 
-[The minfi User’s Guide](http://bioconductor.org/packages/release/bioc/vignettes/minfi/inst/doc/minfi.html)
+```
+Sample_Name  Basename                  Group   Age
+Sample_001   203021070069_R03C01       Ctrl    45
+Sample_002   203021070069_R04C01       Case    50
+Sample_003   203021070069_R05C01       Ctrl    48
+```
 
-[Example](examples/dataloader.minfi.Rmd)
+**Required columns:**
+- `Basename` or `barcode`: Sentrix ID and position (e.g., `203021070069_R03C01`)
+- At least one additional column for grouping or clinical variables
 
-### 3.2 Sesame (285k Mouse)
+Load the sample sheet in R:
 
-[SeSAMe Basic Usage](https://bioconductor.org/packages/release/bioc/vignettes/sesame/inst/doc/sesame.html)
+```r
+sampleSheet <- readr::read_delim("path/to/sampleSheet.txt")
+```
 
-[Example](examples/dataloader.minfi.Rmd)
+### 2. Preprocessing with sesame
 
+For mouse arrays or when sesame is preferred:
 
+```r
+library(methylkey)
 
+# Load IDAT files and preprocess with sesame
+meth <- sesame2Betas(
+  idat = "path/to/idat/directory",
+  sampleSheet = sampleSheet,
+  prep = "QCDPB",
+  na = 0.2,
+  ncore = 4
+)
 
-## Bibliography
+# View object information
+meth
+colData(meth)
+getBetas(meth)[1:5, 1:5]
+```
 
-Aryee MJ, Jaffe AE, Corrada-Bravo H, Ladd-Acosta C, Feinberg AP, Hansen KD, Irizarry RA (2014). “Minfi: A flexible and comprehensive Bioconductor package for the analysis of Infinium DNA Methylation microarrays.” Bioinformatics, 30(10), 1363–1369. doi: 10.1093/bioinformatics/btu049.
+### 3. Preprocessing with minfi
 
-Maksimovic J, Gordon L, Oshlack A (2012). “SWAN: Subset quantile Within-Array Normalization for Illumina Infinium HumanMethylation450 BeadChips.” Genome Biology, 13(6), R44. doi: 10.1186/gb-2012-13-6-r44.
+For 450k and EPIC arrays:
 
-Fortin J, Labbe A, Lemire M, Zanke BW, Hudson TJ, Fertig EJ, Greenwood CM, Hansen KD (2014). “Functional normalization of 450k methylation array data improves replication in large cancer studies.” Genome Biology, 15(12), 503. doi: 10.1186/s13059-014-0503-2.
+```r
+meth <- minfi2Betas(
+  idat = "path/to/idat/directory",
+  sampleSheet = sampleSheet,
+  na = 0.2,
+  compositeCellType = "Blood"  # Optional: estimate cell counts
+)
+```
 
-Triche TJ, Weisenberger DJ, Van Den Berg D, Laird PW, Siegmund KD (2013). “Low-level processing of Illumina Infinium DNA Methylation BeadArrays.” Nucleic Acids Research, 41(7), e90. doi: 10.1093/nar/gkt090.
+### 4. Quality Control
 
-Fortin J, Hansen KD (2015). “Reconstructing A/B compartments as revealed by Hi-C using long-range correlations in epigenetic data.” Genome Biology, 16, 180. doi: 10.1186/s13059-015-0741-y.
+```r
+# Access QC statistics
+qcs <- metadata(meth)$qcs
+head(qcs)
 
-Andrews SV, Ladd-Acosta C, Feinberg AP, Hansen KD, Fallin MD (2016). “'Gap hunting' to characterize clustered probe signals in Illumina methylation array data.” Epigenetics & Chromatin, 9, 56. doi: 10.1186/s13072-016-0107-z.
+# Generate QC plots
+plot_Detection(meth)
+plot_NA(meth)
+```
 
-Fortin J, Triche TJ, Hansen KD (2017). “Preprocessing, normalization and integration of the Illumina HumanMethylationEPIC array with minfi.” Bioinformatics, 33(4). doi: 10.1093/bioinformatics/btw691.
+### 5. Differential Methylation Analysis
 
-Zhou W, Triche TJ, Laird PW, Shen H (2018). “SeSAMe: reducing artifactual detection of DNA methylation by Infinium BeadChips in genomic deletions.” Nucleic Acids Research, gky691. doi: 10.1093/nar/gky691.
+```r
+# Convert to M-values and perform analysis
+mvals <- getMvals(meth, grp = "group")
+
+# Run differential methylation analysis
+mrs <- methyldiff(
+  se = meth,
+  model = "~group",
+  intercept = "Ctrl",
+  method = "ls",
+  fdr = 0.05,
+  pcutoff = 0.2
+)
+
+# Extract results
+dmps <- getDMPs(mrs)
+dmrs <- getDMRs(mrs)
+```
+
+## Supported Array Platforms
+
+| Platform | Probes | Support |
+|----------|--------|---------|
+| IlluminaHumanMethylation27k | 27,578 | ✓ |
+| IlluminaHumanMethylation450k | 486,427 | ✓ |
+| IlluminaHumanMethylationEPIC | 866,553 | ✓ |
+| IlluminaHumanMethylationEPIC+ | 865,546 | ✓ |
+| IlluminaHumanMethylationEPICv2 | 937,690 | ✓ |
+| IlluminaMouseMethylation285k | 296,070 | ✓ |
+
+## Data Objects
+
+### Betas Object
+
+Container for beta values (0-1 scale):
+```r
+# Access
+betas <- getBetas(meth)
+samples <- colData(meth)
+platform <- metadata(meth)$plateform
+```
+
+### Mvals Object
+
+Container for M-values (log2 scale) for statistical analysis:
+```r
+mvals <- getMvals(betas)
+mvals_matrix <- assays(mvals)$mvals
+```
+
+## Documentation
+
+- Full function documentation: `?methylkey` or `help(package="methylkey")`
+- Vignettes: `browseVignettes("methylkey")`
+- Examples: See `examples/` directory for complete workflows
+
+## Workflow Summary
+
+```
+IDAT Files
+    ↓
+[sesame2Betas or minfi2Betas]
+    ↓
+Betas Object
+    ↓
+[QC & Visualization]
+    ↓
+[getMvals]
+    ↓
+Mvals Object
+    ↓
+[methyldiff]
+    ↓
+MethylResultSet (DMPs & DMRs)
+```
+
+## Common Issues
+
+**"Package sesame not found"**
+```r
+BiocManager::install("sesame")
+```
+
+**"Basename not in sampleSheet"**
+Ensure your sample sheet has a `Basename` column with barcode information.
+
+**"Barcodes in sampleSheet not found in betas"**
+Verify that barcodes in the sample sheet match IDAT file names exactly.
+
+## Citation
+
+If you use methylkey in your research, please cite:
+
+```bibtex
+@software{methylkey2026,
+  author = {Cahais, Vincent},
+  year = {2026},
+  title = {methylkey: DNA methylation analysis from Illumina arrays},
+  url = {https://github.com/IARCbioinfo/methylkey}
+}
+```
+
+## References
+
+- Aryee MJ, et al. (2014). Minfi: A flexible and comprehensive Bioconductor package for the analysis of Infinium DNA Methylation microarrays. Bioinformatics, 30(10), 1363–1369.
+- Zhou W, et al. (2018). SeSAMe: reducing artifactual detection of DNA methylation by Infinium BeadChips in genomic deletions. NAR, 46(20), e119.
+- Hansen KD, et al. (2016). Reference-based correction of interstrand dye bias in two-color microarrays. Genome Biology, 17(1), 37.
+
+## License
+
+GPL-3.0
+
+## Contributing
+
+Contributions are welcome! Please open an issue or pull request on GitHub.
+
+## Contact
+
+For questions and issues: [GitHub Issues](https://github.com/IARCbioinfo/methylkey/issues)

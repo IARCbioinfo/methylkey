@@ -1,0 +1,54 @@
+project:
+  type: book
+
+book:
+  title: "Methylation Analysis with methylkey"
+  author: "methylkey team"
+  date: today
+  chapters:
+    - index.qmd
+    - part: "Preprocessing"
+      chapters:
+        - 01_data_loading.qmd
+        - 02_quality_control.qmd
+    - part: "Group control"
+      chapters:
+        - 03a_raw.qmd
+        - 03b_sva.qmd
+        - 03c_young.qmd
+        - 03d_raw_noXY.qmd
+    - part: "Statistic Models"
+      chapters:
+        - 04a_group.qmd
+        - 04b_group_r.qmd
+        - 04c_group_adjusted.qmd
+        - 04d_group_adjusted_r.qmd
+    - part: "Young Only"
+      chapters:
+        - 05a_group_adjusted.qmd
+        - 05b_group_adjusted_r.qmd
+    - part: "Old Only"
+      chapters:
+        - 06a_group.qmd
+        - 06b_group_r.qmd
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    toc-title: "Contents"
+    page-layout: full
+    code-fold: true
+    code-summary: "Show the code"
+    code-tools: true
+    lightbox: true
+    self-contained: true
+
+editor: visual
+
+execute:
+  warning: false
+  error: false
+  freeze: true
+

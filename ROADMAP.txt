@@ -1,0 +1,122 @@
+ROADMAP pour l'amélioration du package methylkey
+
+Objectif : rendre le package professionnel, fiable, facile à utiliser et capable de générer un rapport R Markdown intégré.
+
+Phase 1 : rendre le package installable et structuré
+1. Créer un fichier DESCRIPTION complet
+   - Package: methylkey
+   - Version: 0.99.0 (ou version actuelle)
+   - Title: Analyse de methylation pour arrays Illumina avec sesame et minfi
+   - Description: Pipeline de preprocessing, QC et analyse différentielle pour arrays methylation Illumina. Support de sesame pour retrocompatibilité minfi.
+   - Authors@R: auteurs et mainteneur
+   - License: GPL-3 or MIT selon préférence
+   - Imports: dplyr, ggplot2, tibble, readr, tidyr, assertthat, SummarizedExperiment, GenomicRanges, S4Vectors, sesame, sesameData, minfi, wateRmelon, BiocParallel, etc.
+   - Suggests: rmarkdown, knitr, testthat, BiocStyle, pkgdown, FlowSorted.Blood.EPIC, dmrff, etc.
+   - Encoding: UTF-8
+   - LazyData: true
+2. Générer un NAMESPACE standard
+   - Basé sur les exports roxygen existants, ou avec roxygen2.
+   - Inclure imports corrects et uniquement ceux utilisés par package.
+3. Ajouter un fichier de package principal R/methylkey-package.R ou R/zzz.R
+   - Documentation générale du package
+   - Peut inclure un exemple rapide d’utilisation.
+4. Vérifier et nettoyer .Rbuildignore
+   - Exclure .Rhistory, NAMESPACE_auto, fichiers temporaires, data non nécessaires.
+
+Phase 2 : corriger les fonctions critiques et les bugs
+1. Nettoyer les fonctions de pipelines
+   - Supprimer `saveRDS(sdfs, "sdfs.rds")` dans `sesame2Betas`.
+   - Supprimer les `message("001")`... dans `minfi2Betas`.
+   - Remplacer `require()` par `requireNamespace()` et `pkg::fun`.
+   - Vérifier et corriger l’usage des packages `sesameQC_calcStats`, `sesameQC_getStats`, `inferSex`, `predictAge`.
+2. Vérifier `newBetas()` et `formatSampleSheet()`
+   - Rendre `formatSampleSheet()` plus robuste : noms de colonnes explicites, validation plus stricte, support de colonnes additionnelles.
+   - Corriger l’erreur de message `assert_that(... msg=cat(...))`.
+   - Ajouter gestion des barcodes manquants et des colonnes requises.
+   - Clarifier le rôle de `samples` vs `barcode`.
+3. Réviser `toGeoSubmission` pour `Betas`
+   - Corriger l’objet manquant `pval` et `MSI`.
+   - Implémenter export GEO si nécessaire, sinon retirer ou documenter comme expérimental.
+4. Vérifier toutes les fonctions exportées et méthodes S4
+   - `getBetasRanges`, `getMvals`, `samples`, `nbsamples`, `nbprobes`, `getPlateform`, `makeSummarizedExperimentFromBetas`.
+   - S’assurer que toutes les fonctions appelées existent dans le package ou sont importées.
+5. Simplifier la logique de QC et de masquage
+   - Standardiser le calcul de masques/probes NA.
+   - Définir clairement la différence entre `mask`, `na`, `sex` dans `getBetas()`.
+
+Phase 3 : améliorer l’API et l’expérience utilisateur
+1. Séparer lecture de données, preprocessing et création d’objet
+   - Exposer des fonctions distinctes comme `readSesameIdat()`, `processSesameBetas()`, `readMinfiIdat()`, `processMinfiBetas()` si nécessaire.
+   - Garder `sesame2Betas()` et `minfi2Betas()` comme wrappers de haut niveau.
+2. Ajout de paramètres explicites et cohérents
+   - `idat_dir`, `sample_sheet`, `preprocess_method`, `platform`, `na_threshold`, `n_cores`.
+   - Documenter les valeurs acceptées et l’effet de chaque option.
+3. Ajouter un objet de résultat homogène
+   - Maintenir `Betas` comme conteneur principal.
+   - Ajouter éventuellement un générique `as.matrix()` ou `as.data.frame()` pour les données de beta.
+4. Améliorer la compatibilité Sesame / minfi
+   - Rendre explicite le choix de pipeline et la plateforme supportée.
+   - Ajouter des validations sur la plateforme d’array (`EPIC`, `450k`, `Mouse` etc.).
+
+Phase 4 : documentation et exemples
+1. Compléter la doc des fonctions importantes avec des exemples simples
+   - `sesame2Betas()`, `minfi2Betas()`, `newBetas()`, `getBetas()`, `methyldiff()`.
+2. Ajouter des vignettes Rmd
+   - `vignettes/preprocessing-sesame.Rmd`
+   - `vignettes/preprocessing-minfi.Rmd`
+   - `vignettes/differential-analysis.Rmd`
+   - `vignettes/reporting.Rmd`
+3. Mettre à jour le README
+   - Exemples d’installation
+   - Exemples d’usage simple
+   - Workflow : sampleSheet -> preprocessing -> analyse -> rapport.
+4. Ajouter un guide d’utilisation de `sampleSheet`
+   - Exemple de colonnes minimum requises.
+   - Structure attendue pour `Basename` / `barcode`.
+
+Phase 5 : tests et qualité
+1. Ajouter `tests/testthat/`
+   - Tests unitaires pour `formatSampleSheet()`, `newBetas()`, `getBetas()`, `CpGexcl()`.
+   - Tests d’intégrité pour `sesame2Betas()` et `minfi2Betas()` sur jeux de données simulés ou exemples Bioconductor.
+   - Tests pour `methyldiff()` et `toGeoSubmission()`.
+2. Ajouter validation de package
+   - `R CMD check --as-cran`
+   - Cover/lintr si possible.
+3. Ajouter CI GitHub Actions
+   - test R CMD check
+   - package build
+   - documentation vignette build.
+
+Phase 6 : rapport R Markdown intégré
+1. Créer un template R Markdown dans `inst/rmarkdown/report.Rmd`
+   - Description du jeu de données
+   - QC plots
+   - Distribution des betas
+   - PCA/clustering
+   - Résultats DMP/DMR
+   - Diagnostics et bibliographie.
+2. Ajouter une fonction wrapper `methylkey_report()`
+   - Paramètres : `object`, `output_file`, `output_format`, `params`.
+   - Utiliser `rmarkdown::render()` sur le template interne.
+3. Proposer des rapports automatiques et personnalisables
+   - Exemple : `methylkey_report(meth, output = "report.html", params = list(group="Treatment"))`
+   - Support de `params$include_qc`, `params$include_differential`, `params$top_n`.
+4. Documenter le workflow du rapport
+   - Instructions pour lancer le rapport depuis R.
+   - Exemple de code prêt à l’emploi.
+
+Phase 7 : packaging et publication
+1. Ajouter `inst/extdata/` ou `inst/rmarkdown/` pour assets et templates.
+2. Si nécessaire, préparer `pkgdown` pour documentation web.
+3. Préparer un `README` clair + `NEWS.md` pour les changements.
+4. Valider le package avec `Bioconductor` / CRAN si publication envisagée.
+
+Priorité de mise en œuvre
+- Haute : `DESCRIPTION`, nettoyage des pipelines, correction des bugs bloquants, documentation de base.
+- Moyenne : tests unitaires, rapports Rmd intégrés, meilleur routage des données.
+- Faible : pkgdown, publication CRAN/Bioconductor, fonctions avancées GEO si optionnel.
+
+Notes supplémentaires
+- Préférer les dépendances explicites et éviter les `require()` dans les fonctions.
+- Ne pas exposer de fonctions inutilisées ou inachevées dans le namespace.
+- Mettre en place une stratégie de maintenance pour les fonctions `minfi` vs `sesame`.

@@ -1,0 +1,259 @@
+---
+title: "Waterpipe 2025 sesame test methylkey 2"
+format: 
+  html:
+    code-fold: false
+    code-summary: "Show the code"
+    code-tools: true
+    toc: true
+    toc-location: left
+    toc-title: Results
+    toc-depth: 4
+    page-layout: full
+    lightbox: true
+    self-contained: true
+keep-md: true
+editor: visual
+theme:
+  light: cosmo
+  dark: darkly
+execute:
+  warning: false
+  error: false
+params:
+  idat: "/data/EPI-AGING/files/ILL_20240614_epiaging_mm/idats/"
+  sampleSheet: "../sampleSheet.csv"
+  prepcode: "TQCDPB"
+  groups: !expr c("group","age")
+  genome: "mm10"
+  dmrtools: !expr c("dmrcate","ipdmr","combp","dmrff")
+---
+
+```{R setup}
+library(tidyverse)
+library(tidygenomics)
+library(DT)
+library(ggrepel)
+devtools::load_all("/luca/git/methylkey2/")
+```
+
+```{r annotation}
+annot<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/MM285/MM285.mm10.manifest.gencode.vM25.tsv.gz") %>% dplyr::rename(Probe_ID=probeID)
+```
+
+# SampleSheet
+
+```{r sampleSheet}
+sampleSheet<-read_tsv(params$sampleSheet)
+sampleSheet<-formatSampleSheet(sampleSheet)
+sampleSheet %>% DT::datatable()
+```
+
+# Sesame pipeline
+
+Run the sesame pipeline to load idats, normalise betas and generate qcs.
+
+```{R read_idats}
+#| eval: False
+# read idats with sesame pipeline.
+
+Clock_models=list(Zhou347="https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/MM285/Clock_Zhou347.rds")
+
+meth <- sesame2Betas(params$idat, prep = params$prepcode, sampleSheet=sampleSheet, na=0.2, ncore=1, Clock_models=Clock_models)
+saveRDS(meth,file="meth.rds")
+```
+
+# Dataset QCs
+
+```{r}
+meth <- readRDS("meth.rds")
+betas <- methylkey::getBetas(meth)
+```
+
+{{< include qcs.qmd >}}
+
+------------------------------------------------------------------------
+
+## Group Control
+
+In the Group Control step, multidimensional statistical methods such as Multidimensional Scaling (MDS) and Principal Component Analysis (PCA) are employed to visualize and assess the variability within the data. The primary objectives include evaluating differences between groups and identifying potential batch effects.
+
+```{r getMvals1}
+# get mvalues with only winsorized correction, but remove XY chromosomes
+methM <- getMvals(meth,  grp="group", sva=NULL, win=TRUE, sex=TRUE)
+mvals <- getMvals(methM)
+pdata <- colData(methM) %>% dplyr::select(samples,group,age,sentrix_id,batch)
+```
+
+::::::::: panel-tabset
+### MDS
+
+```{r mds1}
+#| output: asis
+for(grp in params$groups){
+  cat("\n\n#### ", grp, "\n\n")
+  grp = pdata %>% dplyr::pull(tolower(grp))
+  p <- my_scatterPlot(mvals, grp, methylkey::samples(methM), "npg", 1, TRUE, TRUE)
+  print(p)
+}
+```
+
+::: callout-note
+Multidimensional Scaling (MDS) reduces the dimensionality of the data while preserving the similarity or dissimilarity relationships between objects. It accomplishes this by projecting the data onto a lower-dimensional space while attempting to retain the original distances or dissimilarities as much as possible.
+:::
+
+### PCA
+
+```{r pca1, cache=TRUE}
+pca   <- makepca(mvals, pdata, nPC=9)
+plot_PCA_contribution(pca, nPC=9)
+```
+
+::: callout-note
+PCA reduces the dimensionality of the data by transforming it into a new coordinate system called principal components. These components are linear combinations of the original variables and are ordered by the amount of variance they explain in the data.
+:::
+
+```{r estimate_pca1, cache=TRUE}
+dfp <- estimate_PCA_corr(pca, pdata, nPC=9)
+dfq <- apply(dfp, 2, p.adjust, method = "fdr") %>% matrix(nrow = nrow(dfp), dimnames = dimnames(dfp))
+dfq %>% DT::datatable()
+```
+
+::: callout-note
+The table provides insights into the contribution of each variable to the principal components, aiding in the interpretation of PCA results and the identification of key variables driving variation in the data. Corrected p-values assess the significance of the associations between variables and PCs after adjusting for multiple comparisons. Lower p-values indicate stronger evidence against the null hypothesis of no association.
+:::
+
+::: callout-info
+:::
+
+```{r factoextra1}
+#| results: asis
+for(grp in tolower(params$groups) ){
+  cat("\n\n#### ", grp, "\n\n")
+  hab<-colData(methM) %>% dplyr::pull(tolower(grp))
+  factoextra::fviz_pca_ind(pca, axes=c(1,2), habillage=hab, addEllipses=TRUE ) %>% print()
+}
+```
+
+::: callout-note
+PCA plots allow for the exploration of data structure and relationships. Points that are close together in the plot are similar in terms of their underlying variables, while those that are far apart are dissimilar. By coloring or labeling points according to additional variables, such as group membership or experimental conditions, PCA plots can reveal group-level patterns and relationships within the data.
+:::
+
+::: callout-warning
+:::
+:::::::::
+
+------------------------------------------------------------------------
+
+## Batch Corrected data
+
+In the Group Control step, multidimensional statistical methods such as Multidimensional Scaling (MDS) and Principal Component Analysis (PCA) are employed to visualize and assess the variability within the data. The primary objectives include evaluating differences between groups and identifying potential batch effects.
+
+```{r getMvals2}
+#| eval: False
+# get mvalues with only winsorized correction, but remove XY chromosomes
+methM <- getMvals(meth,  grp="group", sva="~group+age", win=TRUE, sex=FALSE)
+mvals <- getMvals(methM)
+pdata <- colData(methM) %>% dplyr::select(samples,group,age,sentrix_id,batch)
+saveRDS(methM, file="methM_sva.rds")
+```
+
+```{r}
+methM<-readRDS("methM_sva.rds")
+```
+
+::::::::: panel-tabset
+### MDS
+
+```{r mds2}
+#| output: asis
+for(grp in params$groups){
+  cat("\n\n#### ", grp, "\n\n")
+  grp = pdata %>% dplyr::pull(tolower(grp))
+  p <- my_scatterPlot(mvals, grp, methylkey::samples(methM), "npg", 1, TRUE, TRUE)
+  print(p)
+}
+```
+
+::: callout-note
+Multidimensional Scaling (MDS) reduces the dimensionality of the data while preserving the similarity or dissimilarity relationships between objects. It accomplishes this by projecting the data onto a lower-dimensional space while attempting to retain the original distances or dissimilarities as much as possible.
+:::
+
+### PCA
+
+```{r pca2, cache=TRUE}
+pca   <- makepca(mvals, pdata, nPC=9)
+plot_PCA_contribution(pca, nPC=9)
+```
+
+::: callout-note
+PCA reduces the dimensionality of the data by transforming it into a new coordinate system called principal components. These components are linear combinations of the original variables and are ordered by the amount of variance they explain in the data.
+:::
+
+```{r estimate_pca2, cache=TRUE}
+dfp <- estimate_PCA_corr(pca, pdata, nPC=9)
+dfq <- apply(dfp, 2, p.adjust, method = "fdr") %>% matrix(nrow = nrow(dfp), dimnames = dimnames(dfp))
+dfq %>% DT::datatable()
+```
+
+::: callout-note
+The table provides insights into the contribution of each variable to the principal components, aiding in the interpretation of PCA results and the identification of key variables driving variation in the data. Corrected p-values assess the significance of the associations between variables and PCs after adjusting for multiple comparisons. Lower p-values indicate stronger evidence against the null hypothesis of no association.
+:::
+
+::: callout-info
+:::
+
+```{r factoextra2}
+#| results: asis
+for(grp in tolower(params$groups) ){
+  cat("\n\n#### ", grp, "\n\n")
+  hab<-colData(methM) %>% dplyr::pull(tolower(grp))
+  factoextra::fviz_pca_ind(pca, axes=c(1,2), habillage=hab, addEllipses=TRUE ) %>% print()
+}
+```
+
+::: callout-note
+PCA plots allow for the exploration of data structure and relationships. Points that are close together in the plot are similar in terms of their underlying variables, while those that are far apart are dissimilar. By coloring or labeling points according to additional variables, such as group membership or experimental conditions, PCA plots can reveal group-level patterns and relationships within the data.
+:::
+
+::: callout-warning
+:::
+:::::::::
+
+------------------------------------------------------------------------
+
+# Models Group without sva
+
+We use mvalues without batch correction.
+
+```{r}
+methM <- getMvals(meth,  grp="group", sva=NULL, win=TRUE, sex=TRUE)
+mvals <- getMvals(methM)
+```
+
+## \~group+age+gender+sentrix_id
+
+::::: panel-tabset
+### Least Square
+
+```{r model1}
+mrs<-MethylResultSet(
+  se=methM,
+  model="~group+age+gender+sentrix_id",
+  intercept="WT",
+  method="ls"
+)
+# annotation
+mrs@manifest=S4Vectors::DataFrame(dplyr::left_join(as_tibble(mrs@manifest),annot, by="Probe_ID"))
+```
+
+::: panel-tabset
+```{r model1r}
+#| output: asis
+#| echo: false
+for (index in names(mrs@dmps)[-1]){
+  res <- knitr::knit_child("model.qmd", envir = environment(), quiet = TRUE )
+  cat(res, sep = '\n')
+}
+```
+:::

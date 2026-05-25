@@ -1,3 +1,11 @@
 ^methylkey\.Rproj$
 ^\.Rproj\.user$
 ^examples$
+^\.Rhistory$
+^\.RData$
+^ROADMAP\.txt$
+^README\.md$
+^\.git$
+^\.gitignore$
+^NAMESPACE_auto$
+^docs$

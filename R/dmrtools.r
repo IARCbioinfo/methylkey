@@ -26,42 +26,62 @@
 #   table <- DMRcate::extractRanges(dmrcoutput, genome = genome)
 #   
 #   overlap <- GenomicRanges::findOverlaps(annotated,table,type="within")
-#   final <- dmps[queryHits(overlap),]["Probe_ID"] %>%
-#     bind_cols( as.data.frame(table)[subjectHits(overlap),] ) %>% 
-#     dplyr::rename(chr="seqnames") %>%
-#     dplyr::select(-strand) %>%
-#     mutate(ID=paste0(chr, ":", start, "-", end) ) %>%
+#   final <- dmps[queryHits(overlap),]["Probe_ID"] |>
+#     bind_cols( as.data.frame(table)[subjectHits(overlap),] ) |> 
+#     dplyr::rename(chr="seqnames") |>
+#     dplyr::select(-strand) |>
+#     mutate(ID=paste0(chr, ":", start, "-", end) ) |>
 #     tidyr::nest(probes=Probe_ID)
 #   
 #   return(final)
 # }
 
 
-searchDMR_dmrcate<-function(dmps, fdr=0.2, maxgap=1000,pcutoff=0.05,genome="hg38"){
-  
+searchDMR_dmrcate <- function(dmps, fdr = 0.2, maxgap = 1000, pcutoff = 0.05, genome = "hg38") {
+
   if (!requireNamespace("DMRcate", quietly = TRUE)) {
     stop("Package 'DMRcate' is required for this function to work. Please install it.")
   }
   require(DMRcate)
-  
-  dmps <- dmps %>% dplyr::filter(!str_detect(chr, "_"))
-  annotated <- data.frame(chr=dmps$chr, start=dmps$pos, end=dmps$pos, strand=dmps$strand,
-        rawpval=dmps$P.Value, stat=dmps$t, diff= dmps$deltabetas, ind.fdr=dmps$adj.P.Val, is.sig=(dmps$adj.P.Val<fdr) )
-  annotated<-GenomicRanges::makeGRangesFromDataFrame(annotated, keep.extra.columns=TRUE)
-  names(annotated)<-dmps$Probe_ID
-  myannotation <- new("CpGannotated", ranges=sort(annotated))
-  if( sum(is.na(myannotation@ranges$diff)) ){ myannotation@ranges$diff[ which(is.na(myannotation@ranges$diff)) ] <- 0 }
-  if(sum(annotated$is.sig)<1) {warning("No valid CpG sites remaining after filtering"); return(NULL)}
-  
-  dmrcoutput<- DMRcate::dmrcate(myannotation,C=2, pcutoff=pcutoff, lambda = maxgap)
-  table <- DMRcate::extractRanges(dmrcoutput, genome = genome)
-  
-  overlap <- GenomicRanges::findOverlaps(annotated,table,type="within")
-  #table <- as.data.frame(table)[subjectHits(overlap),c("seqnames","start","end","HMFDR","no.cpgs")]
-  table <- as.data.frame(table)[subjectHits(overlap),c("seqnames","start","end","HMFDR","min_smoothed_fdr","no.cpgs")]
-  #table$HMFDR <- table$min_smoothed_fdr
 
-  dmps[queryHits(overlap),] %>% bind_cols( table )
+  dmps <- dmps |> dplyr::filter(!str_detect(chr, "_"))
+  annotated <- data.frame(
+    chr = dmps$chr,
+    start = dmps$pos,
+    end = dmps$pos,
+    strand = dmps$strand,
+    rawpval = dmps$P.Value,
+    stat = dmps$t,
+    diff = dmps$deltabetas,
+    ind.fdr = dmps$adj.P.Val,
+    is.sig = (dmps$adj.P.Val < fdr)
+  )
+  annotated <- GenomicRanges::makeGRangesFromDataFrame(
+    annotated,
+    keep.extra.columns = TRUE
+  )
+  names(annotated) <- dmps$Probe_ID
+  myannotation <- new("CpGannotated", ranges = sort(annotated))
+  if (sum(is.na(myannotation@ranges$diff))) {
+    myannotation@ranges$diff[which(is.na(myannotation@ranges$diff))] <- 0
+  }
+  if (sum(annotated$is.sig) < 1) {
+    warning("No valid CpG sites remaining after filtering")
+    return(NULL)
+  }
+
+  dmrcoutput <- DMRcate::dmrcate(myannotation, C = 2, pcutoff = pcutoff, lambda = maxgap)
+  table <- DMRcate::extractRanges(dmrcoutput, genome = genome)
+
+  overlap <- GenomicRanges::findOverlaps(annotated, table, type = "within")
+  # table <- as.data.frame(table)[subjectHits(overlap),c("seqnames","start","end","HMFDR","no.cpgs")]
+  table <- as.data.frame(table)[subjectHits(overlap), c(
+    "seqnames", "start", "end",
+    "HMFDR", "min_smoothed_fdr", "no.cpgs"
+  )]
+  # table$HMFDR <- table$min_smoothed_fdr
+
+  dmps[queryHits(overlap), ] |> bind_cols(table)
 }
 
 #' Search for Differentially Methylated Regions (DMRs) using DMRff
@@ -75,35 +95,47 @@ searchDMR_dmrcate<-function(dmps, fdr=0.2, maxgap=1000,pcutoff=0.05,genome="hg38
 #' @return A data frame with information about identified DMRs, including chromosome, start and end positions, associated CpG probe IDs, and DMR tool name.
 #'
 #' @export
-searchDMR_dmrff<-function(dmps, betas, maxgap=1000){
-  
+searchDMR_dmrff <- function(dmps, betas, maxgap = 1000) {
+
   if (!requireNamespace("dmrff", quietly = TRUE)) {
     stop("Package 'dmrff' is required for this function to work. Please install it.")
   }
   require(dmrff)
-  
-  #dmps <- dmps %>% filter(!is.na(chr))
-  
-  dmrs <- dmrff(estimate=as.vector(dmps$Coefficient),
-                se=as.vector(dmps$Stdev),
-                p.value=as.vector(dmps$P.Value),
-                methylation=mvals[dmps$Probe_ID,],
-                chr=as.vector(dmps$chr),
-                pos=as.vector(dmps$pos),
-                maxgap=maxgap,
-                verbose=T)
-  
+
+  # dmps <- dmps |> filter(!is.na(chr))
+
+  dmrs <- dmrff(
+    estimate = as.vector(dmps$Coefficient),
+    se = as.vector(dmps$Stdev),
+    p.value = as.vector(dmps$P.Value),
+    methylation = mvals[dmps$Probe_ID, ],
+    chr = as.vector(dmps$chr),
+    pos = as.vector(dmps$pos),
+    maxgap = maxgap,
+    verbose = T
+  )
+
+  dmrs <- as.data.frame(dmrs)
   dmrs <- dmrs[(dmrs$n >= 2), ]
+  if (nrow(dmrs) < 1) {
+    return(NULL)
+  }
   dmrs$fdr <- p.adjust(dmrs$p.value, method = "fdr")
-  dmrs <- dmrs %>% mutate(ID=paste0(chr, ":", start, "-", end), nprobe=n, p= p.value) 
-  if(nrow(dmrs)<1){return(NULL)}
-  
+  dmrs <- dmrs |>
+    mutate(
+      ID = paste0(chr, ":", start, "-", end),
+      nprobe = n,
+      p = p.value
+    )
+
   sites <- dmrff.sites(dmrs, dmps$chr, dmps$pos)
-  final<-bind_cols( Probe_ID=dmps[sites$site,"Probe_ID"], dmrs[sites$region,]) %>%
-    dplyr::select(Probe_ID, chr,start,end,fdr,nprobe, p)
-  
+  final <- bind_cols(
+    Probe_ID = dmps[sites$site, "Probe_ID"],
+    dmrs[sites$region, ]
+  ) |>
+    dplyr::select(Probe_ID, chr, start, end, fdr, nprobe, p)
+
   return(final)
-  
 }
 
 #' Search for Differentially Methylated Regions (DMRs) using combp
@@ -116,22 +148,47 @@ searchDMR_dmrff<-function(dmps, betas, maxgap=1000){
 #' @return A data frame with information about identified DMRs, including chromosome, start and end positions, associated CpG probe IDs, and DMR tool name.
 #'
 #' @export
-searchDMR_combp<-function(dmps, maxgap=1000){
-  
+searchDMR_combp <- function(dmps, maxgap = 1000) {
+
   if (!requireNamespace("ENmix", quietly = TRUE)) {
     stop("Package 'ENmix' is required for this function to work. Please install it.")
   }
   require(ENmix)
-  
-  data=data.frame(probe=dmps$Probe_ID,p=dmps$P.Value,chr=dmps$chr,start=dmps$pos,end=dmps$pos)
-  
-  combp<-data.frame(chr=character(),start=numeric(),end=numeric(),p=numeric(),fdr=numeric(),nprobe=numeric(),probe=character())
-  write_csv(combp,"resu_combp.csv") # avoid to reload previous results if ipdmr find 0 dmrs.
-  combp(data,dist.cutoff=1000,bin.size=310,seed=0.05, region_plot=FALSE,mht_plot=FALSE,nCores=1,verbose=TRUE)
-  dmrs=readr::read_csv("resu_combp.csv")
-  dmrs <- dmrs %>% filter (nprobe >= 2) %>% dplyr:: select (- fdr) 
-  dmrs <-  dmrs %>% mutate (fdr= p.adjust(dmrs$p, method = "fdr"))
-  
+
+  data <- data.frame(
+    probe = dmps$Probe_ID,
+    p = dmps$P.Value,
+    chr = dmps$chr,
+    start = dmps$pos,
+    end = dmps$pos
+  )
+
+  combp <- data.frame(
+    chr = character(),
+    start = numeric(),
+    end = numeric(),
+    p = numeric(),
+    fdr = numeric(),
+    nprobe = numeric(),
+    probe = character()
+  )
+  write_csv(combp, "resu_combp.csv") # avoid to reload previous results if ipdmr find 0 dmrs.
+  combp(data,
+    dist.cutoff = 1000,
+    bin.size = 310,
+    seed = 0.05,
+    region_plot = FALSE,
+    mht_plot = FALSE,
+    nCores = 1,
+    verbose = TRUE
+  )
+  dmrs <- readr::read_csv("resu_combp.csv")
+  dmrs <- dmrs |>
+    filter(nprobe >= 2) |>
+    dplyr::select(-fdr)
+  dmrs <- dmrs |>
+    mutate(fdr = p.adjust(dmrs$p, method = "fdr"))
+
   return(dmrs)
 }
 
@@ -145,43 +202,43 @@ searchDMR_combp<-function(dmps, maxgap=1000){
 #' @return A data frame with information about identified DMRs, including chromosome, start and end positions, associated CpG probe IDs, and DMR tool name.
 #'
 #' @export
-# searchDMR_ipdmr<-function(dmps, maxgap=1000){
-#   require(ENmix)
-#   
-#   data=data.frame(probe=rownames(dmps),p=dmps$P.Value,chr=dmps$chr,start=dmps$pos,end=dmps$pos)
-#   
-#   ipdmr(data,dist.cutoff=1000,bin.size=310,seed=0.05, region_plot=FALSE,mht_plot=FALSE,verbose=TRUE)
-#   dmrs=readr::read_csv("resu_ipdmr.csv")
-#   
-#   gr1<-GenomicRanges::makeGRangesFromDataFrame(dmps, start.field = "pos", end.field = "pos")
-#   gr2<-GenomicRanges::makeGRangesFromDataFrame(dmrs)
-#   seqlevelsStyle(gr2) <- "UCSC"
-#   overlap <- GenomicRanges::findOverlaps(gr1,gr2,type="within")
-#   
-#   dmrs<-dmrs %>% dplyr::select(-chr) # duplicated row with dmps
-#   final <- dmps[queryHits(overlap),] %>%
-#     bind_cols( dmrs[subjectHits(overlap),] ) %>%
-#     mutate(ID=paste0(chr, ":", start, "-", end), dmrtool="ipdmr") %>%
-#     tidyr::nest(probes=Probe_ID)
-#   
-#   return(final)
-# }
+searchDMR_ipdmr <- function(dmps, maxgap = 1000, bin.size = 310, seed = 0.05) {
 
-searchDMR_ipdmr<-function(dmps, maxgap=1000, bin.size=310, seed=0.05){
-  
   if (!requireNamespace("ENmix", quietly = TRUE)) {
     stop("Package 'ENmix' is required for this function to work. Please install it.")
   }
-  
-  require(ENmix)
-  
-  data=data.frame(probe=dmps$Probe_ID,p=dmps$P.Value,chr=dmps$chr,start=dmps$pos,end=dmps$pos)
-  data$p[is.na(data$p)]<-0.99999
 
-  ipdmr<-data.frame(chr=character(),start=numeric(),end=numeric(),p=numeric(),fdr=numeric(),nprobe=numeric(),probe=character())
-  write_csv(ipdmr,"resu_ipdmr.csv") # avoid to reload previous results if ipdmr find 0 dmrs.
-  ipdmr(data, dist.cutoff=maxgap, bin.size=bin.size, seed=seed, region_plot=FALSE, mht_plot=FALSE, verbose=FALSE)
-  dmrs=readr::read_csv("resu_ipdmr.csv") %>% filter(nprobe>1)
-  
+  require(ENmix)
+
+  data <- data.frame(
+    probe = dmps$Probe_ID,
+    p = dmps$P.Value,
+    chr = dmps$chr,
+    start = dmps$pos,
+    end = dmps$pos
+  )
+  data$p[is.na(data$p)] <- 0.99999
+
+  ipdmr <- data.frame(
+    chr = character(),
+    start = numeric(),
+    end = numeric(),
+    p = numeric(),
+    fdr = numeric(),
+    nprobe = numeric(),
+    probe = character()
+  )
+  write_csv(ipdmr, "resu_ipdmr.csv") # avoid to reload previous results if ipdmr find 0 dmrs.
+  ipdmr(data,
+    dist.cutoff = maxgap,
+    bin.size = bin.size,
+    seed = seed,
+    region_plot = FALSE,
+    mht_plot = FALSE,
+    verbose = FALSE
+  )
+  dmrs <- readr::read_csv("resu_ipdmr.csv") |>
+    filter(nprobe > 1)
+
   return(dmrs)
 }

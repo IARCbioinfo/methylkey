@@ -71,7 +71,7 @@ Points located in the left or right sides of the plot represent DMPs with large 
 #### Circos Plot
 
 ```{r, cache=TRUE}  
-circosplot( getDMPranges(mrs,group=index,q=0.05), params$genome )
+circosplot( get_dmps_ranges(mrs,group=index,q=0.05), params$genome )
 ```
 
 ::: {.callout-tip}

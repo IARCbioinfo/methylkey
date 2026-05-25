@@ -1,0 +1,230 @@
+
+```{r}
+mrs <- getResults(mrs, index, tools=params$dmrtools, genome=params$genome, mvals=mvals, fdr = 0.2 )
+model_file_name <- paste0(ModelName, ".rds")
+saveRDS(mrs, fs::path(output_dir, model_file_name))
+```
+
+
+### Differentially Methylated Probes
+
+:::: panel-tabset
+
+#### Summary
+
+```{r}
+#| code-summary: "Number of significant dmps"
+dmps<-get_dmps(mrs,index)
+dmpsFileName <- paste0("dmps_", ModelName, "_", index, ".tsv")
+readr::write_tsv(dmps,file = fs::path(output_dir,dmpsFileName))
+nbdmps<-dmps %>% filter(adj.P.Val<0.05) %>% nrow()
+```
+
+`r nbdmps`
+
+::::: {.callout-tip}
+This table provides a comprehensive overview of DMPs, including statistical metrics, genomic coordinates, strand information, and functional annotations
+:::::
+
+```{r}
+#| code-summary: "DMPs table"
+dmps %>% dplyr::filter(adj.P.Val<0.05) %>% 
+  arrange(adj.P.Val) %>% head(100) %>%
+  DT::datatable(extensions = 'Buttons', options = list(
+                           dom = 'Blfrtip',
+                           buttons = c('copy', 'csv')))
+```
+
+::::: {.callout-note collapse="true"}
+
+* deltabetas: Difference in methylation levels between experimental groups (e.g., high vs. low).
+* AveExp: Average methylation level across experimental groups.
+* t: t-statistic indicating the magnitude and direction of the difference in methylation levels.
+* P.value: p-value from statistical testing, indicating the significance of the observed difference.
+* adj.P.Value: Adjusted p-value after correction for multiple testing.
+* B: Estimate of methylation difference.
+* Stdev: Standard deviation of methylation levels.
+* Goodness: Measure of model fit or goodness of fit statistic.
+
+:::::
+
+#### QQplot
+
+::::: {.callout-tip}
+## QQplot
+
+Quantile-Quantile (QQ) plot is a graphical tool used to assess whether the observed distribution of methylation data conforms to the expected distribution, typically assumed to be normal. In the context of methylation analysis, QQ plots help evaluate the goodness of fit of statistical models and identify potential deviations from expected distributions, such as skewness or outliers.
+:::::
+
+```{r}
+qqman::qq(dmps$P.Value,main=paste0("QQ plot: ","lambda=", mrs@lambda[[index]]))
+```
+
+#### Volcano Plot
+  
+::::: {.callout-tip}
+## Volcano Plot
+
+Points located in the left or right sides of the plot represent DMPs with large deltabetas, indicating substantial differences in methylation levels between groups. Points located to the upper regions of the plot represent DMPs with low adjusted p-values, indicating statistical significance.
+:::::
+  
+```{r}
+genes_of_interest <- c("Casp7", "Dpysl2", "Gata6", "Ifi27", "Mir143-145", "Pcp4l1", "Pphln1", "Prune1", "Runx1", "Sox5")
+dmps |> volcano(max_labels = 5)
+dmps |> volcano(label_probes = genes_of_interest)
+```
+
+#### Circos Plot
+
+::::: {.callout-tip}
+## Circos plot
+
+The Circos plot provides a holistic view of the genomic landscape, highlighting spatial patterns and chromosome-wide distributions of methylation changes.
+:::::
+
+```{r}
+circosplot( get_dmps_ranges(mrs,index,q=0.05) , params$genome)
+```
+
+
+#### CpG island
+
+```{r}
+cpgislands_plot(mrs, index)
+```
+
+#### Genomic Features
+
+```{r}
+#| message: False
+gr_list <- get_dmps_ranges(mrs, index, keep_extra_columns= TRUE, as_list = TRUE )
+if(length(gr_list[[1]]) > 1 & length(gr_list[[2]]) >1){
+  Peaks <- lapply(gr_list, function(gr) {
+      ChIPseeker::annotatePeak(TxDb = txdb, peak = gr, verbose = FALSE)
+  })
+  ChIPseeker::plotAnnoBar(Peaks)
+}
+```
+
+::::
+
+### Differentially Methylated Regions
+
+:::: panel-tabset
+
+#### Summary
+
+::::: {.callout-note}
+Differentially Methylated Regions (DMRs) are contiguous genomic regions where the methylation levels exhibit statistically significant differences between experimental groups. Unlike individual differentially methylated positions (DMPs), DMRs provide a more comprehensive view of methylation changes by considering spatial continuity and local correlations in methylation patterns. DMR analysis is a crucial step in methylation studies for identifying biologically relevant regions associated with the studied conditions or phenotypes.
+:::::
+
+```{r}
+#| code-summary: "Number of significant dmrs identified by tools"
+getNumberOfDmrs(mrs,index)
+```
+
+```{r}
+#| code-summary: "DMRs table"
+dmrsFileName <- paste0("dmrs_", ModelName, "_", index, ".tsv")
+dmrs <- get_dmrs(mrs,index)
+readr::write_tsv(dmrs,file = fs::path(output_dir,dmrsFileName))
+
+dmrs %>% dplyr::filter(HMFDR<0.05, no.cpgs>1) %>% 
+  arrange(HMFDR, no.cpgs) %>% head(100) %>%
+  DT::datatable(extensions = 'Buttons', options = list(
+                           dom = 'Blfrtip',
+                           buttons = c('copy', 'csv')))
+```
+
+#### Volcano
+  
+::::: {.callout-note}
+Volcano plot, points located in the left or right sides of the plot represent DMRs with large mean deltabetas, indicating substantial differences in methylation levels between groups. Points located to the upper regions of the plot represent DMPs with low adjusted p-values, indicating statistical significance.
+:::::  
+  
+```{r}
+dmrs |>
+  volcano(max_labels = 20) + 
+  facet_wrap(~tool)
+dmrs |> 
+  volcano(label_probes=genes_of_interest) +
+  facet_wrap(~tool)
+```
+
+
+#### Venn
+
+::::: {.callout-note}
+Regions in the overlapping areas of the Venn diagram represent Differentilly Methylated Regions that are commonly identified by multiple tools (contain at least one common CpG), suggesting robustness and consistency in their identification.
+:::::
+
+```{r}
+tools_venn(dmrs)
+```
+
+#### Density
+  
+::::: {.callout-note}
+Density plot of DMR lengths, distribution and variability of region lengths
+:::::  
+  
+```{r}
+tools_density(dmrs)
+```
+  
+#### Violin
+
+::::: {.callout-note}
+Similar plot showing DMR length distribution from an other angle.
+:::::
+
+```{r}
+my_violin(dmrs)
+```
+
+#### CpG islands
+
+```{r}
+cpgislands_plot(mrs, what="dmrs", index)
+```
+#### Genomic Features
+
+```{r}
+#| message: False
+gr_list <- get_dmrs_ranges(mrs, index, 
+  tools = params$dmrtools, keep_extra_columns = TRUE, as_list = TRUE )
+Peaks <- lapply(gr_list, function(gr) {
+  ChIPseeker::annotatePeak(TxDb = txdb, peak = gr, verbose = FALSE)
+})
+ChIPseeker::plotAnnoBar(Peaks)
+```
+::::
+
+
+### Pathways analysis
+
+```{r, echo=FALSE, results='asis'}
+library(httr)
+
+# 1. Ta liste de gènes
+my_genes <- get_genes(mrs,index)
+
+# On fusionne la liste avec un gène par ligne (\n)
+genes_text <- paste(my_genes, collapse = "\n")
+
+# On génère le formulaire HTML corrigé avec l'enctype multipart
+html_button <- paste0('
+<form action="https://maayanlab.cloud/Enrichr/enrich" method="POST" enctype="multipart/form-data" target="_blank" style="display:inline;">
+  <input type="hidden" name="list" value="', genes_text, '">
+  <input type="hidden" name="description" value="Mon Analyse Méthylation">
+  <button type="submit" style="background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">
+    🚀 Envoyer vers Enrichr
+  </button>
+</form>
+')
+
+# Pour l'afficher dans un rapport R Markdown (pense à mettre results='asis' dans le chunk)
+cat(html_button)
+```
+
+

@@ -9,29 +9,31 @@
 #' 
 #' @return A matrix of batch corrected mvalues
 #' 
-#' @export
-#' 
-bc_sva<-function(mval,pdata,model){
-  
+bc_sva <- function(mval, pdata, model) {
+
   formula1 <- as.formula(tolower(model))
-  design<-model.matrix(formula1,data=pdata)
-  if(nrow(design) > ncol(mval)){ stop("Missing samples in betas ! ") }
-  if(nrow(design) < ncol(mval)){ stop("Missing samples in pdata ! ") }
-  
-  if (!grepl("\\+",model)){
-    sva_m<-sva::sva(mval,design)
-  }else{
-    formula0 <- as.formula( gsub("~[^+]*\\+","~1+",model) )
-    model0<-model.matrix(formula0, data=pdata)
-    sva_m<-sva::sva(mval,design,model0)
+  design <- model.matrix(formula1, data = pdata)
+  if (nrow(design) > ncol(mval)) {
+    stop("Missing samples in betas ! ")
+  }
+  if (nrow(design) < ncol(mval)) {
+    stop("Missing samples in pdata ! ")
   }
 
-  n.sv=sva_m$n.sv
+  if (!grepl("\\+", model)) {
+    sva_m <- sva::sva(mval, design)
+  } else {
+    formula0 <- as.formula(gsub("~[^+]*\\+", "~1+", model))
+    model0 <- model.matrix(formula0, data = pdata)
+    sva_m <- sva::sva(mval, design, model0)
+  }
+
+  n.sv <- sva_m$n.sv
   message(paste0("number of surrogate variables", sva_m$n.sv))
-  if(!sva_m$n.sv) {
-    message( "0 surrogate variables have been found, batchcorrection is useless !" )
-  }else{
-    mval = t(residuals(lm(t(mval)~sva_m$sv)))
+  if (!sva_m$n.sv) {
+    message("0 surrogate variables have been found, batchcorrection is useless !")
+  } else {
+    mval <- t(residuals(lm(t(mval) ~ sva_m$sv)))
   }
 
   return(mval)

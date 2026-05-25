@@ -1,0 +1,107 @@
+---
+title: "Bath Correction"
+subtitle: ""
+format:
+  html:
+    code-summary: "Voir le code et les paramètres"
+    code-copy: true
+execute:
+  warning: false
+  error: false
+params:
+   groups: !expr c("sentrix_id","group","age","gender")
+---
+
+## Prerequisites
+
+Load your processed methylation data:
+
+```{r setup}
+devtools::load_all("/home/cahaisv/git/methylkey2/")
+library(tidyverse)
+```
+
+```{r load}
+# Load QC-filtered data
+meth <- readRDS("meth.rds")
+betas <- getBetas(meth)
+pdata <- colData(meth) %>% dplyr::select(samples,group,age,sentrix_id,gender)
+```
+
+In the Group Control step, multidimensional statistical methods such as Multidimensional Scaling (MDS) and Principal Component Analysis (PCA) are employed to visualize and assess the variability within the data. The primary objectives include evaluating differences between groups and identifying potential batch effects.
+
+```{r getMvals1}
+# get mvalues with only winsorized correction, but remove XY chromosomes
+methM <- getMvals(meth,  grp="group", sva="~group+age", win=TRUE, sex=FALSE)
+mvals <- getMvals(methM)
+saveRDS(methM, file="methM_sva.rds")
+```
+
+
+## MDS
+
+::::::::: panel-tabset
+
+```{r mds1}
+#| output: asis
+for(grp in params$groups){
+  cat("\n\n### ", grp, "\n\n")
+  grp = pdata %>% dplyr::pull(tolower(grp))
+  p <- my_scatterPlot(mvals, grp, methylkey::samples(methM), "npg", 1, TRUE, TRUE)
+  print(p)
+}
+```
+
+:::::::::
+
+::: callout-note
+Multidimensional Scaling (MDS) reduces the dimensionality of the data while preserving the similarity or dissimilarity relationships between objects. It accomplishes this by projecting the data onto a lower-dimensional space while attempting to retain the original distances or dissimilarities as much as possible.
+:::
+
+## PCA
+
+```{r pca1, cache=TRUE}
+pca   <- makepca(mvals, pdata, nPC=9)
+plot_PCA_contribution(pca, nPC=9)
+```
+
+::: callout-note
+PCA reduces the dimensionality of the data by transforming it into a new coordinate system called principal components. These components are linear combinations of the original variables and are ordered by the amount of variance they explain in the data.
+:::
+
+```{r estimate_pca1, cache=TRUE}
+dfp <- estimate_PCA_corr(pca, pdata, nPC=9)
+dfq <- apply(dfp, 2, p.adjust, method = "fdr") %>% matrix(nrow = nrow(dfp), dimnames = dimnames(dfp))
+dfq %>% DT::datatable()
+```
+
+::: callout-note
+The table provides insights into the contribution of each variable to the principal components, aiding in the interpretation of PCA results and the identification of key variables driving variation in the data. Corrected p-values assess the significance of the associations between variables and PCs after adjusting for multiple comparisons. Lower p-values indicate stronger evidence against the null hypothesis of no association.
+:::
+
+::: callout-info
+:::
+
+::::::::: panel-tabset
+
+```{r factoextra1}
+#| results: asis
+for(grp in tolower(params$groups) ){
+  cat("\n\n### ", grp, "\n\n")
+  hab<-colData(methM) %>% dplyr::pull(tolower(grp))
+  factoextra::fviz_pca_ind(pca, axes=c(1,2), habillage=hab, addEllipses=TRUE ) %>% print()
+}
+```
+
+:::::::::
+
+::: callout-note
+PCA plots allow for the exploration of data structure and relationships. Points that are close together in the plot are similar in terms of their underlying variables, while those that are far apart are dissimilar. By coloring or labeling points according to additional variables, such as group membership or experimental conditions, PCA plots can reveal group-level patterns and relationships within the data.
+:::
+
+::: callout-warning
+:::
+
+
+
+---

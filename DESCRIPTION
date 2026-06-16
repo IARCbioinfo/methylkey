@@ -1,6 +1,6 @@
 Package: methylkey
 Title: Analysis of DNA Methylation from Illumina Methylation Arrays
-Version: 2.0.0
+Version: 0.4.1.0000
 Date: 2026-05-29
 Authors@R: 
     person(given = "Vincent",

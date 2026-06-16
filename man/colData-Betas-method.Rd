@@ -13,5 +13,6 @@
 A data frame containing the extracted column data.
 }
 \description{
-This method extracts column data from a "Betas" object and returns it as a data frame.
+This method extracts column data from a "Betas" object
+and returns it as a data frame.
 }

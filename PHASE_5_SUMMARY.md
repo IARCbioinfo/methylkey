@@ -54,7 +54,7 @@ SUMMARY OF IMPROVEMENTS
 - ✅ Added platform metadata
 - ✅ Better error handling for optional packages
 
-### newBetas()
+### new_betas()
 - ✅ Fixed error message handling
 - ✅ Improved validation messages
 - ✅ Added numeric matrix validation
@@ -62,7 +62,7 @@ SUMMARY OF IMPROVEMENTS
 - ✅ Proper handling of missing samples
 - ✅ Enhanced documentation
 
-### formatSampleSheet()
+### format_sample_sheet()
 - ✅ Enhanced robustness
 - ✅ Added empty dataframe check
 - ✅ Better barcode/basename handling
@@ -72,7 +72,7 @@ SUMMARY OF IMPROVEMENTS
 
 ### toGeoSubmission() for Betas
 - ✅ Complete rewrite (was broken)
-- ✅ Proper getBetas() extraction
+- ✅ Proper get_betas() extraction
 - ✅ Correct TSV output
 - ✅ Sample name headers
 - ✅ Input validation
@@ -82,10 +82,10 @@ SUMMARY OF IMPROVEMENTS
 
 ### Test Suite Created
 - ✅ tests/testthat.R: Main test runner
-- ✅ test_sampleSheet.R: formatSampleSheet tests (4 tests)
-- ✅ test_platform.R: getPlateform tests (5 tests)
-- ✅ test_newBetas.R: newBetas tests (5 tests)
-- ✅ test_missingValues.R: CpGNAexcl tests (3 tests)
+- ✅ test_sampleSheet.R: format_sample_sheet tests (4 tests)
+- ✅ test_platform.R: get_plateform tests (5 tests)
+- ✅ test_new_betas.R: new_betas tests (5 tests)
+- ✅ test_missingValues.R: cpg_na_excl tests (3 tests)
 
 ### Test Coverage
 - ✅ Basic functionality validation
@@ -208,8 +208,8 @@ After Phase 1-5:
 1. toGeoSubmission now works correctly
 2. sesame2Betas no longer saves debug artifacts
 3. minfi2Betas proper platform handling
-4. formatSampleSheet robust column naming
-5. newBetas proper error messages
+4. format_sample_sheet robust column naming
+5. new_betas proper error messages
 6. All require() replaced with proper imports
 
 📚 **Documentation Improvements:**

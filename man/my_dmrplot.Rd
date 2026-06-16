@@ -9,13 +9,18 @@ my_dmrplot(dt, group, title)
 \arguments{
 \item{dt}{A data frame containing the required data.}
 
-\item{group}{A grouping variable for distinguishing different groups in the plot.}
+\item{group}{A grouping variable for distinguishing different groups
+in the plot.}
 
 \item{title}{A title for the plot.}
 }
 \value{
-A ggplot2 plot displaying beta values with confidence intervals for different groups.
+A ggplot2 plot displaying beta values with confidence intervals
+for different groups.
 }
 \description{
-This function generates a DMR (Differentially Methylated Region) plot for visualizing beta values with confidence intervals. It takes a data frame 'dt' containing the required data, a grouping variable 'group', and a title for the plot.
+This function generates a DMR (Differentially Methylated Region)
+plot for visualizing beta values with confidence intervals.
+It takes a data frame 'dt' containing the required data,
+a grouping variable 'group', and a title for the plot.
 }

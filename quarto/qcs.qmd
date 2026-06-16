@@ -15,7 +15,7 @@ qcs  <- metadata(meth)$qcs
 
 ```{r barplot, cache=TRUE}
 sdfs<-readRDS("sdfs.rds")
-methylkey::plot_Channels(sdfs,numPositions=100000) %>% print()
+methylkey::plot_channels(sdfs,numPositions=100000) %>% print()
 ```
 
 ::: {.callout-tip}

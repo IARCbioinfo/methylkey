@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.r
 \name{beta2m}
 \alias{beta2m}
-\title{beta2m}
+\title{Calculate mvalues}
 \usage{
 beta2m(betas)
 }
@@ -10,8 +10,8 @@ beta2m(betas)
 \item{betas}{array of betas values}
 }
 \value{
-vector
+matrix
 }
 \description{
-calculate mvalues
+Calculate mvalues
 }

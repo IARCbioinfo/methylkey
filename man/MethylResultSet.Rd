@@ -11,44 +11,46 @@ MethylResultSet(se, model, intercept, method = "ls")
 MethylResultSet(se, model, intercept, method = "ls")
 }
 \arguments{
-\item{se}{A MethylSet object containing DNA methylation data.}
+\item{se}{A \code{SummarizedExperiment} (or subclass) produced by
+\code{methylkey}. Must contain M-values accessible via \code{get_mvals()}
+and sample metadata via \code{colData()}.}
 
-\item{dmps}{A data frame containing differential methylation positions (DMPs).}
+\item{model}{A model formula as a character string, e.g. \code{"~group"} or
+\code{"~group+age"}. The first variable after \code{~} is used as the
+grouping factor.}
 
-\item{dmrs}{A list of data frames containing differential methylation regions (DMRs).}
+\item{intercept}{The reference level for the grouping factor (character).}
 
-\item{pca}{A list containing principal component analysis (PCA) results.}
+\item{method}{Fitting method passed to \code{limma::lmFit}. One of
+\code{"ls"} (default) or \code{"robust"}.}
 }
 \value{
-An object of class MethylResultSet.
+An object of class \code{\link{MethylResultSet}}.
 }
 \description{
-A class for storing and working with results from DNA methylation analysis.
-The class contains the following slots:
-\describe{
-\item{dmps}{A data frame (DataFrame) containing differential methylation positions (DMPs).}
-\item{dmrs}{A list (List_OR_NULL) containing differential methylation regions (DMRs).}
-\item{pca}{A list containing principal component analysis (PCA) results.}
-\item{metadata}{A list containing metadata or additional information about the results.}
-}
+An S4 class for storing and working with results from Illumina methylation
+array analysis. Produced by fitting a linear model with limma on M-values.
 
-Create an instance of the MethylResultSet class to store DNA methylation analysis results.
+Fits a limma linear model on M-values from a \code{SummarizedExperiment}
+and returns a \code{MethylResultSet} object containing per-probe statistics
+for every model contrast.
 }
 \section{Slots}{
 
 \describe{
-\item{\code{dmps}}{A data frame (DataFrame) containing differential methylation positions (DMPs).}
+\item{\code{manifest}}{A \code{DFrame} containing the array manifest.}
 
-\item{\code{dmrs}}{A list (List_OR_NULL) containing differential methylation regions (DMRs).}
+\item{\code{dmps}}{A \code{List_OR_NULL} where each element is a data frame of
+differential methylation positions (DMPs) for one model contrast.}
 
-\item{\code{pca}}{A list containing principal component analysis (PCA) results.}
+\item{\code{lambda}}{A \code{numeric} vector of genomic inflation factors.}
 
-\item{\code{metadata}}{A list containing metadata or additional information about the results.}
+\item{\code{metadata}}{A \code{list} containing analysis metadata (model formula,
+intercept group, fitting method, and any metadata inherited from the input
+\code{SummarizedExperiment}).}
 }}
 
 \seealso{
-\code{\link{MethylResultSet-class}}
-}
-\author{
-Your Name
+\code{\link{MethylResultSet-class}}, \code{\link{getDMPs}},
+\code{\link{get_results}}
 }

@@ -13,5 +13,7 @@ nbsamples(x)
 The number of samples.
 }
 \description{
-This is a generic function to retrieve the number of samples from an object.
+This is a generic function to retrieve the number of samples
+from an object. It provides a consistent interface for accessing
+the number of samples across different classes.
 }

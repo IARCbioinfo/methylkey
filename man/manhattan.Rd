@@ -9,9 +9,11 @@ manhattan(df, sig = 5e-08)
 manhattan(df, sig = 5e-08)
 }
 \arguments{
-\item{df}{A data frame containing GWAS data with columns chr (chromosome), pos (position), and P.Value (p-value).}
+\item{df}{A data frame containing GWAS data with columns chr (chromosome),
+pos (position), and P.Value (p-value).}
 
-\item{sig}{The significance threshold for highlighting points on the plot (default is 5e-8).}
+\item{sig}{The significance threshold for highlighting points on the plot
+(default is 5e-8).}
 
 \item{tab}{dmps table (dataframe)}
 }
@@ -23,7 +25,10 @@ A Manhattan plot visualizing GWAS data.
 \description{
 Manhattan plot of DMPs
 
-This function generates a Manhattan plot for visualizing genome-wide association study (GWAS) data. It takes a data frame containing chromosome (chr), position (pos), and p-value (P.Value) columns as input.
+This function generates a Manhattan plot for visualizing
+genome-wide association study (GWAS) data. It takes a data frame
+containing chromosome (chr), position (pos), and p-value (P.Value)
+columns as input.
 }
 \details{
 The table must contain a column 'chr' for chromosome

@@ -8,15 +8,14 @@
 #' @return A plot representing the channels.
 #'
 #' @export
-#setGeneric("plot_Channels", function(x) standardGeneric("plot_Channels") )
-setGeneric("plot_Channels", function(x, numPositions  = 1000) {
-  standardGeneric("plot_Channels")
+setGeneric("plot_channels", function(x, num_positions  = 1000) {
+  standardGeneric("plot_channels")
 })
 
 
 #' Plot channels from a list
 #'
-#' This method of \code{plot_Channels} is specifically for plotting channels
+#' This method of \code{plot_channels} is specifically for plotting channels
 #' when the input data is a list of channel sets. It extracts and organizes
 #' the channels, creates a boxplot, and facets the plot by sentrix.
 #'
@@ -24,43 +23,64 @@ setGeneric("plot_Channels", function(x, numPositions  = 1000) {
 #'
 #' @return A ggplot2 boxplot representing the channels.
 #'
+#' @importFrom dplyr mutate
+#' @importFrom tidyr pivot_longer
+#' @importFrom ggplot2 ggplot aes geom_boxplot theme scale_fill_manual
+#' @importFrom ggplot2 scale_y_continuous ylab facet_grid theme element_text
+#'
 #' @export
 setMethod(
-  "plot_Channels",
+  "plot_channels",
   signature("list"),
-  definition = function(x, numPositions  = 1000) {
+  definition <- function(x, num_positions  = 1000) {
 
-    sampNames = names(x)
-    if (identical(sampNames, names(x))) sampNames = gsub(".*_R", "R", sampNames)
+    samples_names <- names(x)
+    if (identical(samples_names, names(x))) {
+      samples_names = gsub(".*_R", "R", samples_names)
+    }
 
     sampled_data <- map(x, ~ {
-      if (numPositions < nrow(.)) {
-        sample_n(., numPositions)
+      if (num_positions < nrow(.)) {
+        dplyr::sample_n(., num_positions)
       } else {
         .
       }
-  })
+    })
 
-  bind_rows(
-    map(sampled_data, ~ tibble(UG  = .$UG, UR  = .$UR)), .id  = "name") |>
-    mutate(samp  = rep(sampNames, each  = numPositions)) |>
-    tidyr::pivot_longer(-c(name, samp),
-      names_to  = "channel",
-      values_to  = "Intensity") |>
-    mutate(sentrix  = gsub("_.*", "", name)) |>
-    ggplot() +
-    geom_boxplot(aes(x  = samp, y  = Intensity, fill  = channel)) +
-    theme(axis.text.x  = element_text(angle  = 90, vjust  = 0.5, hjust  = 1)) +
-    scale_fill_manual(values  = c("#2ecc71", "#c0392b")) +
-    scale_y_continuous(trans  = 'log2') +
-    ylab("Log2 Intensity") +
-    facet_grid(. ~ sentrix, scales  = "free_x")
-})
+    purrr::map_df(sampled_data, ~ tibble::tibble(
+      UG = .x$UG,
+      UR = .x$UR
+    ), .id = "name") |>
+      dplyr::mutate(
+        samp = rep(samples_names, each = num_positions)
+      ) |>
+      tidyr::pivot_longer(
+        cols = -c("name", "samp"),
+        names_to = "channel",
+        values_to = "Intensity"
+      ) |>
+      dplyr::mutate(
+        sentrix = stringr::str_remove(.data$name, "_.*")
+      ) |>
+      ggplot2::ggplot() +
+      ggplot2::geom_boxplot(aes(x = samp, y = Intensity, fill = channel)) +
+      ggplot2::theme(
+        axis.text.x = ggplot2::element_text(
+          angle = 90,
+          vjust = 0.5, hjust = 1
+        )
+      ) +
+      ggplot2::scale_fill_manual(values = c("#2ecc71", "#c0392b")) +
+      ggplot2::scale_y_continuous(trans = "log2") +
+      ggplot2::ylab("Log2 Intensity") +
+      ggplot2::facet_grid(. ~ sentrix, scales  = "free_x")
+  }
+)
 
 
 #' Plot channels from an RGChannelSet object
 #'
-#' This method of \code{plot_Channels} is specifically for plotting channels
+#' This method of \code{plot_channels} is specifically for plotting channels
 #' when the input data is an RGChannelSet object. It creates boxplots
 #' for red and green channels.
 #'
@@ -68,38 +88,53 @@ setMethod(
 #'
 #' @return A ggplot2 plot with separate boxplots for red and green channels.
 #'
+#' @importFrom SummarizedExperiment colData
+#' @importFrom graphics par axis
+#'
 #' @export
 setMethod(
-  "plot_Channels",
+  "plot_channels",
   signature("RGChannelSet"),
-  definition  = function(x) {
+  definition = function(x) {
+
+    if (!requireNamespace("minfi", quietly = TRUE)) {
+      stop("Package 'minfi' is required for this function.",
+        "Please install it.",
+        call. = FALSE
+      )
+    }
+    sample_sheet = SummarizedExperiment::colData(x)
     nsamp = ncol(x)
     ylab <- "log2 intensity of both green and red channel"
-    par(xaxt = 'n')
+    par(xaxt = "n")
 
-    boxplot(log2(getRed(x)+1),
-      col  = "red",
+    boxplot(log2(minfi::getRed(x) + 1),
+      col = "red",
       boxwex  = 0.25,
       at = 1:nsamp - 0.175,
       ylab = ylab,
-      labels = sampleSheet$samples, cex = 0.5)
+      labels = sample_sheet$samples, cex = 0.5
+    )
 
-    boxplot(log2(getGreen(x)+1),
-      col  = "green",
+    boxplot(log2(minfi::getGreen(x) + 1),
+      col = "green",
       boxwex  = 0.25,
       at = 1:nsamp + 0.175,
-      axis = F,
-      add = T,
-      cex = 0.5)
+      axis = FALSE,
+      add = TRUE,
+      cex = 0.5
+    )
 
-    par(xaxt = 's')
-    axis(1, at = 1:nsamp,
+    graphics::par(xaxt = "s")
+    graphics::axis(1, at = 1:nsamp,
       labels = SummarizedExperiment::colData(x)$Basename,
       tick = TRUE,
       las = 2,
-      cex.axis = 0.8)
+      cex.axis = 0.8
+    )
     recordPlot()
-})
+  }
+)
 
 
 
@@ -114,12 +149,13 @@ setMethod(
 #'
 #' @export
 setGeneric(
-  "plot_Channels2",
-  function(x) standardGeneric("plot_Channels2"))
+  "plot_channels2",
+  function(x) standardGeneric("plot_channels2")
+)
 
 #' Call Plot channels from an RGChannelSet object for each sentrix
 #'
-#' This method of \code{plot_Channels} is specifically for plotting channels
+#' This method of \code{plot_channels} is specifically for plotting channels
 #' when the input data is an RGChannelSet object. It creates separate boxplots
 #' for each sentrix
 #'
@@ -129,20 +165,21 @@ setGeneric(
 #'
 #' @export
 setMethod(
-  "plot_Channels2",
+  "plot_channels2",
   signature("RGChannelSet"),
   definition  = function(x) {
 
-  nsubplots <- length(sentrix)
-  stx <- gsub("_.*", "", colnames(x)) |> unique()
+    nsubplots <- length(sentrix)
+    stx <- gsub("_.*", "", colnames(x)) |> unique()
 
-  lapply(1:nsubplots, function(i) {
-    subsel <- grepl(stx[i], colnames(x))
-    substx <- x[, subsel]
-    plot_Channels(substx)
-  })
+    lapply(1:nsubplots, function(i) {
+      subsel <- grepl(stx[i], colnames(x))
+      substx <- x[, subsel]
+      plot_channels(substx)
+    })
 
-})
+  }
+)
 
 #' Create a scatter plot with custom annotations
 #'
@@ -156,13 +193,22 @@ setMethod(
 #'
 #' @return A ggplot2 scatter plot with custom annotations.
 #'
+#' @importFrom ggplot2 ggplot aes geom_point geom_text geom_abline xlab ylab
+#'
 #' @export
 plot_background <- function(df) {
-  ggplot(df,
-         aes(x  = mean_oob_grn, y = mean_oob_red, label  = barcode)) +
-    geom_point() + geom_text(hjust  = -0.1, vjust  = 0.1) +
-    geom_abline(intercept  = 0, slope  = 1, linetype  = 'dotted') +
-    xlab('Green Background') + ylab('Red Background')
+  ggplot2::ggplot(df,
+    ggplot2::aes(
+      x = .data$mean_oob_grn,
+      y = .data$mean_oob_red,
+      label = .data$barcode
+    )
+  ) +
+    ggplot2::geom_point() +
+    ggplot2::geom_text(hjust = -0.1, vjust = 0.1) +
+    ggplot2::geom_abline(intercept = 0, slope  = 1, linetype = "dotted") +
+    ggplot2::xlab("Green Background") +
+    ggplot2::ylab("Red Background")
 }
 
 #' Create a bar plot to visualize detection fractions
@@ -176,11 +222,22 @@ plot_background <- function(df) {
 #'
 #' @return A ggplot2 bar plot for visualizing detection fractions.
 #'
+#' @importFrom ggplot2 ggplot geom_bar aes theme element_text
+#'
 #' @export
-plot_Detection <- function(df) {
+plot_detection <- function(df) {
 
-  ggplot(df) + geom_bar(aes(x = barcode,y = frac_dt), stat = "identity") +
-    theme(axis.text.x  = element_text(angle  = 90, vjust  = 0.5, hjust = 1))
+  ggplot2::ggplot(df) +
+    ggplot2::geom_bar(
+      ggplot2::aes(
+        x = .data$barcode,
+        y = .data$frac_dt
+      ),
+      stat = "identity"
+    ) +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust = 1)
+    )
 }
 
 #' Create a bar plot to visualize missing values (NA)
@@ -195,17 +252,25 @@ plot_Detection <- function(df) {
 #'
 #' @return A ggplot2 bar plot for visualizing missing values (NA).
 #'
+#' @importFrom ggplot2 ggplot geom_bar aes theme element_text
+#'
 #' @export
-plot_NA <- function(df){
-  ggplot(df) + geom_bar(aes(x = barcode,y = num_na_cg), stat = "identity") +
-    theme(axis.text.x  = element_text(angle  = 90, vjust  = 0.5, hjust = 1))
+plot_na <- function(df) {
+  ggplot2::ggplot(df) +
+    ggplot2::geom_bar(
+      ggplot2::aes(x = .data$barcode, y = .data$num_na_cg),
+      stat = "identity"
+    ) +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust = 1)
+    )
 }
-
 
 #' densityPlot of betas values
 #'
 #' This function generates a ggplot2 density plot for matrix columns.
-#' Each column is represented by a density line and colored by \code{sampGroups}.
+#' Each column is represented by a density line and colored by
+#'   \code{sampGroups}.
 #'
 #' @param dat A matrix of betas.
 #' @param sampGroups A vector of group labels for each column in \code{dat}.
@@ -216,12 +281,17 @@ plot_NA <- function(df){
 #' @param ylim y-axis limits.
 #' @param legend Whether to draw a legend.
 #' @return A ggplot2 object representing density estimates for each sample.
-#' @export
 #'
-density_plot <- function(meth, group = "sentrix_id", main  = "",
-                         subset = 10000,
-                         xlab  = "Beta values distribution",
-                         pal  = RColorBrewer::brewer.pal(8, "Dark2"), ...) {
+#' @importFrom ggplot2 ggplot aes geom_line labs scale_color_manual
+#' @importFrom dplyr bind_rows
+#' @importFrom stats density
+#'
+#' @export
+density_plot <- function(
+    meth, group = "sentrix_id", main  = "",
+    subset = 10000,
+    xlab  = "Beta values distribution",
+    pal  = RColorBrewer::brewer.pal(8, "Dark2"), ...) {
 
   if (!is(meth, "Betas")) {
     stop("argument 'meth' must be a Betas object'")
@@ -236,34 +306,34 @@ density_plot <- function(meth, group = "sentrix_id", main  = "",
     group <- colData(meth)["sentrix_id"]
   }
 
-  betas <- getBetas(meth)
+  betas <- get_betas(meth)
   sset <- sample(nrow(betas), size = subset)
   betas <- betas[sset, ]
 
-  d <- apply(betas, 2, function(x) density(as.vector(x), na.rm  = TRUE))
-  #if (missing(ylim)) ylim <- range(sapply(d, function(i) range(i$y)))
-  #if (missing(xlim)) xlim <- range(sapply(d, function(i) range(i$x)))
+  d <- apply(betas, 2, function(x) stats::density(as.vector(x), na.rm  = TRUE))
 
-  df <- bind_rows(lapply(seq_along(d), function(i) {
+  df <- dplyr::bind_rows(lapply(seq_along(d), function(i) {
     data.frame(
       x = d[[i]]$x,
       y = d[[i]]$y,
-      sampGroup = group[i],
+      sample_group = group[i],
       sample = if (!is.null(colnames(betas)))
         colnames(betas)[i] else as.character(i),
       stringsAsFactors = FALSE
     )
   }))
 
-  p <- ggplot(df, aes(x = x,
-                      y = y,
-                      color = sampGroup,
-                      group = interaction(sample, sampGroup))) +
-    geom_line() +
-    labs(x = xlab, y = "Density", title = main, color = "Groups") +
-    scale_color_manual(values = rep(pal, length.out = length(levels(group))))
-
-  p
+  ggplot2::ggplot(df, ggplot2::aes(
+    x = .data$x,
+    y = .data$y,
+    color = .data$sample_group,
+    group = interaction(.data$sample, .data$sample_group)
+  )) +
+    ggplot2::geom_line() +
+    ggplot2::labs(x = xlab, y = "Density", title = main, color = "Groups") +
+    ggplot2::scale_color_manual(
+      values = rep(pal, length.out = length(levels(group)))
+    )
 }
 
 #' violin_plot1
@@ -276,39 +346,43 @@ density_plot <- function(meth, group = "sentrix_id", main  = "",
 #'
 #' @return plot
 #'
+#' @importFrom ggplot2 ggplot aes geom_violin theme element_text guides ylab
+#' @importFrom stats runif
+#' @importFrom tidyr pivot_longer
+#'
 #' @export
 #'
-violin_plot <- function(betas, group, numPositions = 1000) {
+violin_plot <- function(betas, group, num_positions = 1000) {
 
-  cpg <- betas[runif(numPositions,1,nrow(betas)),]
-  #cpg <- cbind(group = as.character(group),data.table(t(cpg)) )
-  #cpg <- melt( cpg, id.vars = "group" )
-  #group <- as.character(group)
+  cpg <- betas[stats::runif(num_positions, 1, nrow(betas)), ]
   cpg <- data.frame(group, t(cpg)) |>
-    pivot_longer(!group, names_to  = "Probe_ID", values_to  = "betas")
+    tidyr::pivot_longer(!group, names_to  = "Probe_ID", values_to  = "betas")
 
-  #colnames(cpg)<-c("group","Probe_ID","betas")
+  ggplot2::ggplot(cpg, ggplot2::aes(x = group, y = betas, fill = group)) +
+    ggplot2::geom_violin() +
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(angle = 50, hjust = 1, size = 14)
+    ) +
+    ggplot2::guides(fill = "none") +
+    ggplot2::ylab("Methylation %") + xlab("")
 
-  p1 <- ggplot(cpg, aes(x = group, y = betas, fill = group)) + geom_violin() +
-    theme(axis.text.x = element_text(angle = 50,hjust = 1, size = 14)) +
-    guides(fill  = FALSE) +
-    ylab("Methylation %") + xlab("")
-
-  return(p1)
 }
-
-
-
 
 #' Create a scatter plot to visualize channel switching
 #'
-#' This function generates a scatter plot to visualize channel switching using ggplot2. It plots data from a data frame, where 'InfI_switch_G2R' and 'InfI_switch_R2G' are used as x and y coordinates.
+#' This function generates a scatter plot to visualize channel
+#'   switching using ggplot2. It plots data from a data frame,
+#'   where 'InfI_switch_G2R' and 'InfI_switch_R2G' are used as
+#'   x and y coordinates.
 #'
-#' @param df A data frame containing the data to be plotted, with columns 'InfI_switch_G2R' and 'InfI_switch_R2G'.
+#' @param df A data frame containing the data to be plotted,
+#'   with columns 'InfI_switch_G2R' and 'InfI_switch_R2G'.
 #'
 #' @return A ggplot2 scatter plot for visualizing channel switching.
 #'
+#'
 #' @export
-plot_channel_switch <- function(df){
-  ggplot(df) + geom_point(aes(InfI_switch_G2R, InfI_switch_R2G))
+plot_channel_switch <- function(df) {
+  ggplot(df) +
+    geom_point(aes(.data$InfI_switch_G2R, .data$InfI_switch_R2G))
 }

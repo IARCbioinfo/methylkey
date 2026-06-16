@@ -15,5 +15,7 @@
 The modified "Betas" object with the updated column data.
 }
 \description{
-This method sets the column data for a "Betas" object using the provided data frame.
+This method sets the column data for a "Betas" object using the
+provided data frame. It modifies the object in place and returns
+the modified object.
 }

@@ -45,7 +45,7 @@ annot<-readr::read_tsv("https://github.com/zhou-lab/InfiniumAnnotationV1/raw/mai
 
 ```{r sampleSheet}
 sampleSheet<-read_tsv(params$sampleSheet)
-sampleSheet<-formatSampleSheet(sampleSheet)
+sampleSheet<-format_sample_sheet(sampleSheet)
 sampleSheet %>% DT::datatable()
 ```
 
@@ -67,7 +67,7 @@ saveRDS(meth,file="meth.rds")
 
 ```{r}
 meth <- readRDS("meth.rds")
-betas <- methylkey::getBetas(meth)
+betas <- methylkey::get_betas(meth)
 ```
 
 {{< include qcs.qmd >}}
@@ -78,10 +78,10 @@ betas <- methylkey::getBetas(meth)
 
 In the Group Control step, multidimensional statistical methods such as Multidimensional Scaling (MDS) and Principal Component Analysis (PCA) are employed to visualize and assess the variability within the data. The primary objectives include evaluating differences between groups and identifying potential batch effects.
 
-```{r getMvals1}
+```{r get_mvals1}
 # get mvalues with only winsorized correction, but remove XY chromosomes
-methM <- getMvals(meth,  grp="group", sva=NULL, win=TRUE, sex=TRUE)
-mvals <- getMvals(methM)
+methM <- get_mvals(meth,  grp="group", sva=NULL, win=TRUE, sex=TRUE)
+mvals <- get_mvals(methM)
 pdata <- colData(methM) %>% dplyr::select(samples,group,age,sentrix_id,batch)
 ```
 
@@ -106,7 +106,7 @@ Multidimensional Scaling (MDS) reduces the dimensionality of the data while pres
 
 ```{r pca1, cache=TRUE}
 pca   <- makepca(mvals, pdata, nPC=9)
-plot_PCA_contribution(pca, nPC=9)
+plot_pca_contribution(pca, nPC=9)
 ```
 
 ::: callout-note
@@ -114,7 +114,7 @@ PCA reduces the dimensionality of the data by transforming it into a new coordin
 :::
 
 ```{r estimate_pca1, cache=TRUE}
-dfp <- estimate_PCA_corr(pca, pdata, nPC=9)
+dfp <- estimate_pca_corr(pca, pdata, nPC=9)
 dfq <- apply(dfp, 2, p.adjust, method = "fdr") %>% matrix(nrow = nrow(dfp), dimnames = dimnames(dfp))
 dfq %>% DT::datatable()
 ```
@@ -149,11 +149,11 @@ PCA plots allow for the exploration of data structure and relationships. Points 
 
 In the Group Control step, multidimensional statistical methods such as Multidimensional Scaling (MDS) and Principal Component Analysis (PCA) are employed to visualize and assess the variability within the data. The primary objectives include evaluating differences between groups and identifying potential batch effects.
 
-```{r getMvals2}
+```{r get_mvals2}
 #| eval: False
 # get mvalues with only winsorized correction, but remove XY chromosomes
-methM <- getMvals(meth,  grp="group", sva="~group+age", win=TRUE, sex=FALSE)
-mvals <- getMvals(methM)
+methM <- get_mvals(meth,  grp="group", sva="~group+age", win=TRUE, sex=FALSE)
+mvals <- get_mvals(methM)
 pdata <- colData(methM) %>% dplyr::select(samples,group,age,sentrix_id,batch)
 saveRDS(methM, file="methM_sva.rds")
 ```
@@ -183,7 +183,7 @@ Multidimensional Scaling (MDS) reduces the dimensionality of the data while pres
 
 ```{r pca2, cache=TRUE}
 pca   <- makepca(mvals, pdata, nPC=9)
-plot_PCA_contribution(pca, nPC=9)
+plot_pca_contribution(pca, nPC=9)
 ```
 
 ::: callout-note
@@ -191,7 +191,7 @@ PCA reduces the dimensionality of the data by transforming it into a new coordin
 :::
 
 ```{r estimate_pca2, cache=TRUE}
-dfp <- estimate_PCA_corr(pca, pdata, nPC=9)
+dfp <- estimate_pca_corr(pca, pdata, nPC=9)
 dfq <- apply(dfp, 2, p.adjust, method = "fdr") %>% matrix(nrow = nrow(dfp), dimnames = dimnames(dfp))
 dfq %>% DT::datatable()
 ```
@@ -227,8 +227,8 @@ PCA plots allow for the exploration of data structure and relationships. Points 
 We use mvalues without batch correction.
 
 ```{r}
-methM <- getMvals(meth,  grp="group", sva=NULL, win=TRUE, sex=TRUE)
-mvals <- getMvals(methM)
+methM <- get_mvals(meth,  grp="group", sva=NULL, win=TRUE, sex=TRUE)
+mvals <- get_mvals(methM)
 ```
 
 ## \~group+age+gender+sentrix_id

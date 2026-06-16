@@ -5,8 +5,7 @@
 \alias{List_OR_NULL-class}
 \title{Define a Class Union}
 \description{
-This function allows you to define a class union, which is a special type of class
-that includes objects from multiple classes. A class union is useful when you want
-to create a class that can accept objects of different classes as its instances.
+Defines a class union accepting either a list or NULL. Used for optional
+slots in S4 classes.
 }
 \keyword{classes}

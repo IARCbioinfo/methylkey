@@ -5,12 +5,13 @@
 \alias{Betas-class}
 \title{Class Betas}
 \description{
-This class extend SummarizedExperiment, with new methods, it made it specific for betas values.
+This class extend SummarizedExperiment,
+with new methods, it made it specific for betas values.
 }
 \seealso{
 \code{\link{SummarizedExperiment-class}} : The parent class
 
-Other data container: 
+Other data container:
 \code{\link{Mvals-class}}
 }
 \concept{data container}

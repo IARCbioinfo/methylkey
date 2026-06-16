@@ -33,7 +33,7 @@ sdfs <- readRDS("sdfs.rds")
 
 ```{r}
 qcs  <- metadata(meth)$qcs
-betas <- getBetas(meth)
+betas <- get_betas(meth)
 sampleSheet <- methylkey::colData(meth)
 ```
 
@@ -46,7 +46,7 @@ The color Channel Barplot, visually represents the fluorescence intensities capt
 :::
 
 ```{r channels}
-plot_Channels(sdfs,numPositions=100000) %>% print()
+plot_channels(sdfs,numPositions=100000) %>% print()
 ```
 
 

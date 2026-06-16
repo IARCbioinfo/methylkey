@@ -30,14 +30,14 @@ Version 0.99.0 (2026-04-29)
 - Added platform detection to metadata
 - Better handling of extended cell type models
 
-#### newBetas():
+#### new_betas():
 - Fixed error message handling (was using cat() in assert_that)
 - Improved validation with better error messages
 - Added numeric validation for betas matrix
 - Enhanced barcode validation with informative messages
 - Better handling of missing samples in data
 
-#### formatSampleSheet():
+#### format_sample_sheet():
 - Enhanced robustness with explicit assertions
 - Added check for empty data frames
 - Improved barcode/basename column handling
@@ -47,7 +47,7 @@ Version 0.99.0 (2026-04-29)
 
 #### toGeoSubmission() for Betas:
 - Completely rewritten to work correctly
-- Uses proper getBetas() extraction
+- Uses proper get_betas() extraction
 - Generates proper TSV output
 - Includes sample names in headers
 - Added validation and error handling
@@ -60,25 +60,25 @@ Version 0.99.0 (2026-04-29)
 ### Testing Infrastructure
 
 #### New test suite (tests/testthat/):
-- test_sampleSheet.R: Tests for formatSampleSheet()
+- test_sampleSheet.R: Tests for format_sample_sheet()
   - Basic input handling
   - Column renaming
   - Error handling for invalid inputs
   
-- test_platform.R: Tests for getPlateform()
+- test_platform.R: Tests for get_plateform()
   - EPIC detection
   - 450k detection
   - Mouse 285k detection
   - Unknown platform handling
   - NULL input handling
 
-- test_newBetas.R: Tests for newBetas()
+- test_new_betas.R: Tests for new_betas()
   - Valid Betas object creation
   - Input validation
   - Barcode requirement
   - NA parameter validation
 
-- test_missingValues.R: Tests for CpGNAexcl()
+- test_missingValues.R: Tests for cpg_na_excl()
   - NA probe identification
   - Nalimit parameter behavior
   - Empty NA handling

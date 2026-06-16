@@ -29,8 +29,8 @@ Phase 2 : corriger les fonctions critiques et les bugs
    - Supprimer les `message("001")`... dans `minfi2Betas`.
    - Remplacer `require()` par `requireNamespace()` et `pkg::fun`.
    - Vérifier et corriger l’usage des packages `sesameQC_calcStats`, `sesameQC_getStats`, `inferSex`, `predictAge`.
-2. Vérifier `newBetas()` et `formatSampleSheet()`
-   - Rendre `formatSampleSheet()` plus robuste : noms de colonnes explicites, validation plus stricte, support de colonnes additionnelles.
+2. Vérifier `new_betas()` et `format_sample_sheet()`
+   - Rendre `format_sample_sheet()` plus robuste : noms de colonnes explicites, validation plus stricte, support de colonnes additionnelles.
    - Corriger l’erreur de message `assert_that(... msg=cat(...))`.
    - Ajouter gestion des barcodes manquants et des colonnes requises.
    - Clarifier le rôle de `samples` vs `barcode`.
@@ -38,11 +38,11 @@ Phase 2 : corriger les fonctions critiques et les bugs
    - Corriger l’objet manquant `pval` et `MSI`.
    - Implémenter export GEO si nécessaire, sinon retirer ou documenter comme expérimental.
 4. Vérifier toutes les fonctions exportées et méthodes S4
-   - `getBetasRanges`, `getMvals`, `samples`, `nbsamples`, `nbprobes`, `getPlateform`, `makeSummarizedExperimentFromBetas`.
+   - `get_betas_ranges`, `get_mvals`, `samples`, `nbsamples`, `nbprobes`, `get_plateform`, `makeSummarizedExperimentFromBetas`.
    - S’assurer que toutes les fonctions appelées existent dans le package ou sont importées.
 5. Simplifier la logique de QC et de masquage
    - Standardiser le calcul de masques/probes NA.
-   - Définir clairement la différence entre `mask`, `na`, `sex` dans `getBetas()`.
+   - Définir clairement la différence entre `mask`, `na`, `sex` dans `get_betas()`.
 
 Phase 3 : améliorer l’API et l’expérience utilisateur
 1. Séparer lecture de données, preprocessing et création d’objet
@@ -60,7 +60,7 @@ Phase 3 : améliorer l’API et l’expérience utilisateur
 
 Phase 4 : documentation et exemples
 1. Compléter la doc des fonctions importantes avec des exemples simples
-   - `sesame2Betas()`, `minfi2Betas()`, `newBetas()`, `getBetas()`, `methyldiff()`.
+   - `sesame2Betas()`, `minfi2Betas()`, `new_betas()`, `get_betas()`, `methyldiff()`.
 2. Ajouter des vignettes Rmd
    - `vignettes/preprocessing-sesame.Rmd`
    - `vignettes/preprocessing-minfi.Rmd`
@@ -76,7 +76,7 @@ Phase 4 : documentation et exemples
 
 Phase 5 : tests et qualité
 1. Ajouter `tests/testthat/`
-   - Tests unitaires pour `formatSampleSheet()`, `newBetas()`, `getBetas()`, `CpGexcl()`.
+   - Tests unitaires pour `format_sample_sheet()`, `new_betas()`, `get_betas()`, `CpGexcl()`.
    - Tests d’intégrité pour `sesame2Betas()` et `minfi2Betas()` sur jeux de données simulés ou exemples Bioconductor.
    - Tests pour `methyldiff()` et `toGeoSubmission()`.
 2. Ajouter validation de package

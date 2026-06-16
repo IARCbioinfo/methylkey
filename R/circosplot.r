@@ -17,12 +17,17 @@
 #' @param point_size Point size for circos dots.
 #'
 #' @return ggplot object
+#'
+#' @importFrom ggbio ggbio circle
+#' @importFrom ggplot2 scale_colour_manual
+#' @importFrom Seqinfo seqlengths seqlevels seqinfo
+#' @importFrom GenomicRanges GRanges
+#' @importFrom IRanges IRanges
+#'
 #' @export
 #'
 circosplot <- function(ranges, genome, label_probes = NULL,
                        label_size = 2.5, point_size = 1.2) {
-
-  suppressPackageStartupMessages(require(ggbio))
 
   if (genome == "hg38") {
     require(BSgenome.Hsapiens.UCSC.hg38)
@@ -48,38 +53,39 @@ circosplot <- function(ranges, genome, label_probes = NULL,
   if (!"Probe_ID" %in% names(mcols(ranges))) {
     ranges$Probe_ID <- names(ranges)
     if (is.null(names(ranges)) || all(is.na(names(ranges)))) {
-      ranges$Probe_ID <- paste0("probe_", seq_len(length(ranges)))
+      ranges$Probe_ID <- paste0("probe_", seq_along(ranges))
     }
   }
 
-  chr_len <- seqlengths(species)
+  chr_len <- Seqinfo::seqlengths(species)
   chr_len <- chr_len[grep("_|M", names(chr_len), invert = TRUE)]
-  myIdeo <- GRanges(
+  my_ideo <- GenomicRanges::GRanges(
     seqnames = names(chr_len),
-    ranges = IRanges(start = 1, end = chr_len)
+    ranges = IRanges::IRanges(start = 1, end = chr_len)
   )
 
-  seqlengths(myIdeo) <- width(myIdeo)
-  seqlevels(ranges, pruning.mode = "coarse") <- seqlevels(myIdeo)
-  seqinfo(ranges) <- seqinfo(myIdeo)
+  Seqinfo::seqlengths(my_ideo) <- width(my_ideo)
+  Seqinfo::seqlevels(ranges, pruning.mode = "coarse") <-
+    Seqinfo::seqlevels(my_ideo)
+  Seqinfo::seqinfo(ranges) <- Seqinfo::seqinfo(my_ideo)
 
-  g.hypo <- ranges[ranges$deltabetas < 0]
-  g.hyper <- ranges[ranges$deltabetas > 0]
+  g_hypo <- ranges[ranges$deltabetas < 0]
+  g_hyper <- ranges[ranges$deltabetas > 0]
 
-  if (length(g.hypo) > 0) values(g.hypo)$id <- "Down-regulated"
-  if (length(g.hyper) > 0) values(g.hyper)$id <- "Up-regulated"
+  if (length(g_hypo) > 0) values(g_hypo)$id <- "Down-regulated"
+  if (length(g_hyper) > 0) values(g_hyper)$id <- "Up-regulated"
 
-  p <- ggbio() +
-    circle(
-      myIdeo,
+  p <- ggbio::ggbio() +
+    ggbio::circle(
+      my_ideo,
       geom = "ideo",
       fill = "gray92",
       color = "gray60",
       radius = 40,
       trackWidth = 4
     ) +
-    circle(
-      myIdeo,
+    ggbio::circle(
+      my_ideo,
       geom = "text",
       aes(label = seqnames),
       vjust = 0.5,
@@ -91,34 +97,32 @@ circosplot <- function(ranges, genome, label_probes = NULL,
       fontface = "bold"
     )
 
-  if (length(g.hypo) > 0) {
+  if (length(g_hypo) > 0) {
     p <- p +
-      circle(
-        g.hypo,
+      ggbio::circle(
+        g_hypo,
         geom = "point",
         size = point_size,
-        aes(x = midpoint, y = "deltabetas", color = id),
+        aes(x = .data$midpoint, y = .data$deltabetas, color = .data$id),
         radius = 21,
         trackWidth = 18
       )
   }
 
-  if (length(g.hyper) > 0) {
+  if (length(g_hyper) > 0) {
     p <- p +
-      circle(
-        g.hyper,
+      ggbio::circle(
+        g_hyper,
         geom = "point",
         size = point_size,
-        aes(x = midpoint, y = "deltabetas", color = id),
+        aes(x = .data$midpoint, y = .data$deltabetas, color = .data$id),
         radius = 45, trackWidth = 18
       )
   }
 
-  p <- p +
-    scale_colour_manual(
+  p +
+    ggplot2::scale_colour_manual(
       values = c("Up-regulated" = "#2E86AB", "Down-regulated" = "#A23B72"),
       name = "Direction"
     )
-
-  return(p)
 }

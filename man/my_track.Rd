@@ -6,6 +6,7 @@
 \usage{
 my_track(
   dt,
+  sample_sheet,
   betas,
   genome = "hg19",
   chromosome = "Chr1",
@@ -27,8 +28,14 @@ my_track(
 \item{end}{The end position of the genome region to display.}
 }
 \value{
-A genome track plot displaying CpG islands, DMRs, and probe annotations.
+A genome track plot displaying CpG islands, DMRs,
+and probe annotations.
 }
 \description{
-This function generates a genome track plot that includes various annotations, such as CpG islands, DMRs (Differentially Methylated Regions), and probe annotations. It takes a data frame 'dt' containing the probe information, a matrix 'betas' containing beta values, and additional parameters for specifying the genome region to display.
+This function generates a genome track plot that includes
+various annotations, such as CpG islands,
+DMRs (Differentially Methylated Regions),
+and probe annotations. It takes a data frame 'dt' containing
+the probe information, a matrix 'betas' containing beta values,
+and additional parameters for specifying the genome region to display.
 }

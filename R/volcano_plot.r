@@ -18,8 +18,13 @@
 #'
 #' @return ggplot object
 #'
-#' @export
+#' @importFrom dplyr rename_with case_when mutate
+#' @importFrom ggplot2 ggplot geom_point geom_vline geom_hline
+#' @importFrom ggplot2 scale_color_manual labs theme element_text
+#' @importFrom ggrepel geom_text_repel
+#' @importFrom ggpubr theme_pubr
 #'
+#' @export
 volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
                     title = "Volcano Plot", subtitle = NULL,
                     label_probes = NULL, max_labels = 10,
@@ -46,10 +51,10 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
       )
     ) |>
     dplyr::mutate(
-      log10_pval = -log10(adj.P.Val),
+      log10_pval = -log10(.data$adj.P.Val),
       # Categorize points for coloring
       significance = dplyr::case_when(
-        adj.P.Val < fdr_threshold &
+        .data$adj.P.Val < fdr_threshold &
           abs(deltabetas) > abs(deltabeta_threshold) ~
           ifelse(deltabetas > 0, "Up-regulated", "Down-regulated"),
         TRUE ~ "Not significant"
@@ -74,31 +79,34 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
   }
 
   # Create volcano plot with ggpubr styling
-  p <- ggplot(df, aes(x = deltabetas, y = log10_pval)) +
+  p <- ggplot2::ggplot(df, ggplot2::aes(
+    x = .data$deltabetas,
+    y = .data$log10_pval
+  )) +
     # Background points (non-significant)
-    geom_point(
-      data = dplyr::filter(df, significance == "Not significant"),
+    ggplot2::geom_point(
+      data = dplyr::filter(df, .data$significance == "Not significant"),
       color = "#CCCCCC",
       size = 2.5,
       alpha = 0.6
     ) +
     # Significant points
-    geom_point(
+    ggplot2::geom_point(
       data = dplyr::filter(
         df,
-        significance %in% c("Up-regulated", "Down-regulated")
+        .data$significance %in% c("Up-regulated", "Down-regulated")
       ),
-      aes(color = significance), size = 2.5, alpha = 0.8
+      ggplot2::aes(color = .data$significance), size = 2.5, alpha = 0.8
     ) +
     # Threshold lines
-    geom_vline(
+    ggplot2::geom_vline(
       xintercept = c(-deltabeta_threshold, deltabeta_threshold),
       linetype = "dashed",
       color = "#888888",
       linewidth = 0.5,
       alpha = 0.7
     ) +
-    geom_hline(
+    ggplot2::geom_hline(
       yintercept = -log10(fdr_threshold),
       linetype = "dashed",
       color = "#888888",
@@ -106,27 +114,27 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
       alpha = 0.7
     ) +
     # Colors
-    scale_color_manual(
+    ggplot2::scale_color_manual(
       values = c("Up-regulated" = "#2E86AB", "Down-regulated" = "#A23B72"),
       name = "Status"
     )
 
   if (!is.null(label_probes) && length(label_probes) > 0) {
     label_data <- df |>
-      dplyr::filter(Probe_ID %in% label_probes) |>
+      dplyr::filter(.data$Probe_ID %in% label_probes) |>
       dplyr::mutate(label_text = as.character(.data[[label_column]])) |>
       dplyr::filter(
-        !is.na(deltabetas),
-        !is.na(log10_pval),
-        !is.na(label_text),
-        label_text != ""
+        !is.na(.data$deltabetas),
+        !is.na(.data$log10_pval),
+        !is.na(.data$label_text),
+        .data$label_text != ""
       )
 
     if (nrow(label_data) > 0) {
       p <- p +
         ggrepel::geom_text_repel(
           data = label_data,
-          aes(label = label_text),
+          ggplot2::aes(label = .data$label_text),
           size = 3.5,
           box.padding = 0.35,
           point.padding = 0.3,
@@ -137,23 +145,21 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
     }
   }
 
-  p <- p +
+  p +
     # Labels and theme
-    labs(
+    ggplot2::labs(
       title = title,
       subtitle = subtitle,
       x = "Delta Beta (Effect Size)",
-      y = expression("-log"[10]*"(FDR)")
+      y = bquote("-log"[10]*"(FDR)")
     ) +
     ggpubr::theme_pubr(base_size = 11, border = TRUE) +
-    theme(
-      plot.title = element_text(face = "bold", hjust = 0),
-      plot.subtitle = element_text(hjust = 0, size = 10),
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(face = "bold", hjust = 0),
+      plot.subtitle = ggplot2::element_text(hjust = 0, size = 10),
       legend.position = "right",
-      legend.title = element_text(face = "bold")
+      legend.title = ggplot2::element_text(face = "bold")
     )
-
-  return(p)
 }
 
 #' Select probes to label on a volcano plot
@@ -171,8 +177,9 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
 #'
 #' @return Character vector of selected `Probe_ID`s,
 #'   ordered by alternating FDR / delta beta selection.
-#' @export
 #'
+#' @importFrom dplyr rename_with case_when arrange filter pull desc
+#' @export
 volcano_label_probes <- function(
     df,
     max_fdr = 0.05,
@@ -194,11 +201,11 @@ volcano_label_probes <- function(
 
   eligible <- df |>
     dplyr::filter(
-      !is.na(Probe_ID),
-      !is.na(adj.P.Val),
-      !is.na(deltabetas),
-      adj.P.Val <= max_fdr,
-      abs(deltabetas) >= min_delta_beta
+      !is.na(.data$Probe_ID),
+      !is.na(.data$adj.P.Val),
+      !is.na(.data$deltabetas),
+      .data$adj.P.Val <= max_fdr,
+      abs(.data$deltabetas) >= min_delta_beta
     )
 
   if (nrow(eligible) == 0) {
@@ -206,12 +213,20 @@ volcano_label_probes <- function(
   }
 
   fdr_list <- eligible |>
-    dplyr::arrange(adj.P.Val, dplyr::desc(abs(deltabetas)), Probe_ID) |>
-    dplyr::pull(Probe_ID)
+    dplyr::arrange(
+      .data$adj.P.Val,
+      dplyr::desc(abs(.data$deltabetas)),
+      .data$Probe_ID
+    ) |>
+    dplyr::pull("Probe_ID")
 
   delta_list <- eligible |>
-    dplyr::arrange(dplyr::desc(abs(deltabetas)), adj.P.Val, Probe_ID) |>
-    dplyr::pull(Probe_ID)
+    dplyr::arrange(
+      dplyr::desc(abs(.data$deltabetas)),
+      .data$adj.P.Val,
+      .data$Probe_ID
+    ) |>
+    dplyr::pull("Probe_ID")
 
   selected <- character(0)
   i <- 1
@@ -237,7 +252,7 @@ volcano_label_probes <- function(
   }
 
   selected <- unique(selected)
-  return(selected[seq_len(min(length(selected), max_labels))])
+  selected[seq_len(min(length(selected), max_labels))]
 }
 
 #' Select one representative probe per gene
@@ -252,6 +267,10 @@ volcano_label_probes <- function(
 #'
 #' @return Named character vector of selected probes,
 #'   names correspond to input genes.
+#'
+#' @importFrom dplyr rename_with case_when select mutate filter
+#' @importFrom dplyr arrange desc slice_head
+#' @importFrom tidyr separate_longer_delim
 #' @export
 #'
 best_probe_by_gene <- function(df, genes, gene_column = "genesUniq") {
@@ -286,21 +305,21 @@ best_probe_by_gene <- function(df, genes, gene_column = "genesUniq") {
 
   gene_map <- df |>
     dplyr::select(
-      Probe_ID,
-      adj.P.Val,
-      deltabetas,
+      .data$Probe_ID,
+      .data$adj.P.Val,
+      .data$deltabetas,
       dplyr::all_of(gene_column)
     ) |>
     dplyr::mutate(
       gene_value = as.character(.data[[gene_column]]),
-      gene_value = ifelse(is.na(gene_value), "", gene_value)
+      gene_value = ifelse(is.na(.data$gene_value), "", .data$gene_value)
     ) |>
-    tidyr::separate_rows(gene_value, sep = ";") |>
+    tidyr::separate_longer_delim(.data$gene_value, delim = ";") |>
     dplyr::mutate(
-      gene_value = trimws(gene_value),
-      gene_value_lower = tolower(gene_value)
+      gene_value = trimws(.data$gene_value),
+      gene_value_lower = tolower(.data$gene_value)
     ) |>
-    dplyr::filter(gene_value != "")
+    dplyr::filter(.data$gene_value != "")
 
   if (nrow(gene_map) == 0) {
     return(setNames(rep(NA_character_, length(genes)), genes))
@@ -309,21 +328,28 @@ best_probe_by_gene <- function(df, genes, gene_column = "genesUniq") {
   gene_list_lower <- tolower(genes)
 
   probe_per_gene <- lapply(seq_along(genes), function(idx) {
-    gene <- genes[[idx]]
     gene_lower <- gene_list_lower[[idx]]
     subset <- gene_map |>
-      dplyr::filter(gene_value_lower == gene_lower)
+      dplyr::filter(.data$gene_value_lower == gene_lower)
 
     if (nrow(subset) == 0) {
       return(NA_character_)
     }
 
     best_fdr <- subset |>
-      dplyr::arrange(adj.P.Val, dplyr::desc(abs(deltabetas)), Probe_ID) |>
+      dplyr::arrange(
+        .data$adj.P.Val,
+        dplyr::desc(abs(.data$deltabetas)),
+        .data$Probe_ID
+      ) |>
       dplyr::slice_head(n = 1)
 
     best_deltabeta <- subset |>
-      dplyr::arrange(dplyr::desc(abs(deltabetas)), adj.P.Val, Probe_ID) |>
+      dplyr::arrange(
+        dplyr::desc(abs(.data$deltabetas)),
+        .data$adj.P.Val,
+        .data$Probe_ID
+      ) |>
       dplyr::slice_head(n = 1)
 
     if (best_fdr$Probe_ID == best_deltabeta$Probe_ID) {
@@ -331,15 +357,15 @@ best_probe_by_gene <- function(df, genes, gene_column = "genesUniq") {
     } else {
       combined <- subset |>
         dplyr::mutate(
-          rank_fdr = dplyr::min_rank(adj.P.Val),
-          rank_deltabeta = dplyr::min_rank(dplyr::desc(abs(deltabetas))),
-          combined_rank = rank_fdr + rank_deltabeta
+          rank_fdr = dplyr::min_rank(.data$adj.P.Val),
+          rank_deltabeta = dplyr::min_rank(dplyr::desc(abs(.data$deltabetas))),
+          combined_rank = .data$rank_fdr + .data$rank_deltabeta
         ) |>
         dplyr::arrange(
-          combined_rank,
-          adj.P.Val,
-          dplyr::desc(abs(deltabetas)),
-          Probe_ID
+          .data$combined_rank,
+          .data$adj.P.Val,
+          dplyr::desc(abs(.data$deltabetas)),
+          .data$Probe_ID
         ) |>
         dplyr::slice_head(n = 1)
       combined$Probe_ID
@@ -348,5 +374,5 @@ best_probe_by_gene <- function(df, genes, gene_column = "genesUniq") {
 
   selected <- unlist(probe_per_gene, use.names = FALSE)
   names(selected) <- genes
-  return(selected)
+  selected
 }

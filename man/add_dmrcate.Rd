@@ -2,16 +2,64 @@
 % Please edit documentation in R/MethylResultSet.r
 \name{add_dmrcate}
 \alias{add_dmrcate}
-\title{Create generic function for converting results to long format}
+\alias{add_dmrcate,data.frame-method}
+\title{Add dmrcate DMR Annotations to a DMP Table}
 \usage{
-add_dmrcate(x, fdr = 0.05, pcutoff = 0.02, maxgap = 1000, genome = "hg38")
+add_dmrcate(
+  x,
+  fdr = 0.2,
+  pcutoff = 0.05,
+  maxgap = 1000,
+  genome = "hg38",
+  mean = "HMFDR"
+)
+
+\S4method{add_dmrcate}{data.frame}(
+  x,
+  fdr = 0.2,
+  pcutoff = 0.05,
+  maxgap = 1000,
+  genome = "hg38",
+  mean = "HMFDR"
+)
 }
 \arguments{
-\item{df}{A data frame containing results.}
+\item{x}{A data frame of DMPs as returned by \code{\link{getDMPs}} (must
+contain at least \code{Probe_ID} and \code{P.Value}).}
+
+\item{fdr}{FDR threshold for DMR calling (default \code{0.05}).}
+
+\item{pcutoff}{Probe-level p-value cut-off passed to dmrcate (default
+\code{0.05}).}
+
+\item{maxgap}{Maximum gap between probes in a DMR, in bp (default
+\code{1000}).}
+
+\item{genome}{Genome assembly identifier (default \code{"hg38"}).}
+
+\item{mean}{Statistic used to summarise DMR-level significance. One of
+\code{"HMFDR"} (default) or \code{"min_smoothed_fdr"}.}
+}
+\value{
+A data frame in long format with columns:
+\itemize{
+\item \code{dmrtool}: Tool name ("dmrcate")
+\item \code{ID}: DMR identifier ("Chr-Start-End-dmrcate")
+\item \code{Start}: DMR start position
+\item \code{End}: DMR end position
+\item \code{fdr}: FDR value
+\item \code{no.cpgs}: Number of CpGs in DMR
+\item \code{tool}: Tool name (same as dmrtool)
+\item \code{Probe_ID}: Probe identifier
+}
+Returns an empty data frame if no DMRs are found.
 }
 \description{
-Create generic function for converting results to long format
+Runs \code{dmrtools_dmrcate} on the supplied DMP data frame and returns
+DMR annotations in long format with one row per probe-DMR combination.
 }
-\details{
-This function sets up a generic function, \code{resultsToLong}, for converting results to long format.
-}
+\section{Functions}{
+\itemize{
+\item \code{add_dmrcate(data.frame)}: Method for MethylResultSet
+
+}}

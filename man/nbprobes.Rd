@@ -14,4 +14,6 @@ The number of probes as an integer.
 }
 \description{
 This is a generic function to retrieve the number of probes from an object.
+It provides a consistent interface for accessing
+the number of probes across different classes.
 }

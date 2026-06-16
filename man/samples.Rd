@@ -10,8 +10,11 @@ samples(x)
 \item{x}{An object from which to retrieve sample information.}
 }
 \value{
-Sample information, typically as a data frame or other suitable format.
+Sample information, typically as a data frame or
+other suitable format.
 }
 \description{
 This is a generic function to retrieve sample information from an object.
+It provides a consistent interface for accessing sample information
+across different classes.
 }

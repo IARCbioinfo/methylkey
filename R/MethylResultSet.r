@@ -25,6 +25,9 @@ setClassUnion("List_OR_NULL", c("list", "NULL"))
 #' @aliases MethylResultSet-class
 #'
 #' @rdname MethylResultSet
+#'
+#' @importFrom S4Vectors DataFrame
+#'
 #' @export
 #'
 MethylResultSet <- setClass(
@@ -52,7 +55,7 @@ MethylResultSet <- setClass(
 #' for every model contrast.
 #'
 #' @param se A \code{SummarizedExperiment} (or subclass) produced by
-#'   \code{methylkey}. Must contain M-values accessible via \code{getMvals()}
+#'   \code{methylkey}. Must contain M-values accessible via \code{get_mvals()}
 #'   and sample metadata via \code{colData()}.
 #' @param model A model formula as a character string, e.g. \code{"~group"} or
 #'   \code{"~group+age"}. The first variable after \code{~} is used as the
@@ -64,41 +67,47 @@ MethylResultSet <- setClass(
 #' @return An object of class \code{\link{MethylResultSet}}.
 #'
 #' @seealso \code{\link{MethylResultSet-class}}, \code{\link{getDMPs}},
-#'   \code{\link{getResults}}
+#'   \code{\link{get_results}}
+#'
+#' @importFrom limma makeContrasts contrasts.fit eBayes
+#' @importFrom stats as.formula model.matrix relevel qchisq
+#' @importFrom dplyr mutate select arrange left_join
+#' @importFrom tibble rownames_to_column
 #'
 #' @rdname MethylResultSet
 #' @export
 MethylResultSet <- function(
-  se,
-  model,
-  intercept,
-  method  = "ls") {
+    se,
+    model,
+    intercept,
+    method  = "ls") {
 
   pdata <- data.frame(colData(se))
-  mval <- getMvals(se)
+  mval <- get_mvals(se)
   model <- tolower(model)
 
   # Extract the primary grouping variable robustly
-  grp_g <- all.vars(as.formula(model))[1]
+  grp_g <- all.vars(stats::as.formula(model))[1]
   pdata[, grp_g] <- relevel(as.factor(unlist(pdata[, grp_g])), intercept)
 
-  formula1 <- as.formula(model)
-  design   <- model.matrix(formula1, data  = pdata)
+  formula1 <- stats::as.formula(model)
+  design   <- stats::model.matrix(formula1, data  = pdata)
   colnames(design) <- make.names(colnames(design))
   cmtx <- limma::makeContrasts(
     contrasts = colnames(design),
-    levels  = colnames(design))
+    levels  = colnames(design)
+  )
 
   # Fit linear model
   fit <- limma::lmFit(mval, design, pdata, ndups  = 1, method  = method)
   rownames(cmtx) <- colnames(fit)
-  fitContrasts <- limma::contrasts.fit(fit, cmtx)
-  eb <- limma::eBayes(fitContrasts)
+  fit_contrasts <- limma::contrasts.fit(fit, cmtx)
+  eb <- limma::eBayes(fit_contrasts)
 
   # Genomic inflation factor (lambda) per contrast
-  chisq  <- qchisq(1 - eb$p.value, 1)
+  chisq  <- stats::qchisq(1 - eb$p.value, 1)
   lambda <- apply(chisq, 2, function(x) {
-    median(x, na.rm = TRUE) / qchisq(0.5, 1)
+    stats::median(x, na.rm = TRUE) / stats::qchisq(0.5, 1)
   })
 
   # R-squared (goodness of fit) per probe
@@ -107,24 +116,24 @@ MethylResultSet <- function(
   rsq <- ssr / sst
 
   dmps <- lapply(colnames(fit), function(x) {
-    topTables(eb, x, rsq)
+    top_tables(eb, x, rsq)
   })
   names(dmps) <- colnames(fit)
 
   for (x in names(dmps)) {
-    dmps[[x]]$deltabetas <- getDeltaBetas(
+    dmps[[x]]$deltabetas <- get_delta_betas(
       m2beta(mval[rownames(dmps[[x]]), ]),
       design[, x]
     )
 
     dmps[[x]] <- dmps[[x]] |>
-      dplyr::mutate(status  = ifelse(deltabetas > 0, "hyper", "hypo")) |>
+      dplyr::mutate(status  = ifelse(.data$deltabetas > 0, "hyper", "hypo")) |>
       tibble::rownames_to_column("Probe_ID") |>
-      dplyr::select(-logFC) |>
-      dplyr::arrange(Probe_ID)
+      dplyr::select(-"logFC") |>
+      dplyr::arrange(.data$Probe_ID)
   }
 
-  metadata <- metadata(se)
+  metadata <- S4Vectors::metadata(se)
   metadata$model <- model
   metadata$intercept <- intercept
   metadata$method   <- method
@@ -155,6 +164,8 @@ setGeneric("get_dmps", function(x, group  = 1) {
   standardGeneric("get_dmps")
 })
 
+#' @importFrom dplyr left_join rename mutate select
+#' @describeIn get_dmps Method for MethylResultSet
 setMethod("get_dmps", "MethylResultSet",
   function(x, group  = 1) {
     if (is.numeric(group) && (group < 1 || group > length(x@dmps))) {
@@ -170,12 +181,13 @@ setMethod("get_dmps", "MethylResultSet",
       by  = "Probe_ID"
     ) |>
       dplyr::rename(
-        chr = CpG_chrm,
-        strand = probe_strand
+        chr = "CpG_chrm",
+        strand = "probe_strand"
       ) |>
-      dplyr::mutate(pos = CpG_beg + 1) |>
+      dplyr::mutate(pos = .data$CpG_beg + 1) |>
       dplyr::select(-c("CpG_beg", "CpG_end"))
-  })
+  }
+)
 
 #' Retrieve DMP Ranges as a GRanges Object
 #'
@@ -190,11 +202,21 @@ setMethod("get_dmps", "MethylResultSet",
 #' @return A \code{GRanges} object with one range per significant probe.
 #'
 #' @export
-setGeneric("get_dmps_ranges", function(x, index = NULL, q = 0.05, keep_extra_columns = TRUE, as_list = FALSE) {
-  standardGeneric("get_dmps_ranges")
-})
+setGeneric("get_dmps_ranges",
+  function(
+    x,
+    index = NULL,
+    q = 0.05,
+    keep_extra_columns = TRUE,
+    as_list = FALSE
+  ) {
+    standardGeneric("get_dmps_ranges")
+  }
+)
 
-
+#' @describeIn get_dmps_ranges Method for MethylResultSet
+#' @importFrom GenomicRanges makeGRangesFromDataFrame GRanges GRangesList
+#' @importFrom dplyr left_join filter
 setMethod("get_dmps_ranges", "MethylResultSet",
   function(x, index = 1, q = 0.05, keep_extra_columns = TRUE, as_list = FALSE) {
     if (is.null(index)) {
@@ -219,7 +241,7 @@ setMethod("get_dmps_ranges", "MethylResultSet",
       as.data.frame(x@manifest),
       x@dmps[[index]],
       by  = "Probe_ID"
-    ) |> dplyr::filter(adj.P.Val < q)
+    ) |> dplyr::filter(.data$adj.P.Val < q)
 
     if (!as_list) {
       return(GenomicRanges::makeGRangesFromDataFrame(
@@ -246,7 +268,7 @@ setMethod("get_dmps_ranges", "MethylResultSet",
       na.rm = TRUE
     )
     gr_hyper <- GenomicRanges::makeGRangesFromDataFrame(
-      dplyr::filter(df, deltabetas > 0),
+      dplyr::filter(df, .data$deltabetas > 0),
       seqnames.field = "CpG_chrm",
       start.field = "CpG_beg",
       end.field = "CpG_end",
@@ -254,7 +276,7 @@ setMethod("get_dmps_ranges", "MethylResultSet",
       na.rm = TRUE
     )
     gr_hypo <- GenomicRanges::makeGRangesFromDataFrame(
-      dplyr::filter(df, deltabetas < 0),
+      dplyr::filter(df, .data$deltabetas < 0),
       seqnames.field = "CpG_chrm",
       start.field = "CpG_beg",
       end.field = "CpG_end",
@@ -267,7 +289,7 @@ setMethod("get_dmps_ranges", "MethylResultSet",
     )
     grl[[plateform]] <- gr_all
 
-    return(grl)
+    grl
   }
 )
 
@@ -286,18 +308,31 @@ setMethod("get_dmps_ranges", "MethylResultSet",
 #' @return A \code{GRanges} object with one range per significant probe.
 #'
 #' @export
-setGeneric("get_dmrs_ranges", function(
-  x,
-  index,
-  q  = 0.05,
-  tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
-  keep_extra_columns = TRUE,
-  as_list = FALSE) {
-  standardGeneric("get_dmrs_ranges")
-})
+setGeneric("get_dmrs_ranges",
+  function(
+    x,
+    index,
+    q  = 0.05,
+    keep_extra_columns = TRUE,
+    as_list = FALSE,
+    tools = c("dmrcate", "ipdmr", "combp", "dmrff")
+  ) {
+    standardGeneric("get_dmrs_ranges")
+  }
+)
 
+#' @importFrom dplyr filter
+#' @importFrom GenomicRanges makeGRangesFromDataFrame GRanges GRangesList
+#' @describeIn get_dmrs_ranges Method for MethylResultSet
 setMethod("get_dmrs_ranges", "MethylResultSet",
-  function(x, index, q  = 0.05, keep_extra_columns = TRUE, as_list = FALSE) {
+  function(
+    x,
+    index,
+    q  = 0.05,
+    keep_extra_columns = TRUE,
+    as_list = FALSE,
+    tools = c("dmrcate", "ipdmr", "combp", "dmrff")
+  ) {
     if (is.null(index)) {
       warning(sprintf(
         "No index specified.",
@@ -317,8 +352,8 @@ setMethod("get_dmrs_ranges", "MethylResultSet",
     }
 
     df <- get_dmrs(x, index) |>
-      dplyr::filter(tool_fdr < q) |>
-      dplyr::filter(tool %in% tools)
+      dplyr::filter(.data$tool_fdr < q) |>
+      dplyr::filter(.data$tool %in% tools)
 
     if (!as_list) {
       return(GenomicRanges::makeGRangesFromDataFrame(
@@ -345,7 +380,7 @@ setMethod("get_dmrs_ranges", "MethylResultSet",
       na.rm = TRUE
     )
     gr_hyper <- GenomicRanges::makeGRangesFromDataFrame(
-      dplyr::filter(df, mean_deltabeta > 0),
+      dplyr::filter(df, .data$mean_deltabeta > 0),
       seqnames.field = "chr",
       start.field = "start",
       end.field = "end",
@@ -353,7 +388,7 @@ setMethod("get_dmrs_ranges", "MethylResultSet",
       na.rm = TRUE
     )
     gr_hypo <- GenomicRanges::makeGRangesFromDataFrame(
-      dplyr::filter(df, mean_deltabeta < 0),
+      dplyr::filter(df, .data$mean_deltabeta < 0),
       seqnames.field = "chr",
       start.field = "start",
       end.field = "end",
@@ -366,7 +401,7 @@ setMethod("get_dmrs_ranges", "MethylResultSet",
     )
     grl[[plateform]] <- gr_all
 
-    return(grl)
+    grl
   }
 )
 
@@ -402,37 +437,45 @@ setMethod("get_dmrs_ranges", "MethylResultSet",
 #'   Only probes that belong to at least one DMR are included.
 #'
 #' @export
-setGeneric("getResults",
+setGeneric("get_results",
   function(
     x,
     index,
     tools = c("dmrcate", "ipdmr"),
     maxgap  = 1000,
     mvals  = NULL,
-    genome  = "hg38", ...)
-    standardGeneric("getResults"))
+    genome  = "hg38", ...
+  ) {
+    standardGeneric("get_results")
+  }
+)
 
-setMethod("getResults", "MethylResultSet",
+#' @importFrom dplyr bind_rows filter
+#' @describeIn get_results Method for MethylResultSet
+setMethod("get_results", "MethylResultSet",
   function(
     x,
     index,
     tools = c("dmrcate", "ipdmr"),
     maxgap = 1000,
     mvals = NULL,
-    genome = "hg38", ...) {
-    
+    genome = "hg38", ...
+  ) {
+
     if ("dmrff" %in% tools && is.null(mvals)) {
       stop("'mvals' must be provided when 'dmrff' is included in tools.")
     }
     dmps <- get_dmps(x, index) |>
-      dplyr::filter(!is.na(chr)) |>
-      dplyr::filter(!is.na(P.Value))
+      dplyr::filter(!is.na(.data$chr)) |>
+      dplyr::filter(!is.na(.data$P.Value))
 
     # Collect DMR results from each tool
     dmr_results <- list()
 
     if ("dmrcate" %in% tools) {
-      dmr_results <- c(dmr_results, list(add_dmrcate(dmps, genome = genome, ...)))
+      dmr_results <- c(dmr_results,
+        list(add_dmrcate(dmps, genome = genome, ...))
+      )
     }
     if ("ipdmr" %in% tools) {
       dmr_results <- c(dmr_results, list(add_ipdmr(dmps, maxgap)))
@@ -444,24 +487,18 @@ setMethod("getResults", "MethylResultSet",
       dmr_results <- c(dmr_results, list(add_dmrff(dmps, mvals, maxgap)))
     }
 
-    # Combine all DMR results
-    if (length(dmr_results) == 0) {
-      return(data.frame())
-    }
+    if (length(dmr_results) == 0) return(data.frame())
 
     dmr_combined <- dplyr::bind_rows(dmr_results)
 
-    # Join with DMP data
-    #result <- dplyr::full_join(dmr_combined, dmps, by = "Probe_ID") |>
-      #dplyr::arrange(adj.P.Val, fdr, no.cpgs)
-
     x@dmrs[[index]] <- dmr_combined
-    return(x)
-  })
+    x
+  }
+)
 
 #' Add dmrcate DMR Annotations to a DMP Table
 #'
-#' Runs \code{searchDMR_dmrcate} on the supplied DMP data frame and returns
+#' Runs \code{dmrtools_dmrcate} on the supplied DMP data frame and returns
 #' DMR annotations in long format with one row per probe-DMR combination.
 #'
 #' @param x A data frame of DMPs as returned by \code{\link{getDMPs}} (must
@@ -489,8 +526,7 @@ setMethod("getResults", "MethylResultSet",
 #'   Returns an empty data frame if no DMRs are found.
 #'
 #' @export
-setGeneric(
-  "add_dmrcate",
+setGeneric("add_dmrcate",
   function(
     x,
     fdr  = 0.2,
@@ -503,8 +539,10 @@ setGeneric(
   }
 )
 
-setMethod(
-  "add_dmrcate", "data.frame",
+#' @importFrom dplyr mutate select
+#' @importFrom tidyr separate_longer_delim
+#' @describeIn add_dmrcate Method for MethylResultSet
+setMethod("add_dmrcate", "data.frame",
   function(
     x,
     fdr  = 0.2,
@@ -522,7 +560,7 @@ setMethod(
       mean <- "HMFDR"
     }
 
-    dmrs <- searchDMR_dmrcate(
+    dmrs <- dmrtools_dmrcate(
       x,
       fdr  = fdr,
       pcutoff = pcutoff,
@@ -535,31 +573,30 @@ setMethod(
     }
 
     dmrs <- dmrs |>
-      tidyr::separate_rows(Probe_ID, sep  = ";") |>
-      #dplyr::rename(Probe_ID = probes) |>
+      tidyr::separate_longer_delim("Probe_ID", delim = ";") |>
       dplyr::mutate(
         dmrtool = "dmrcate",
         ID = paste(seqnames, start, end, "dmrcate", sep = "-"),
         tool = "dmrcate"
       ) |>
       dplyr::select(
-        dmrtool,
-        ID,
-        Start = start,
-        End = end,
+        "dmrtool",
+        "ID",
+        Start = "start",
+        End = "end",
         fdr = !!mean,
-        no.cpgs,
-        tool,
-        Probe_ID
+        "no.cpgs",
+        "tool",
+        "Probe_ID"
       )
 
-    return(dmrs)
+    dmrs
   }
 )
 
 #' Add ipdmr DMR Annotations to a DMP Table
 #'
-#' Runs \code{searchDMR_ipdmr} on the supplied DMP data frame and returns
+#' Runs \code{dmrtools_ipdmr} on the supplied DMP data frame and returns
 #' DMR annotations in long format with one row per probe-DMR combination.
 #'
 #' @param x A data frame of DMPs (must contain \code{Probe_ID}, genomic
@@ -585,42 +622,51 @@ setGeneric("add_ipdmr", function(x, maxgap  = 1000) {
   standardGeneric("add_ipdmr")
 })
 
+#' @importFrom dplyr mutate select
+#' @importFrom tidyr separate_longer_delim
+#' @importFrom stringr str_starts
+#' @describeIn add_ipdmr Method for MethylResultSet
 setMethod(
   "add_ipdmr", "data.frame",
   function(x, maxgap  = 1000) {
-    dmrs <- searchDMR_ipdmr(x, maxgap  = maxgap)
+    dmrs <- dmrtools_ipdmr(x, maxgap = maxgap)
     if (is.null(dmrs) || nrow(dmrs) == 0) {
       return(data.frame())
     }
 
     dmrs <- dmrs |>
-      tidyr::separate_rows(probe, sep  = ";") |>
-      dplyr::rename(Probe_ID = probe) |>
-      dplyr::mutate(chr = as.character(chr)) |>
+      tidyr::separate_longer_delim("probe", delim = ";") |>
+      dplyr::rename(Probe_ID = "probe") |>
+      dplyr::mutate(chr = as.character(.data$chr)) |>
       dplyr::mutate(
         dmrtool = "ipdmr",
-        chr = ifelse(!startsWith(chr, "chr"), paste0("chr", chr), chr),
-        ID = paste(chr, start, end, "ipdmr", sep = "-"),
+        chr = ifelse(
+          !stringr::str_starts(.data$chr, "chr"),
+          paste0("chr", .data$chr),
+          .data$chr
+        ),
+        ID = paste(.data$chr, .data$start, .data$end, "ipdmr", sep = "-"),
         tool = "ipdmr"
       ) |>
       dplyr::select(
-        dmrtool,
-        ID,
-        Start = start,
-        End = end,
-        fdr,
-        no.cpgs = nprobe,
-        tool,
-        Probe_ID)
+        "dmrtool",
+        "ID",
+        Start = "start",
+        End = "end",
+        "fdr",
+        no.cpgs = "nprobe",
+        "tool",
+        "Probe_ID"
+      )
 
-    return(dmrs)
+    dmrs
 
   }
 )
 
 #' Add comb-p DMR Annotations to a DMP Table
 #'
-#' Runs \code{searchDMR_combp} on the supplied DMP data frame and returns
+#' Runs \code{dmrtools_combp} on the supplied DMP data frame and returns
 #' DMR annotations in long format with one row per probe-DMR combination.
 #'
 #' @param x A data frame of DMPs (must contain \code{Probe_ID}, genomic
@@ -646,38 +692,46 @@ setGeneric("add_combp", function(x, maxgap  = 1000) {
   standardGeneric("add_combp")
 })
 
+#' @importFrom dplyr mutate select
+#' @importFrom tidyr separate_longer_delim
+#' @importFrom stringr str_starts
+#' @describeIn add_combp Method for MethylResultSet
 setMethod("add_combp", "data.frame", function(x, maxgap  = 1000) {
-  dmrs <- searchDMR_combp(x, maxgap  = maxgap)
+  dmrs <- dmrtools_combp(x, maxgap  = maxgap)
   if (is.null(dmrs) || nrow(dmrs) == 0) {
     return(data.frame())
   }
 
   dmrs <- dmrs |>
-    tidyr::separate_rows(probe, sep  = ";") |>
-    dplyr::rename(Probe_ID = probe) |>
+    tidyr::separate_longer_delim("probe", delim = ";") |>
+    dplyr::rename(Probe_ID = "probe") |>
     dplyr::mutate(
       dmrtool = "combp",
-      chr = ifelse(!startsWith(chr, "chr"), paste0("chr", chr), chr),
-      ID = paste(chr, start, end, "combp", sep = "-"),
+      chr = ifelse(
+        !stringr::str_starts(.data$chr, "chr"),
+        paste0("chr", .data$chr),
+        .data$chr
+      ),
+      ID = paste(.data$chr, .data$start, .data$end, "combp", sep = "-"),
       tool = "combp"
     ) |>
     dplyr::select(
-      dmrtool,
-      ID,
-      Start = start,
-      End = end,
-      fdr,
-      no.cpgs = nprobe,
-      tool,
-      Probe_ID
+      "dmrtool",
+      "ID",
+      Start = "start",
+      End = "end",
+      "fdr",
+      no.cpgs = "nprobe",
+      "tool",
+      "Probe_ID"
     )
 
-  return(dmrs)
+  dmrs
 })
 
 #' Add dmrff DMR Annotations to a DMP Table
 #'
-#' Runs \code{searchDMR_dmrff} on the supplied DMP data frame and appends a
+#' Runs \code{dmrtools_dmrff} on the supplied DMP data frame and appends a
 #' \code{dmrff} column encoding DMR membership as
 #' \code{"chr:start-end:fdr:nprobe"}.
 #'
@@ -696,74 +750,114 @@ setGeneric("add_dmrff", function(x, mvals, maxgap  = 1000) {
   standardGeneric("add_dmrff")
 })
 
+#' @importFrom dplyr mutate select
+#' @importFrom tidyr separate_longer_delim
+#' @importFrom stringr str_starts
+#' @describeIn add_dmrff Method for MethylResultSet
 setMethod("add_dmrff", "data.frame", function(x, mvals, maxgap  = 1000) {
-  dmrs <- searchDMR_dmrff(x, mvals, maxgap  = maxgap)
+  dmrs <- dmrtools_dmrff(x, mvals, maxgap  = maxgap)
   if (is.null(dmrs) || nrow(dmrs) == 0) {
     return(data.frame())
   }
 
   dmrs <- dmrs |>
-    tidyr::separate_rows(Probe_ID, sep  = ";") |>
+    tidyr::separate_longer_delim("Probe_ID", delim = ";") |>
     dplyr::mutate(
       dmrtool = "dmrff",
-      chr = ifelse(!startsWith(chr, "chr"), paste0("chr", chr), chr),
-      ID = paste(chr, start, end, "dmrff", sep = "-"),
+      chr = ifelse(
+        !stringr::str_starts(.data$chr, "chr"),
+        paste0("chr", .data$chr),
+        .data$chr
+      ),
+      ID = paste(.data$chr, .data$start, .data$end, "dmrff", sep = "-"),
       tool = "dmrff"
     ) |>
     dplyr::select(
-      dmrtool,
-      ID,
-      Start = start,
-      End = end,
-      fdr,
-      no.cpgs = nprobe,
-      tool,
-      Probe_ID
+      "dmrtool",
+      "ID",
+      Start = "start",
+      End = "end",
+      "fdr",
+      no.cpgs = "nprobe",
+      "tool",
+      "Probe_ID"
     )
 
-  return(dmrs)
+  dmrs
 })
 
 
-setGeneric("as_dataframe", function(
-    mrs, index) {
-  standardGeneric("as_dataframe")
-})
+#' Retrieve Full Per-Probe Results with DMR Annotations
+#'
+#' Returns all probes for a given contrast annotated with their limma
+#' statistics and DMR membership as reported by one or more DMR-calling tools.
+#' The result is in \strong{long} format: one row per probe-DMR combination.
+#'
+#' @param mrs A \code{MethylResultSet} object.
+#' @param index Integer index or character name of the contrast.
+#'
+#' @return A data frame in long format with columns:
+#'   \itemize{
+#'     \item All columns from \code{\link{getDMPs}} output
+#'     \item \code{dmrtool}: Tool name that detected the DMR
+#'     \item \code{ID}: DMR identifier ("Chr-Start-End-tool format")
+#'     \item \code{Start}: DMR start position
+#'     \item \code{End}: DMR end position
+#'     \item \code{fdr}: FDR value for the DMR
+#'     \item \code{no.cpgs}: Number of CpGs in the  DMR
+#'     \item \code{tool}: Tool name (same as dmrtool)
+#'     \item \code{Probe_ID}: Probe identifier
+#'     \item \code{chr}: Chromosome (from manifest)
+#'     \item \code{pos}: Genomic position (from manifest)
+#'   }
+#'   All dmps and combinations of dmps and dmrs are included.
+#'
+#' @importFrom dplyr left_join arrange
+#'
+#' @export
+setGeneric("as_dataframe",
+  function(
+    mrs,
+    index
+  ) {
+    standardGeneric("as_dataframe")
+  }
+)
 
-setMethod("as_dataframe", "MethylResultSet", function(
-    mrs, index) {
+#' @importFrom dplyr left_join arrange
+#'
+#' @describeIn as_dataframe Method for MethylResultSet
+setMethod("as_dataframe", "MethylResultSet",
+  function(
+    mrs,
+    index
+  ) {
 
-  dplyr::left_join(
-    as.data.frame(mrs@dmps[[index]]),
-    as.data.frame(mrs@dmrs[[index]]),
-    by = "Probe_ID"
-  ) |>
     dplyr::left_join(
-      as.data.frame(mrs@manifest),
+      as.data.frame(mrs@dmps[[index]]),
+      as.data.frame(mrs@dmrs[[index]]),
       by = "Probe_ID"
     ) |>
-    dplyr::arrange(adj.P.Val, fdr, no.cpgs)
-})
+      dplyr::left_join(
+        as.data.frame(mrs@manifest),
+        by = "Probe_ID"
+      ) |>
+      dplyr::arrange(.data$adj.P.Val, .data$fdr, .data$no.cpgs)
+  }
+)
 
-#' Create generic function for adding IPDMR results to a data frame
-#'
-#' This function sets up a generic function, `add_dmrff`,
-#' for adding dmrff results to a data frame.
-#'
-#' @title Create generic function for adding dmrff results
 #' Get Unique DMR Table with Summary Statistics
 #'
-#' Aggregates DMR results from \code{\link{getResults}}
+#' Aggregates DMR results from \code{\link{get_results}}
 #' into a table of unique DMRs with summary statistics and probe lists.
 #'
 #' @param results A data frame as returned by
-#' \code{\link{getResults}} (long format).
+#'   \code{\link{get_results}} (long format).
 #' @param tools Character vector of DMR tools to include.
-#' If \code{NULL} (default),
-#'   includes all tools present in the results.
+#'   If \code{NULL} (default), includes all tools present in the results.
 #' @param max_fdr Maximum FDR threshold for DMR inclusion (default \code{0.05}).
 #' @param min_cpgs Minimum number of CpGs required for DMR inclusion
-#' (default \code{2}).
+#'   (default \code{2}).
 #'
 #' @return A data frame with one row per unique DMR, containing:
 #'   \itemize{
@@ -789,8 +883,7 @@ setMethod("as_dataframe", "MethylResultSet", function(
 #'   \item Arithmetic mean: \code{mean(deltabetas)}
 #'   \item Geometric mean: \code{exp(mean(log(abs(deltabetas) + 1e-10))) *
 #'     sign(mean(deltabetas))}
-#'   \item Harmonic mean: \code{1/mean(1/(abs(deltabetas) + 1e-10)) * 
-#'     sign(mean(deltabetas))}
+#'   \item Harmonic mean: \code{1/mean(1/(abs(deltabetas) + 1e-10)) * #'     sign(mean(deltabetas))}
 #' }
 #'
 #' @export
@@ -803,6 +896,8 @@ setGeneric("get_dmrs", function(
   standardGeneric("get_dmrs")
 })
 
+#' @importFrom dplyr group_by summarize filter arrange
+#' @describeIn get_dmrs Method for MethylResultSet
 setMethod("get_dmrs", "MethylResultSet", function(
     mrs,
     index,
@@ -823,30 +918,30 @@ setMethod("get_dmrs", "MethylResultSet", function(
 
   # Group by DMR ID and summarize
   as_dataframe(mrs, index) |>
-    dplyr::filter(tool %in% tools) |>
-    dplyr::filter(fdr < max_fdr) |>
-    dplyr::filter(no.cpgs >= min_cpgs) |>
-    dplyr::group_by(ID, tool) |>
+    dplyr::filter(.data$tool %in% tools) |>
+    dplyr::filter(.data$fdr < max_fdr) |>
+    dplyr::filter(.data$no.cpgs >= min_cpgs) |>
+    dplyr::group_by(.data$ID, .data$tool) |>
     dplyr::summarize(
-      chr = dplyr::first(CpG_chrm),
-      start = min(Start),
-      end = max(End),
-      tools = paste(sort(unique(tool)), collapse = ","),
-      tool_fdr = dplyr::first(fdr),
-      min_fdr = min(adj.P.Val, na.rm = TRUE),
-      max_fdr = max(adj.P.Val, na.rm = TRUE),
-      HMFDR = h_mean(adj.P.Val, na.rm = TRUE),
-      no.cpgs = dplyr::first(no.cpgs),
-      probes = paste(sort(unique(Probe_ID)), collapse = ";"),
-      mean_deltabeta = mean(deltabetas, na.rm = TRUE),
-      mean_abs_deltabeta = mean(abs(deltabetas), na.rm = TRUE),
-      max_deltabeta = max(deltabetas, na.rm = TRUE),
-      CGIposition = list_uniq(CGIposition),
-      Feature_UCSC = list_uniq(Feature_UCSC),
-      genesUniq = list_uniq(genesUniq),
+      chr = dplyr::first(.data$CpG_chrm),
+      start = min(.data$Start),
+      end = max(.data$End),
+      tools = paste(sort(unique(.data$tool)), collapse = ","),
+      tool_fdr = dplyr::first(.data$fdr),
+      min_fdr = min(.data$adj.P.Val, na.rm = TRUE),
+      max_fdr = max(.data$adj.P.Val, na.rm = TRUE),
+      HMFDR = h_mean(.data$adj.P.Val, na.rm = TRUE),
+      no.cpgs = dplyr::first(.data$no.cpgs),
+      probes = paste(sort(unique(.data$Probe_ID)), collapse = ";"),
+      mean_deltabeta = mean(.data$deltabetas, na.rm = TRUE),
+      mean_abs_deltabeta = mean(abs(.data$deltabetas), na.rm = TRUE),
+      max_deltabeta = max(.data$deltabetas, na.rm = TRUE),
+      CGIposition = list_uniq(.data$CGIposition),
+      Feature_UCSC = list_uniq(.data$Feature_UCSC),
+      genesUniq = list_uniq(.data$genesUniq),
       .groups = "drop"
     ) |>
-    dplyr::arrange(chr, start)
+    dplyr::arrange(.data$chr, .data$start)
 
 })
 
@@ -878,7 +973,8 @@ setMethod("get_dmrs", "MethylResultSet", function(
 #' This is an internal utility function used by the \code{MethylResultSet}
 #' constructor to annotate DMPs with additional model fit statistics.
 #'
-topTables <- function(eb, x, rsq) {
+#' @importFrom limma topTable
+top_tables <- function(eb, x, rsq) {
 
   x_table <- limma::topTable(
     eb,
@@ -893,7 +989,7 @@ topTables <- function(eb, x, rsq) {
   x_table$Stdev <- (sqrt(eb$s2.post) * eb$stdev.unscaled)[rownames(x_table), x]
   x_table$goodness <- rsq[rownames(x_table)]
 
-  return(x_table)
+  x_table
 }
 
 
@@ -944,16 +1040,17 @@ topTables <- function(eb, x, rsq) {
 #' @examples
 #' # Assuming \code{mrs} is a MethylResultSet object
 #' \dontrun{
-#'   getModelName(mrs)  # Clean format (default)
-#'   getModelName(mrs, format = "abbreviated")
+#'   get_model_name(mrs)  # Clean format (default)
+#'   get_model_name(mrs, format = "abbreviated")
 #' }
 #'
 #' @export
-setGeneric("getModelName", function(x, format = "clean"){
-  standardGeneric("getModelName")
+setGeneric("get_model_name", function(x, format = "clean"){
+  standardGeneric("get_model_name")
 })
 
-setMethod("getModelName", "MethylResultSet", function(x, format = "clean") {
+#' @describeIn get_model_name Method for MethylResultSet
+setMethod("get_model_name", "MethylResultSet", function(x, format = "clean") {
 
   # Extract metadata components
   sva        <- x@metadata$sva %||% "unknown"
@@ -1025,37 +1122,43 @@ setMethod("getModelName", "MethylResultSet", function(x, format = "clean") {
     stop("format must be 'clean' or 'abbreviated'")
   }
 
-  return(name)
+  name
 })
 
 #' Count Unique DMRs Detected by Each Tool
+#'
 #' Aggregates DMR results to count the number of unique DMRs detected by each
 #' DMR-calling tool.
+#'
 #' @param df A data frame containing DMR results in long format, as returned by
-#'  \code{\link{getResults}}. Must contain columns \code{ID}
-#'    (unique DMR identifier) and \code{dmrtool}
-#'    (name of the DMR tool that detected the DMR).
-#'    The function will count unique DMRs based on the \code{ID
-#' and \code{dmrtool}.
+#'   \code{\link{get_results}}. Must contain columns \code{ID}
+#'   (unique DMR identifier) and \code{dmrtool}
+#'   (name of the DMR tool that detected the DMR).
+#'   The function will count unique DMRs based on the \code{ID}
+#'   and \code{dmrtool}.
+#'
 #' @return A named integer vector where names are DMR tools and values are the
-#'  count of unique DMRs detected by each tool.
+#'   count of unique DMRs detected by each tool.
 #' @export
-setGeneric("getNumberOfDmrs", function(x, index) {
-  standardGeneric("getNumberOfDmrs")
+setGeneric("get_number_of_dmrs", function(x, index) {
+  standardGeneric("get_number_of_dmrs")
 })
 
-setMethod("getNumberOfDmrs", "MethylResultSet", function(x, index) {
 
-  if (length(x@dmrs[[index]]) == 0) {
-    return(setNames(integer(0), character(0)))
+#' @describeIn get_number_of_dmrs Method for MethylResultSet
+setMethod("get_number_of_dmrs", "MethylResultSet",
+  function(x, index) {
+
+    if (length(x@dmrs[[index]]) == 0) {
+      return(setNames(integer(0), character(0)))
+    }
+
+    x@dmrs[[index]] |>
+      select("ID", "tool") |>
+      unique() |>
+      pull("tool") |>
+      table()
   }
-
-  x@dmrs[[index]] |>
-    select(ID, tool) |>
-    unique() |>
-    pull(tool) |>
-    table()
-}
 )
 
 
@@ -1067,58 +1170,72 @@ setMethod("getNumberOfDmrs", "MethylResultSet", function(x, index) {
 #' @param index Integer index or character name of the contrast to analyze.
 #' @param tools Character vector of DMR tools to consider for DMR-based gene
 #'   extraction. Default is \code{c("dmrcate", "ipdmr", "combp", "dmrff")}.
-#' @param q Numeric value specifying the FDR threshold for significance (default \code{0.05}).
-#' @param deltabetas Numeric value specifying the minimum absolute delta beta threshold for significance (default \code{0.3}).
-#' @param min_cpgs Integer specifying the minimum number of CpGs required in a DMR for it to be considered significant (default \code{2}).
-#' @return A character vector of unique gene symbols associated with significant DMPs and DMRs based on the specified criteria.
+#' @param q Numeric value specifying the FDR threshold for significance
+#'   (default \code{0.05}).
+#' @param deltabetas Numeric value specifying the minimum absolute
+#'   delta beta threshold for significance (default \code{0.3}).
+#' @param min_cpgs Integer specifying the minimum number of CpGs
+#'   required in a DMR for it to be considered significant (default \code{2}).
+#' @return A character vector of unique gene symbols associated with
+#'   significant DMPs and DMRs based on the specified criteria.
 #' @details The function performs the following steps:
 #' \itemize{
-#'   \item Extracts significant DMPs based on the specified FDR and delta beta thresholds, and collects associated gene symbols.
-#'   \item Extracts significant DMRs based on the specified DMR tools, FDR threshold, delta beta threshold, and minimum CpG count, and collects associated gene symbols.
-#'   \item Combines gene symbols from both DMPs and DMRs, removes duplicates, and returns a unique list of gene symbols.
+#'   \item Extracts significant DMPs based on the specified FDR and
+#'     delta beta thresholds, and collects associated gene symbols.
+#'   \item Extracts significant DMRs based on the specified DMR tools,
+#'     FDR threshold, delta beta threshold, and minimum CpG count,
+#'     and collects associated gene symbols.
+#'   \item Combines gene symbols from both DMPs and DMRs, removes duplicates,
+#'     and returns a unique list of gene symbols.
 #' }
 #' @export
-setGeneric("get_genes", function(
-  x,
-  index,
-  tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
-  q = 0.05,
-  deltabetas = 3.0,
-  min_cpgs = 2
-) {
-  standardGeneric("get_genes")
-})
+setGeneric("get_genes",
+  function(
+    x,
+    index,
+    tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
+    q = 0.05,
+    deltabetas = 3.0,
+    min_cpgs = 2
+  ) {
+    standardGeneric("get_genes")
+  }
+)
 
-setMethod("get_genes", "MethylResultSet", function(
-  x,
-  index,
-  tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
-  q = 0.05,
-  deltabetas = 3.0,
-  min_cpgs = 2
-) {
+#' @importFrom dplyr filter select distinct pull
+#' @describeIn get_genes Method for MethylResultSet
+setMethod("get_genes", "MethylResultSet",
+  function(
+    x,
+    index,
+    tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
+    q = 0.05,
+    deltabetas = 3.0,
+    min_cpgs = 2
+  ) {
 
-  # genes from significant dmps
-  dmps_genes <- get_dmps(x, index) |>
-    filter(!is.na(genesUniq)) |>
-    filter(adj.P.Val < q) |>
-    filter(deltabetas >= deltabetas)
+    # genes from significant dmps
+    dmps_genes <- get_dmps(x, index) |>
+      dplyr::filter(!is.na(.data$genesUniq)) |>
+      dplyr::filter(.data$adj.P.Val < q) |>
+      dplyr::filter(.data$deltabetas >= deltabetas)
 
-  # genes from significant dmrs
-  dmrs_genes <- get_dmrs(x, index) |>
-    filter(!is.na(genesUniq)) |>
-    filter(tool %in% tools) |>
-    filter(tool_fdr < q) |>
-    filter(mean_abs_deltabeta >= deltabetas) |>
-    filter(no.cpgs >= min_cpgs)
+    # genes from significant dmrs
+    dmrs_genes <- get_dmrs(x, index) |>
+      dplyr::filter(!is.na(.data$genesUniq)) |>
+      dplyr::filter(.data$tool %in% tools) |>
+      dplyr::filter(.data$tool_fdr < q) |>
+      dplyr::filter(.data$mean_abs_deltabeta >= deltabetas) |>
+      dplyr::filter(.data$no.cpgs >= min_cpgs)
 
-  dplyr::bind_rows(dmps_genes, dmrs_genes) |>
-    select(genesUniq) |>
-    distinct() |>
-    pull(genesUniq) |>
-    strsplit(";") |>
-    unlist() |>
-    trimws() |>
-    unique()
+    dplyr::bind_rows(dmps_genes, dmrs_genes) |>
+      dplyr::select("genesUniq") |>
+      dplyr::distinct() |>
+      dplyr::pull("genesUniq") |>
+      strsplit(";") |>
+      unlist() |>
+      trimws() |>
+      unique()
 
-})
+  }
+)

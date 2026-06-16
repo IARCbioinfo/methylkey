@@ -7,7 +7,7 @@ Status: ✅ COMPLETE WITH FINAL FIXES
 ## FINAL CORRECTIONS APPLIED
 ============================
 
-### Critical Bug Fix #1: formatSampleSheet() dplyr syntax
+### Critical Bug Fix #1: format_sample_sheet() dplyr syntax
 **Problem:** Used invalid dplyr syntax `all_of = TRUE` and `%notin%` operator
 **Solution:** 
 - Removed invalid `all_of = TRUE` parameter
@@ -42,7 +42,7 @@ Status: ✅ COMPLETE WITH FINAL FIXES
 
 ### Testing: ✅ ROBUST
 - [x] 17 comprehensive unit tests
-- [x] Tests for core functions (formatSampleSheet, getPlateform, newBetas, CpGNAexcl)
+- [x] Tests for core functions (format_sample_sheet, get_plateform, new_betas, cpg_na_excl)
 - [x] Edge case and error handling coverage
 - [x] All tests pass successfully
 - [x] Proper test structure with testthat
@@ -59,8 +59,8 @@ Status: ✅ COMPLETE WITH FINAL FIXES
 ### Bug Fixes: ✅ ALL COMPLETE
 1. [x] sesame2Betas: Removed debug saveRDS, fixed require()
 2. [x] minfi2Betas: Removed message() debug output, improved logic
-3. [x] newBetas: Fixed error messages, improved validation
-4. [x] formatSampleSheet: Fixed dplyr syntax, better robustness
+3. [x] new_betas: Fixed error messages, improved validation
+4. [x] format_sample_sheet: Fixed dplyr syntax, better robustness
 5. [x] toGeoSubmission: Completely rewritten (was broken)
 6. [x] Package dependencies: Added missing igraph import
 

@@ -1,4 +1,4 @@
-test_that("formatSampleSheet handles basic input correctly", {
+test_that("format_sample_sheet handles basic input correctly", {
   # Create a simple sample sheet
   ss <- data.frame(
     SampleID = c("Sample1", "Sample2", "Sample3"),
@@ -7,7 +7,7 @@ test_that("formatSampleSheet handles basic input correctly", {
     stringsAsFactors = FALSE
   )
   
-  result <- formatSampleSheet(ss)
+  result <- format_sample_sheet(ss)
   
   # Check that result is a data frame
   expect_true(is.data.frame(result))
@@ -24,27 +24,27 @@ test_that("formatSampleSheet handles basic input correctly", {
   expect_equal(result$barcode, sort(result$barcode))
 })
 
-test_that("formatSampleSheet renames basename to barcode", {
+test_that("format_sample_sheet renames basename to barcode", {
   ss <- data.frame(
     SampleID = c("Sample1", "Sample2"),
     Basename = c("203021070069_R03C01", "203021070069_R04C01"),
     stringsAsFactors = FALSE
   )
   
-  result <- formatSampleSheet(ss)
+  result <- format_sample_sheet(ss)
   expect_true("barcode" %in% colnames(result))
   expect_false("basename" %in% colnames(result))
 })
 
-test_that("formatSampleSheet rejects empty data frame", {
+test_that("format_sample_sheet rejects empty data frame", {
   ss <- data.frame()
-  expect_error(formatSampleSheet(ss), "cannot be empty")
+  expect_error(format_sample_sheet(ss), "cannot be empty")
 })
 
-test_that("formatSampleSheet requires barcode column", {
+test_that("format_sample_sheet requires barcode column", {
   ss <- data.frame(
     SampleID = c("Sample1", "Sample2"),
     stringsAsFactors = FALSE
   )
-  expect_error(formatSampleSheet(ss), "barcode column is required")
+  expect_error(format_sample_sheet(ss), "barcode column is required")
 })

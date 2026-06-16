@@ -79,7 +79,7 @@ meth <- sesame2Betas(
 # View object information
 meth
 colData(meth)
-getBetas(meth)[1:5, 1:5]
+get_betas(meth)[1:5, 1:5]
 ```
 
 ### 3. Preprocessing with minfi
@@ -111,7 +111,7 @@ plot_NA(meth)
 
 ```r
 # Convert to M-values and perform analysis
-mvals <- getMvals(meth, grp = "group")
+mvals <- get_mvals(meth, grp = "group")
 
 # Run differential methylation analysis
 mrs <- methyldiff(
@@ -146,7 +146,7 @@ dmrs <- getDMRs(mrs)
 Container for beta values (0-1 scale):
 ```r
 # Access
-betas <- getBetas(meth)
+betas <- get_betas(meth)
 samples <- colData(meth)
 platform <- metadata(meth)$plateform
 ```
@@ -155,7 +155,7 @@ platform <- metadata(meth)$plateform
 
 Container for M-values (log2 scale) for statistical analysis:
 ```r
-mvals <- getMvals(betas)
+mvals <- get_mvals(betas)
 mvals_matrix <- assays(mvals)$mvals
 ```
 
@@ -176,7 +176,7 @@ Betas Object
     ↓
 [QC & Visualization]
     ↓
-[getMvals]
+[get_mvals]
     ↓
 Mvals Object
     ↓

@@ -1,4 +1,4 @@
-test_that("newBetas creates valid Betas object", {
+test_that("new_betas creates valid Betas object", {
   # Create simple test data
   betas_matrix <- matrix(runif(100), nrow = 20, ncol = 5)
   colnames(betas_matrix) <- c("Sample1", "Sample2", "Sample3", "Sample4", "Sample5")
@@ -13,7 +13,7 @@ test_that("newBetas creates valid Betas object", {
     stringsAsFactors = FALSE
   )
   
-  result <- newBetas(betas_matrix, ss, na = 0.2)
+  result <- new_betas(betas_matrix, ss, na = 0.2)
   
   # Check class
   expect_true(class(result) == "Betas")
@@ -26,7 +26,7 @@ test_that("newBetas creates valid Betas object", {
   expect_true(!is.null(metadata(result)$plateform))
 })
 
-test_that("newBetas rejects non-matrix input", {
+test_that("new_betas rejects non-matrix input", {
   betas_df <- data.frame(matrix(runif(100), nrow = 20, ncol = 5))
   ss <- data.frame(
     sample_name = c("S1", "S2", "S3", "S4", "S5"),
@@ -35,10 +35,10 @@ test_that("newBetas rejects non-matrix input", {
                 "203021070069_R07C01")
   )
   
-  expect_error(newBetas(betas_df, ss, na = 0.2), "must be a matrix")
+  expect_error(new_betas(betas_df, ss, na = 0.2), "must be a matrix")
 })
 
-test_that("newBetas requires barcode column", {
+test_that("new_betas requires barcode column", {
   betas_matrix <- matrix(runif(100), nrow = 20, ncol = 5)
   colnames(betas_matrix) <- c("S1", "S2", "S3", "S4", "S5")
   
@@ -47,10 +47,10 @@ test_that("newBetas requires barcode column", {
     stringsAsFactors = FALSE
   )
   
-  expect_error(newBetas(betas_matrix, ss, na = 0.2), "barcode column")
+  expect_error(new_betas(betas_matrix, ss, na = 0.2), "barcode column")
 })
 
-test_that("newBetas validates na parameter", {
+test_that("new_betas validates na parameter", {
   betas_matrix <- matrix(runif(100), nrow = 20, ncol = 5)
   colnames(betas_matrix) <- c("S1", "S2", "S3", "S4", "S5")
   
@@ -61,6 +61,6 @@ test_that("newBetas validates na parameter", {
                 "203021070069_R07C01")
   )
   
-  expect_error(newBetas(betas_matrix, ss, na = 1.5), "must be between 0 and 1")
-  expect_error(newBetas(betas_matrix, ss, na = -0.1), "must be between 0 and 1")
+  expect_error(new_betas(betas_matrix, ss, na = 1.5), "must be between 0 and 1")
+  expect_error(new_betas(betas_matrix, ss, na = -0.1), "must be between 0 and 1")
 })

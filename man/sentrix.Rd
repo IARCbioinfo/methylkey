@@ -14,4 +14,6 @@ A character vector containing Sentrix IDs.
 }
 \description{
 This is a generic function to retrieve Sentrix IDs from an object.
+It provides a consistent interface for accessing Sentrix IDs
+across different classes.
 }

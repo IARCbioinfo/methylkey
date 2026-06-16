@@ -13,5 +13,7 @@ variables(x)
 A character vector containing variable names.
 }
 \description{
-This is a generic function to retrieve variable names (column names) from an object.
+This is a generic function to retrieve variable names (column names)
+from an object. It provides a consistent interface for accessing
+variable names across different classes.
 }

@@ -1,6 +1,6 @@
 
 ```{r}
-mrs <- getResults(mrs, index, tools=params$dmrtools, genome=params$genome, mvals=mvals, fdr = 0.2 )
+mrs <- get_results(mrs, index, tools=params$dmrtools, genome=params$genome, mvals=mvals, fdr = 0.2 )
 model_file_name <- paste0(ModelName, ".rds")
 saveRDS(mrs, fs::path(output_dir, model_file_name))
 ```
@@ -120,7 +120,7 @@ Differentially Methylated Regions (DMRs) are contiguous genomic regions where th
 
 ```{r}
 #| code-summary: "Number of significant dmrs identified by tools"
-getNumberOfDmrs(mrs,index)
+get_number_of_dmrs(mrs,index)
 ```
 
 ```{r}

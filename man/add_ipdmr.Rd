@@ -2,18 +2,40 @@
 % Please edit documentation in R/MethylResultSet.r
 \name{add_ipdmr}
 \alias{add_ipdmr}
-\title{Create generic function for adding IPDMR results}
+\alias{add_ipdmr,data.frame-method}
+\title{Add ipdmr DMR Annotations to a DMP Table}
 \usage{
 add_ipdmr(x, maxgap = 1000)
+
+\S4method{add_ipdmr}{data.frame}(x, maxgap = 1000)
 }
 \arguments{
-\item{x}{A data frame.}
+\item{x}{A data frame of DMPs (must contain \code{Probe_ID}, genomic
+coordinates, and \code{P.Value}).}
 
-\item{maxgap}{Maximum gap size for IPDMR regions (default is 1000).}
+\item{maxgap}{Maximum gap between probes in a DMR, in bp (default
+\code{1000}).}
+}
+\value{
+A data frame in long format with columns:
+\itemize{
+\item \code{dmrtool}: Tool name ("ipdmr")
+\item \code{ID}: DMR identifier ("Chr-Start-End-ipdmr")
+\item \code{Start}: DMR start position
+\item \code{End}: DMR end position
+\item \code{fdr}: FDR value
+\item \code{no.cpgs}: Number of CpGs in DMR
+\item \code{tool}: Tool name (same as dmrtool)
+\item \code{Probe_ID}: Probe identifier
+}
+Returns an empty data frame if no DMRs are found.
 }
 \description{
-Create generic function for adding IPDMR results to a data frame
+Runs \code{dmrtools_ipdmr} on the supplied DMP data frame and returns
+DMR annotations in long format with one row per probe-DMR combination.
 }
-\details{
-This function sets up a generic function, \code{add_ipdmr}, for adding IPDMR results to a data frame.
-}
+\section{Functions}{
+\itemize{
+\item \code{add_ipdmr(data.frame)}: Method for MethylResultSet
+
+}}

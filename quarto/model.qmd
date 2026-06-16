@@ -91,7 +91,7 @@ The Circos plot provides a holistic view of the genomic landscape, highlighting 
 
 ```{r}
 #| output: false
-result <- getResults(mrs, index, tools=params$dmrtools, genome=params$genome, mvals=mvals )
+result <- get_results(mrs, index, tools=params$dmrtools, genome=params$genome, mvals=mvals )
 ```
 
 ::: panel-tabset

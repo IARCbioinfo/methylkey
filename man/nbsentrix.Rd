@@ -13,5 +13,7 @@ nbsentrix(x)
 The number of Sentrix IDs as an integer.
 }
 \description{
-This is a generic function to retrieve the number of Sentrix IDs from an object.
+This is a generic function to retrieve the number of Sentrix IDs
+from an object. It provides a consistent interface for accessing
+the number of Sentrix IDs across different classes.
 }

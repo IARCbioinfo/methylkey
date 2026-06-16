@@ -24,16 +24,16 @@ library(tidyverse)
 ```{r load}
 # Load QC-filtered data
 meth <- readRDS("meth.rds")
-betas <- getBetas(meth)
+betas <- get_betas(meth)
 pdata <- colData(meth) %>% dplyr::select(samples,group,age,sentrix_id,gender)
 ```
 
 In the Group Control step, multidimensional statistical methods such as Multidimensional Scaling (MDS) and Principal Component Analysis (PCA) are employed to visualize and assess the variability within the data. The primary objectives include evaluating differences between groups and identifying potential batch effects.
 
-```{r getMvals1}
+```{r get_mvals1}
 # get mvalues with only winsorized correction, but remove XY chromosomes
-methM <- getMvals(meth,  grp="group", sva="~group+age", win=TRUE, sex=FALSE)
-mvals <- getMvals(methM)
+methM <- get_mvals(meth,  grp="group", sva="~group+age", win=TRUE, sex=FALSE)
+mvals <- get_mvals(methM)
 saveRDS(methM, file="methM_sva.rds")
 ```
 
@@ -62,7 +62,7 @@ Multidimensional Scaling (MDS) reduces the dimensionality of the data while pres
 
 ```{r pca1, cache=TRUE}
 pca   <- makepca(mvals, pdata, nPC=9)
-plot_PCA_contribution(pca, nPC=9)
+plot_pca_contribution(pca, nPC=9)
 ```
 
 ::: callout-note
@@ -70,7 +70,7 @@ PCA reduces the dimensionality of the data by transforming it into a new coordin
 :::
 
 ```{r estimate_pca1, cache=TRUE}
-dfp <- estimate_PCA_corr(pca, pdata, nPC=9)
+dfp <- estimate_pca_corr(pca, pdata, nPC=9)
 dfq <- apply(dfp, 2, p.adjust, method = "fdr") %>% matrix(nrow = nrow(dfp), dimnames = dimnames(dfp))
 dfq %>% DT::datatable()
 ```

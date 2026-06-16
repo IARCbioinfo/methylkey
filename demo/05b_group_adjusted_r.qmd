@@ -35,8 +35,8 @@ if (!dir.exists(output_dir)) dir.create(output_dir)
 #| code-summary: "We use mvalues without batch correction"
 methM <- readRDS("methM.rds")
 samples2keep <- colData(methM) %>% filter(age=="young") %>% pull(barcode)
-subMethM <- subSetMval(methM,samples2keep,probes(methM))
-mvals <- getMvals(methM)
+subMethM <- subset_mval(methM,samples2keep,probes(methM))
+mvals <- get_mvals(methM)
 ```
 
 ```{r model1}
@@ -54,7 +54,7 @@ mrs<-MethylResultSet(
 ```{r model1r}
 #| output: asis
 #| echo: FALSE
-ModelName <- getModelName(mrs)
+ModelName <- get_model_name(mrs)
 for (index in names(mrs@dmps)[2:3]) {
   model <- gsub("~", "", mrs@metadata$model)
   level <- gsub(model,"",index)

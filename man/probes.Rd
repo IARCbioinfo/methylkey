@@ -14,4 +14,6 @@ A character vector containing probe names.
 }
 \description{
 This is a generic function to retrieve probe names from an object.
+It provides a consistent interface for accessing probe
+names across different classes.
 }

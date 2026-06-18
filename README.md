@@ -124,8 +124,8 @@ mrs <- methyldiff(
 )
 
 # Extract results
-dmps <- getDMPs(mrs)
-dmrs <- getDMRs(mrs)
+dmps <- get_dmps(mrs)
+dmrs <- get_dmprs(mrs)
 ```
 
 ## Supported Array Platforms

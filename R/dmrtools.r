@@ -8,12 +8,11 @@
 #' @param dmps A data frame containing CpG site information,
 #'   including chromosome, position, strand, statistical test statistic,
 #'   delta-betas, adjusted p-values, and probe IDs.
-#' @param fdr The False Discovery Rate (FDR) threshold for identifying
-#'   significant DMRs. Default is 0.05.
+#' @param fdr The q-value threshold for filtering CpG sites to be considered
+#'   significant. Default is 0.2.
 #' @param maxgap The maximum gap between neighboring CpGs to consider
 #'   when defining DMRs. Default is 1000.
-#' @param pcutoff The p-value threshold for filtering CpG sites before
-#'   DMR analysis. Default is 0.2.
+#' @param pcutoff Threshold to determine DMRs. Default is 0.05.
 #' @param genome The genome build to use for genomic annotation.
 #'   Default is "hg19."
 #'

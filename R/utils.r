@@ -1,21 +1,36 @@
 #' Calculate Delta betas between two groups
 #'
 #' @param betas array of betas values
-#' @param group group
-#' @param case case
-#' @param control control
+#' @param design design matrix
+#' @param factor_prefix prefix for factor columns
+#' @param level_col column for the level of interest
 #'
 #' @importFrom MatrixGenerics rowMeans
 #'
 #' @return vector
-get_delta_betas <- function(betas, group) {
+get_delta_betas <- function(betas, design, factor_prefix, level_col) {
 
-  group1_means <- MatrixGenerics::rowMeans(betas[, group == 1, drop = FALSE], na.rm = TRUE)
-  group0_means <- MatrixGenerics::rowMeans(betas[, group == 0, drop = FALSE], na.rm = TRUE)
+  factor_cols <- grep(
+    paste0("^", factor_prefix),
+    colnames(design),
+    value = TRUE
+  )
+
+  group1 <- design[, level_col] == 1
+  group0 <- rowSums(design[, factor_cols, drop = FALSE]) == 0
+
+  group1_means <- MatrixGenerics::rowMeans(
+    betas[, group1, drop = FALSE],
+    na.rm = TRUE
+  )
+
+  group0_means <- MatrixGenerics::rowMeans(
+    betas[, group0, drop = FALSE],
+    na.rm = TRUE
+  )
 
   (group1_means - group0_means) * 100
 }
-
 
 #' Calculate mvalues
 #'

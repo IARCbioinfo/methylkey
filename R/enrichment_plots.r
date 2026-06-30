@@ -29,7 +29,7 @@ cpgislands_plot <- function(mrs, index, what = "dmps", position = "fill") {
 
   manifest <- mrs@manifest |>
     as.data.frame() |>
-    dplyr::select(.data$Probe_ID, .data$CGIposition) |>
+    dplyr::select(.data$Probe_ID, .data$Relation_to_Island) |>
     dplyr::mutate(status = platform_name)
 
   if (what == "dmps") {
@@ -43,7 +43,7 @@ cpgislands_plot <- function(mrs, index, what = "dmps", position = "fill") {
   } else if (what == "dmrs") {
     dt <- get_dmrs(mrs, index) |>
       dplyr::mutate(deltabetas = .data$mean_deltabeta) |>
-      tidyr::separate_longer_delim(.data$CGIposition, delim = ";") |>
+      tidyr::separate_longer_delim(.data$Relation_to_Island, delim = ";") |>
       dplyr::mutate(status = ifelse(
         .data$deltabetas > 0,
         "Hypermethylated",
@@ -57,13 +57,13 @@ cpgislands_plot <- function(mrs, index, what = "dmps", position = "fill") {
 
   # 1. Prepare data for the test and the plot
   dt_clean <- dt |>
-    dplyr::select(.data$Probe_ID, .data$status, .data$CGIposition) |>
-    dplyr::mutate(CGIposition = ifelse(
-      .data$CGIposition %in% cgi_levels,
-      .data$CGIposition, "OpenSea"
+    dplyr::select(.data$Probe_ID, .data$status, .data$Relation_to_Island) |>
+    dplyr::mutate(Relation_to_Island = ifelse(
+      .data$Relation_to_Island %in% cgi_levels,
+      .data$Relation_to_Island, "OpenSea"
     )) |>
-    dplyr::mutate(CGIposition = factor(
-      .data$CGIposition,
+    dplyr::mutate(Relation_to_Island = factor(
+      .data$Relation_to_Island,
       levels = cgi_levels
     ))
 
@@ -75,7 +75,7 @@ cpgislands_plot <- function(mrs, index, what = "dmps", position = "fill") {
 
   # 2. Chi-squared test for enrichment of DMPs in CGI
   #   categories compared to platform background
-  contingency_table <- table(dt_clean$status, dt_clean$CGIposition)
+  contingency_table <- table(dt_clean$status, dt_clean$Relation_to_Island)
 
   p_text <- ""
 
@@ -108,7 +108,9 @@ cpgislands_plot <- function(mrs, index, what = "dmps", position = "fill") {
 
   # 3. GGeneration of the plot
   dt_clean |>
-    ggplot2::ggplot(ggplot2::aes(x = .data$status, fill = .data$CGIposition)) +
+    ggplot2::ggplot(
+      ggplot2::aes(x = .data$status, fill = .data$Relation_to_Island)
+    ) +
     ggplot2::geom_bar(position = position, width = 0.6) +
     ggplot2::scale_fill_manual(
       values = c("OpenSea" = "#A6CEE3",

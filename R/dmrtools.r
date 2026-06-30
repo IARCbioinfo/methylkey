@@ -24,6 +24,7 @@
 #' @importFrom GenomicRanges makeGRangesFromDataFrame findOverlaps
 #' @importFrom DMRcate dmrcate extractRanges
 #' @importFrom S4Vectors queryHits subjectHits
+#' @importFrom stringr str_detect
 #'
 #' @export
 dmrtools_dmrcate <- function(
@@ -39,7 +40,7 @@ dmrtools_dmrcate <- function(
          call. = FALSE)
   }
 
-  dmps <- dmps |> dplyr::filter(!str_detect(.data$chr, "_"))
+  dmps <- dmps |> dplyr::filter(!stringr::str_detect(.data$chr, "_"))
 
   annotated <- data.frame(
     chr = dmps$chr,

@@ -121,9 +121,16 @@ MethylResultSet <- function(
   names(dmps) <- colnames(fit)
 
   for (x in names(dmps)) {
+    #dmps[[x]]$deltabetas <- get_delta_betas(
+    #  m2beta(mval[rownames(dmps[[x]]), ]),
+    #  design[, x]
+    #)
+
     dmps[[x]]$deltabetas <- get_delta_betas(
-      m2beta(mval[rownames(dmps[[x]]), ]),
-      design[, x]
+      betas = m2beta(mval[rownames(dmps[[x]]), ]),
+      design = design,
+      factor_prefix = grp_g,
+      level_col = x
     )
 
     dmps[[x]] <- dmps[[x]] |>
@@ -922,6 +929,7 @@ setMethod("get_dmrs", "MethylResultSet", function(
     dplyr::filter(.data$fdr < max_fdr) |>
     dplyr::filter(.data$no.cpgs >= min_cpgs) |>
     dplyr::group_by(.data$ID, .data$tool) |>
+    dplyr::rename(any_of(c(Feature_UCSC = "UCSC_RefGene_Group"))) |>
     dplyr::summarize(
       chr = dplyr::first(.data$CpG_chrm),
       start = min(.data$Start),
@@ -936,7 +944,7 @@ setMethod("get_dmrs", "MethylResultSet", function(
       mean_deltabeta = mean(.data$deltabetas, na.rm = TRUE),
       mean_abs_deltabeta = mean(abs(.data$deltabetas), na.rm = TRUE),
       max_deltabeta = max(.data$deltabetas, na.rm = TRUE),
-      CGIposition = list_uniq(.data$CGIposition),
+      Relation_to_Island = list_uniq(.data$Relation_to_Island),
       Feature_UCSC = list_uniq(.data$Feature_UCSC),
       genesUniq = list_uniq(.data$genesUniq),
       .groups = "drop"

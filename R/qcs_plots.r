@@ -201,7 +201,7 @@ plot_background <- function(df) {
     ggplot2::aes(
       x = .data$mean_oob_grn,
       y = .data$mean_oob_red,
-      label = .data$barcode
+      label = .data$name
     )
   ) +
     ggplot2::geom_point() +
@@ -230,7 +230,7 @@ plot_detection <- function(df) {
   ggplot2::ggplot(df) +
     ggplot2::geom_bar(
       ggplot2::aes(
-        x = .data$barcode,
+        x = .data$name,
         y = .data$frac_dt
       ),
       stat = "identity"
@@ -258,7 +258,7 @@ plot_detection <- function(df) {
 plot_na <- function(df) {
   ggplot2::ggplot(df) +
     ggplot2::geom_bar(
-      ggplot2::aes(x = .data$barcode, y = .data$num_na_cg),
+      ggplot2::aes(x = .data$name, y = .data$num_na_cg),
       stat = "identity"
     ) +
     ggplot2::theme(

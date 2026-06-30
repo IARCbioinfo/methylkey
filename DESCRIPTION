@@ -1,6 +1,6 @@
 Package: methylkey
 Title: Analysis of DNA Methylation from Illumina Methylation Arrays
-Version: 0.4.1.0000
+Version: 0.4.1.0001
 Date: 2026-05-29
 Authors@R: 
     person(given = "Vincent",
@@ -62,7 +62,11 @@ Suggests:
     EpiSmokEr (>= 0.1.0),
     FlowSorted.Blood.EPIC (>= 2.2.0),
     FlowSorted.Blood.450k,
+    glue (>= 1.6.0),
+    knitr (>= 1.42),
     pamr (>= 1.56.1),
+    quarto (>= 1.3.0),
+    rmarkdown (>= 2.20),
     testthat (>= 3.1.0)
 VignetteBuilder: knitr
 biocViews: MethylationArray, QualityControl, DifferentialMethylation, DNAMethylation, Preprocessing, Visualization

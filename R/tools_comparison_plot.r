@@ -92,7 +92,7 @@ tools_density <- function(dt) {
   dt |>
     dplyr::filter(!is.na(.data$ID)) |>
     dplyr::group_by(.data$tool, .data$ID) |>
-    dplyr::summarise(no.cpgs = n(), .groups = "drop") |>
+    dplyr::summarise(no.cpgs = dplyr::n(), .groups = "drop") |>
     tidyr::extract(
       .data$ID,
       into = c("chr", "start", "end"),

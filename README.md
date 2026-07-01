@@ -17,17 +17,17 @@
 
 ## Installation
 
-### From GitHub
+### In Rstudio
 
 ```r
-if (!require("devtools", quietly = TRUE))
-    install.packages("devtools")
+isntall.packages("pak")
 
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-devtools::install_github("IARCbioinfo/methylkey")
-library(methylkey)
+pak::pkg_install(c(
+  "cran::ggsankeyfier", 
+  "github::perishky/dmrff",
+  "github::sailalithabollepalli/EpiSmokEr",
+  "github::IARCbioinfo/methylkey"
+))
 ```
 ### With conda environment :
 

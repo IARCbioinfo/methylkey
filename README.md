@@ -29,6 +29,24 @@ if (!require("BiocManager", quietly = TRUE))
 devtools::install_github("IARCbioinfo/methylkey")
 library(methylkey)
 ```
+### With conda environment :
+
+1. Create the conda environment
+
+```bash
+mamba env create -f environment.yml
+conda activate methylkey
+```
+
+2. Install other libraries and methylkey in R
+
+```r
+library(pak)
+pak::pkg_install(c("cran::ggsankeyfier", "github::perishky/dmrff"))
+pak::pkg_install("github::sailalithabollepalli/EpiSmokEr")
+pak::pkg_install("github::IARCbioinfo/methylkey")
+```
+
 
 ### Requirements
 

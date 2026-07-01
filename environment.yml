@@ -1,0 +1,51 @@
+name: methylkey
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - r-base
+  - r-tidyverse
+  - bioconductor-dmrcate
+  - bioconductor-sva
+  - bioconductor-summarizedexperiment
+  - r-assertthat
+  - r-desctools
+  - r-dplyr
+  - r-factoextra
+  - r-ggplot2
+  - r-ggpubr
+  - r-ggvenn
+  - r-igraph
+  - r-patchwork
+  - r-purrr
+  - r-randomforest
+  - r-readr
+  - r-reshape2
+  - r-rstatix
+  - r-stringr
+  - r-tibble
+  - r-tidyr
+  - r-glue
+  - r-knitr
+  - r-pamr
+  - r-rmarkdown
+  - r-testthat
+  - bioconductor-enmix
+  - bioconductor-ggbio
+  - bioconductor-gviz
+  - bioconductor-sesame
+  - bioconductor-sesamedata
+  - bioconductor-watermelon
+  - bioconductor-bsgenome.hsapiens.ucsc.hg19
+  - bioconductor-bsgenome.hsapiens.ucsc.hg38
+  - bioconductor-bsgenome.mmusculus.ucsc.mm10
+  - bioconductor-flowsorted.blood.epic
+  - bioconductor-flowsorted.blood.450k
+  - quarto
+  - r-qqman
+  - r-wheatmap
+  - r-curl
+  - r-pak
+  - glpk
+  - pandoc
+prefix: /home/cahaisv/miniforge3/envs/methylkey

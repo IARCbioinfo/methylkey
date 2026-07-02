@@ -20,12 +20,13 @@
 ### In Rstudio
 
 ```r
-isntall.packages("pak")
+install.packages("pak")
 
 pak::pkg_install(c(
   "cran::ggsankeyfier", 
   "github::perishky/dmrff",
   "github::sailalithabollepalli/EpiSmokEr",
+  "github::chiaraherzog/IlluminaMouseMethylationanno.12.v1.mm10",
   "github::IARCbioinfo/methylkey"
 ))
 ```
@@ -44,6 +45,7 @@ conda activate methylkey
 library(pak)
 pak::pkg_install(c("cran::ggsankeyfier", "github::perishky/dmrff"))
 pak::pkg_install("github::sailalithabollepalli/EpiSmokEr")
+pak::pkg_install("chiaraherzog/IlluminaMouseMethylationanno.12.v1.mm10")
 pak::pkg_install("github::IARCbioinfo/methylkey")
 ```
 

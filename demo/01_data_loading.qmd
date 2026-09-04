@@ -58,13 +58,13 @@ Clock_models=list(
   Zhou347=file.path(zhoulab_url,"MM285/Clock_Zhou347.rds"))
 
 # Load data with sesame pipeline
-meth <- sesame2Betas(
+ meth <- sesame2betas(
   idat = params$idat_path,
-  sampleSheet=sample_sheet,
+  sample_sheet = sample_sheet,
   prep = "TQCDPB",
-  na=0.2, 
-  ncore=1,
-  Clock_models=Clock_models)
+  na = 0.2,
+  ncore = 1,
+  clock_models = Clock_models)
 
 # Save the processed object
 saveRDS(meth, "meth.rds")

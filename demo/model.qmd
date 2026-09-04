@@ -1,6 +1,6 @@
 ```{r}
 mrs <- get_results(mrs, index, tools=params$dmrtools, genome=params$genome, mvals=mvals, fdr = 0.2 )
-model_file_name <- paste0(ModelName, ".rds")
+model_file_name <- paste0(model_name, ".rds")
 saveRDS(mrs, fs::path(output_dir, model_file_name))
 ```
 
@@ -12,7 +12,7 @@ saveRDS(mrs, fs::path(output_dir, model_file_name))
 ```{r}
 #| code-summary: "Number of significant dmps"
 dmps<-get_dmps(mrs,index)
-dmpsFileName <- paste0("dmps_", ModelName, "_", index, ".tsv")
+dmpsFileName <- paste0("dmps_", model_name, "_", index, ".tsv")
 readr::write_tsv(dmps,file = fs::path(output_dir,dmpsFileName))
 nbdmps<-dmps %>% filter(adj.P.Val<0.05) %>% nrow()
 ```
@@ -26,21 +26,21 @@ This table provides a comprehensive overview of DMPs, including statistical metr
 ```{r}
 #| code-summary: "DMPs table"
 dmps %>% dplyr::filter(adj.P.Val<0.05) %>% 
-  arrange(adj.P.Val) %>% head(100) %>%
+  dplyr::arrange(adj.P.Val) %>% head(100) %>%
   DT::datatable(extensions = 'Buttons', options = list(
                            dom = 'Blfrtip',
                            buttons = c('copy', 'csv')))
 ```
 
 ::: {.callout-note collapse="true"}
--   deltabetas: Difference in methylation levels between experimental groups (e.g., high vs. low).
--   AveExp: Average methylation level across experimental groups.
--   t: t-statistic indicating the magnitude and direction of the difference in methylation levels.
--   P.value: p-value from statistical testing, indicating the significance of the observed difference.
--   adj.P.Value: Adjusted p-value after correction for multiple testing.
--   B: Estimate of methylation difference.
--   Stdev: Standard deviation of methylation levels.
--   Goodness: Measure of model fit or goodness of fit statistic.
+- deltabetas: Difference in methylation levels between experimental groups (e.g., high vs. low).
+- AveExp: Average methylation level across experimental groups.
+- t: t-statistic indicating the magnitude and direction of the difference in methylation levels.
+- P.value: p-value from statistical testing, indicating the significance of the observed difference.
+- adj.P.Value: Adjusted p-value after correction for multiple testing.
+- B: Estimate of methylation difference.
+- Stdev: Standard deviation of methylation levels.
+- Goodness: Measure of model fit or goodness of fit statistic.
 :::
 
 #### QQplot
@@ -64,9 +64,7 @@ Points located in the left or right sides of the plot represent DMPs with large 
 :::
 
 ```{r}
-genes_of_interest <- c("Casp7", "Dpysl2", "Gata6", "Ifi27", "Mir143-145", "Pcp4l1", "Pphln1", "Prune1", "Runx1", "Sox5")
 dmps |> volcano(max_labels = 5)
-dmps |> volcano(label_probes = genes_of_interest)
 ```
 
 #### Circos Plot
@@ -117,7 +115,7 @@ get_number_of_dmrs(mrs,index)
 
 ```{r}
 #| code-summary: "DMRs table"
-dmrsFileName <- paste0("dmrs_", ModelName, "_", index, ".tsv")
+dmrsFileName <- paste0("dmrs_", model_name, "_", index, ".tsv")
 dmrs <- get_dmrs(mrs,index)
 readr::write_tsv(dmrs,file = fs::path(output_dir,dmrsFileName))
 
@@ -137,9 +135,6 @@ Volcano plot, points located in the left or right sides of the plot represent DM
 ```{r}
 dmrs |>
   volcano(max_labels = 20) + 
-  ggplot2::facet_wrap(~tool)
-dmrs |> 
-  volcano(label_probes=genes_of_interest) +
   ggplot2::facet_wrap(~tool)
 ```
 
@@ -198,7 +193,7 @@ ChIPseeker::plotAnnoBar(Peaks)
 library(httr)
 
 # 1. Ta liste de gènes
-my_genes <- get_genes(mrs,index)
+my_genes <- get_genes(mrs,index) |> head(100)
 
 # On fusionne la liste avec un gène par ligne (\n)
 genes_text <- paste(my_genes, collapse = "\n")

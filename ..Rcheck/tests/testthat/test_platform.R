@@ -29,14 +29,3 @@ test_that("get_plateform handles NULL input", {
   result <- get_plateform(NULL)
   expect_equal(result, "unknown")
 })
-
-test_that("get_clock_models supports the Mouse 285k platform", {
-  result <- get_clock_models("IlluminaMouseMethylation285k")
-  expect_named(result, "Zhou347")
-  expect_match(result[["Zhou347"]], "MM285/Clock_Zhou347\\.rds$")
-})
-
-test_that("get_clock_models supports the EPIC platform", {
-  result <- get_clock_models("IlluminaHumanMethylationEPIC")
-  expect_named(result, c("Hannum", "Horvath353", "PhenoAge", "SkinBlood"))
-})

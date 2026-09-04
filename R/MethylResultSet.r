@@ -494,9 +494,22 @@ setMethod("get_results", "MethylResultSet",
       dmr_results <- c(dmr_results, list(add_dmrff(dmps, mvals, maxgap)))
     }
 
-    if (length(dmr_results) == 0) return(data.frame())
+    if (length(dmr_results) == 0) return(x)
 
     dmr_combined <- dplyr::bind_rows(dmr_results)
+
+    if (!"Probe_ID" %in% colnames(dmr_combined)) {
+      dmr_combined <- data.frame(
+        dmrtool = character(),
+        ID = character(),
+        Start = numeric(),
+        End = numeric(),
+        fdr = numeric(),
+        no.cpgs = numeric(),
+        tool = character(),
+        Probe_ID = character()
+      )
+    }
 
     x@dmrs[[index]] <- dmr_combined
     x
@@ -911,6 +924,30 @@ setMethod("get_dmrs", "MethylResultSet", function(
     tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
     max_fdr = 0.05,
     min_cpgs = 2) {
+
+  if (is.null(mrs@dmrs[[index]]) || length(mrs@dmrs[[index]]) == 0) {
+    empty_frame <- data.frame(
+      ID = character(),
+      tool = character(),
+      chr = character(),
+      start = numeric(),
+      end = numeric(),
+      tools = character(),
+      tool_fdr = numeric(),
+      min_fdr = numeric(),
+      max_fdr = numeric(),
+      HMFDR = numeric(),
+      no.cpgs = numeric(),
+      probes = character(),
+      mean_deltabeta = numeric(),
+      mean_abs_deltabeta = numeric(),
+      max_deltabeta = numeric(),
+      Relation_to_Island = character(),
+      Feature_UCSC = character(),
+      genesUniq = character()
+    )
+    return(empty_frame)
+  }
 
   list_uniq <- function(column) {
     column |>

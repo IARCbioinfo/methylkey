@@ -25,17 +25,17 @@
 cpgislands_plot <- function(mrs, index, what = "dmps", position = "fill") {
 
   platform_name <- mrs@metadata$plateform
-  cgi_levels <- c("OpenSea", "Shelf", "Shore", "Island")
+  cgi_levels <- c("OpenSea",  "S_Shelf", "S_Shore", "Island", "N_Shore", "N_Shelf")
 
   manifest <- mrs@manifest |>
     as.data.frame() |>
-    dplyr::select(.data$Probe_ID, .data$Relation_to_Island) |>
+    dplyr::select(Probe_ID, Relation_to_Island) |>
     dplyr::mutate(status = platform_name)
 
   if (what == "dmps") {
     dt <- get_dmps(mrs, index) |>
       dplyr::mutate(ID = .data$Probe_ID) |>
-      dplyr::mutate(status = ifelse(
+      dplyr::mutate(status = dplyr::if_else(
         .data$deltabetas > 0,
         "Hypermethylated",
         "Hypomethylated"
@@ -44,7 +44,7 @@ cpgislands_plot <- function(mrs, index, what = "dmps", position = "fill") {
     dt <- get_dmrs(mrs, index) |>
       dplyr::mutate(deltabetas = .data$mean_deltabeta) |>
       tidyr::separate_longer_delim(.data$Relation_to_Island, delim = ";") |>
-      dplyr::mutate(status = ifelse(
+      dplyr::mutate(status = dplyr::if_else(
         .data$deltabetas > 0,
         "Hypermethylated",
         "Hypomethylated"
@@ -53,12 +53,17 @@ cpgislands_plot <- function(mrs, index, what = "dmps", position = "fill") {
     stop("what must be either 'dmps' or 'dmrs'")
   }
 
+  if (nrow(dt) == 0) {
+    warning("cpgislands_plot(): input data frame is empty, nothing to plot.")
+    return(NULL)
+  }
+
   dt <- dt |> dplyr::bind_rows(manifest)
 
   # 1. Prepare data for the test and the plot
   dt_clean <- dt |>
     dplyr::select(.data$Probe_ID, .data$status, .data$Relation_to_Island) |>
-    dplyr::mutate(Relation_to_Island = ifelse(
+    dplyr::mutate(Relation_to_Island = dplyr::if_else(
       .data$Relation_to_Island %in% cgi_levels,
       .data$Relation_to_Island, "OpenSea"
     )) |>
@@ -85,7 +90,7 @@ cpgislands_plot <- function(mrs, index, what = "dmps", position = "fill") {
   ) {
     mat_hyper <- contingency_table[c(platform_name, "Hypermethylated"), ]
     p_hyper <- stats::chisq.test(mat_hyper)$p.value
-    p_hyper_txt <- ifelse(p_hyper < 0.001, "p < 0.001",
+    p_hyper_txt <- dplyr::if_else(p_hyper < 0.001, "p < 0.001",
       paste0("p = ", format(p_hyper, digits = 3))
     )
     p_text <- paste0("Hyper vs ", platform_name, ": ", p_hyper_txt)
@@ -97,12 +102,12 @@ cpgislands_plot <- function(mrs, index, what = "dmps", position = "fill") {
   ) {
     mat_hypo <- contingency_table[c(platform_name, "Hypomethylated"), ]
     p_hypo <- stats::chisq.test(mat_hypo)$p.value
-    p_hypo_txt <- ifelse(p_hypo < 0.001, "p < 0.001",
+    p_hypo_txt <- dplyr::if_else(p_hypo < 0.001, "p < 0.001",
       paste0("p = ", format(p_hypo, digits = 3))
     )
 
     # Concatenation of p-values for the plot subtitle
-    sep <- ifelse(p_text == "", "", "\n")
+    sep <- dplyr::if_else(p_text == "", "", "\n")
     p_text <- paste0(p_text, sep, "Hypo vs ", platform_name, ": ", p_hypo_txt)
   }
 
@@ -114,19 +119,21 @@ cpgislands_plot <- function(mrs, index, what = "dmps", position = "fill") {
     ggplot2::geom_bar(position = position, width = 0.6) +
     ggplot2::scale_fill_manual(
       values = c("OpenSea" = "#A6CEE3",
-                 "Shelf"   = "#1F78B4",
-                 "Shore"   = "#B2DF8A",
+                 "N_Shelf"   = "#1F78B4",
+                 "S_Shelf"   = "#1F78B4",
+                 "N_Shore"   = "#B2DF8A",
+                 "S_Shore"   = "#B2DF8A",
                  "Island"  = "#33A02C")
     ) +
     ggplot2::labs(x = "Methylation status",
-      y = ifelse(position == "stack", "Number of DMPs", "Percentage (%)"),
+      y = dplyr::if_else(position == "stack", "Number of DMPs", "Percentage (%)"),
       fill = "CGI position", subtitle = paste(
         "Chi-squared enrichment test vs background:\n", p_text
       )
     ) +
     ggplot2::theme_classic(base_size = 20) +
     ggplot2::theme(
-      axis.text.y = ggplot2::element_text(size = 8, face = "bold"),
+      axis.text.y = ggplot2::element_text(size = 8),
       axis.title  = ggplot2::element_text(size = 12),
       plot.subtitle = ggplot2::element_text(
         size = 10,

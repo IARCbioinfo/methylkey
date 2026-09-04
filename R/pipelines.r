@@ -99,6 +99,9 @@ sesame2betas <- function(
     )
   }
 
+  if (clock_models == "AUTO") {
+    clock_models <- get_clock_models(get_plateform(betas))
+  }
   # Infer age using clock models if provided
   if (!is.null(clock_models) && length(clock_models) > 0) {
     for (model_name in names(clock_models)) {
@@ -294,4 +297,61 @@ minfi2betas <- function(
   metadata(meth)$celltype_estimation <- composite_cell_type
 
   meth
+}
+
+
+get_clock_models <- function(plateform = "IlluminaHumanMethylationEPICv2") {
+
+  zhoulab_url <- "https://github.com/zhou-lab/InfiniumAnnotationV1/raw/main/Anno/"
+
+  switch(plateform,
+    IlluminaHumanMethylation450k =
+      c(
+        Hannum = file.path(
+          zhoulab_url, "HM450/Clock_Hannum.rds"
+        ),
+        Horvath353 = file.path(
+          zhoulab_url, "HM450/Clock_Horvath353.rds"
+        ),
+        SkinBlood = file.path(
+          zhoulab_url, "HM450/Clock_SkinBlood.rds"
+        )
+      ),
+    IlluminaMouseMethylation285k =
+      c(
+        Zhou347 = file.path(
+          zhoulab_url, "MM285/Clock_Zhou347.rds"
+        )
+      ),
+    IlluminaHumanMethylationEPIC =
+      c(
+        Hannum = file.path(
+          zhoulab_url, "EPIC/Clock_Hannum.rds"
+        ),
+        Horvath353 = file.path(
+          zhoulab_url, "EPIC/Clock_Horvath353.rds"
+        ),
+        PhenoAge = file.path(
+          zhoulab_url, "EPIC/Clock_PhenoAge.rds"
+        ),
+        SkinBlood = file.path(
+          zhoulab_url, "EPIC/Clock_SkinBlood.rds"
+        )
+      ),
+    IlluminaHumanMethylationEPICv2 =
+      c(
+        Hannum = file.path(zhoulab_url, "EPICv2/Clock_Hannum.EPICv2.71.rds"),
+        Horvath353 = file.path(
+          zhoulab_url, "EPICv2/Clock_Horvath353.EPICv2.345.rds"
+        ),
+        PhenoAge = file.path(
+          zhoulab_url, "EPICv2/Clock_PhenoAge.EPICv2.504.rds"
+        ),
+        SkinBlood = file.path(
+          zhoulab_url, "EPICv2/Clock_SkinBlood.EPICv2.386.rds"
+        )
+      ),
+    NULL
+  )
+
 }

@@ -48,7 +48,6 @@ mrs<-MethylResultSet(
 )
 ```
 
-
 ```{r model1r}
 #| output: asis
 #| echo: FALSE
@@ -62,8 +61,7 @@ for (index in names(mrs@dmps)[-1]) {
 }
 ```
 
-
----
+------------------------------------------------------------------------
 
 ```{r save_mrs}
 #| echo: FALSE

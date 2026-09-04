@@ -20,13 +20,11 @@ library(tidyverse)
 
 ```{r}
 #| echo: False
-#| eval: !expr "!exists('meth.rds')"
 meth <- readRDS("meth.rds")
 ```
 
 ```{r}
 #| echo: False
-#| eval: !expr "!exists('sdfs.rds')"
 sdfs <- readRDS("sdfs.rds")
 ```
 

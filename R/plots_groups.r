@@ -47,7 +47,7 @@ my_scatter_plot <- function(
 
   mds <- mds |>
     mutate(
-      grp = group,
+      grp = factor(group),
       sample_id = if (showlabels) sample_names else NA_character_
     )
 
@@ -58,6 +58,6 @@ my_scatter_plot <- function(
             palette  = palette,
             size  = size,
             ellipse  = ellipse,
-            repel  = TRUE,
-            label.opts = list(max.overlaps = 50))
+            repel  = TRUE
+          )
 }

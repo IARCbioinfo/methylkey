@@ -45,7 +45,7 @@ sankey_plot_ <- function(
 
   df <- df |>
     dplyr::group_by(.data$Term) |>
-    tidyr::pivot_stages_longer(
+    ggsankeyfier::pivot_stages_longer(
       stages_from = c("Genes", "Term"),
       values_from = "gene_count",
       additional_aes_from = c("Term", "Odds.Ratio", "logP", "status")
@@ -82,7 +82,7 @@ sankey_plot_ <- function(
       v_space = v_space,
       aes(fill = .data$Term, label = .data$status)
     ) +
-    ggsankeyfier::geom_text(
+    ggplot2::geom_text(
       aes(label = .data$node, cex = .data$stage),
       position = pos,
       stat = "sankeynode",

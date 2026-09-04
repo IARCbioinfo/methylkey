@@ -30,6 +30,11 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
                     label_probes = NULL, max_labels = 10,
                     label_column = "genesUniq") {
 
+  if (nrow(df) == 0) {
+    warning("volcano(): input data frame is empty, nothing to plot.")
+    return(NULL)
+  }
+
   if (!any(c("mean_deltabeta", "deltabetas") %in% names(df))) {
     stop("df must contain either 'deltabetas' or 'mean_deltabeta'.")
   }
@@ -55,8 +60,12 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
       # Categorize points for coloring
       significance = dplyr::case_when(
         .data$adj.P.Val < fdr_threshold &
-          abs(deltabetas) > abs(deltabeta_threshold) ~
-          ifelse(deltabetas > 0, "Up-regulated", "Down-regulated"),
+          abs(.data$deltabetas) > abs(deltabeta_threshold) ~
+          dplyr::if_else(
+            .data$deltabetas > 0,
+            "Up-regulated",
+            "Down-regulated"
+          ),
         TRUE ~ "Not significant"
       )
     )

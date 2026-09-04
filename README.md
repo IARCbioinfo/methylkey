@@ -28,6 +28,8 @@ pak::pkg_install(c(
   "github::sailalithabollepalli/EpiSmokEr",
   "github::chiaraherzog/IlluminaMouseMethylationanno.12.v1.mm10",
   "github::IARCbioinfo/methylkey"
+  "github::achilleasNP/IlluminaHumanMethylationEPICmanifest")
+  "github::achilleasNP/IlluminaHumanMethylationEPICanno.ilm10b5.hg38")
 ))
 ```
 ### With conda environment :
@@ -47,6 +49,8 @@ pak::pkg_install(c("cran::ggsankeyfier", "github::perishky/dmrff"))
 pak::pkg_install("github::sailalithabollepalli/EpiSmokEr")
 pak::pkg_install("chiaraherzog/IlluminaMouseMethylationanno.12.v1.mm10")
 pak::pkg_install("github::IARCbioinfo/methylkey")
+pak::pkg_install("achilleasNP/IlluminaHumanMethylationEPICmanifest")
+pak::pkg_install("achilleasNP/IlluminaHumanMethylationEPICanno.ilm10b5.hg38")
 ```
 
 

@@ -186,10 +186,10 @@ setMethod(
 #' This function generates a scatter plot with custom
 #' annotations using ggplot2. The plot displays data from a data frame,
 #' where 'mean_oob_grn' and 'mean_oob_red' are used as x and y coordinates,
-#' and 'name' is used for annotations.
+#' and 'barcode' is used for annotations.
 #'
 #' @param df A data frame containing the data to be plotted,
-#' with columns 'mean_oob_grn', 'mean_oob_red', and 'name'.
+#' with columns 'mean_oob_grn', 'mean_oob_red', and 'barcode'.
 #'
 #' @return A ggplot2 scatter plot with custom annotations.
 #'
@@ -215,10 +215,10 @@ plot_background <- function(df) {
 #'
 #' This function generates a bar plot to visualize detection
 #' fractions using ggplot2. It plots data from a data frame,
-#' where 'name' is used on the x-axis and 'frac_dt' on the y-axis.
+#' where 'barcode' is used on the x-axis and 'frac_dt' on the y-axis.
 #'
 #' @param df A data frame containing the data to be plotted,
-#' with columns 'name' and 'frac_dt'.
+#' with columns 'barcode' and 'frac_dt'.
 #'
 #' @return A ggplot2 bar plot for visualizing detection fractions.
 #'
@@ -244,11 +244,11 @@ plot_detection <- function(df) {
 #'
 #' This function generates a bar plot to visualize the number of
 #' missing values (NA) for different categories using ggplot2.
-#' It plots data from a data frame, where 'name' is used on the x-axis
+#' It plots data from a data frame, where 'barcode' is used on the x-axis
 #' and 'num_na_cg' on the y-axis.
 #'
 #' @param df A data frame containing the data to be plotted,
-#' with columns 'name' and 'num_na_cg'.
+#' with columns 'barcode' and 'num_na_cg'.
 #'
 #' @return A ggplot2 bar plot for visualizing missing values (NA).
 #'

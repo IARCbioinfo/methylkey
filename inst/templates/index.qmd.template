@@ -1,0 +1,41 @@
+---
+title: "{{TITLE}}"
+author: "{{AUTHOR}}"
+date: "{{DATE}}"
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 2
+    page-layout: full
+    code-fold: true
+    code-summary: "Show code"
+    code-tools: true
+    lightbox: true
+---
+
+# Overview
+
+This report was generated with **methylkey**.
+
+- **Report ID:** `{{REPORT_ID}}`
+- **Project directory:** `{{PROJECT_DIR}}`
+- **IDAT path:** `{{IDAT_PATH}}`
+- **Sample sheet:** `{{SAMPLE_SHEET_PATH}}`
+- **Created:** `{{CREATED_AT}}`
+
+## Analysis Summary
+
+- **Title:** `{{TITLE}}`
+- **Author:** `{{AUTHOR}}`
+- **Date:** `{{DATE}}`
+
+## Session Information
+
+```{r session-info}
+#| echo: false
+#| results: asis
+cat('<pre>')
+print(sessionInfo())
+cat('</pre>')
+```

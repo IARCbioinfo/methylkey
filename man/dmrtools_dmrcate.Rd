@@ -17,14 +17,13 @@ dmrtools_dmrcate(
 including chromosome, position, strand, statistical test statistic,
 delta-betas, adjusted p-values, and probe IDs.}
 
-\item{fdr}{The False Discovery Rate (FDR) threshold for identifying
-significant DMRs. Default is 0.05.}
+\item{fdr}{The q-value threshold for filtering CpG sites to be considered
+significant. Default is 0.2.}
 
 \item{maxgap}{The maximum gap between neighboring CpGs to consider
 when defining DMRs. Default is 1000.}
 
-\item{pcutoff}{The p-value threshold for filtering CpG sites before
-DMR analysis. Default is 0.2.}
+\item{pcutoff}{Threshold to determine DMRs. Default is 0.05.}
 
 \item{genome}{The genome build to use for genomic annotation.
 Default is "hg19."}

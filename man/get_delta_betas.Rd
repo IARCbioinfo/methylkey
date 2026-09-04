@@ -4,16 +4,16 @@
 \alias{get_delta_betas}
 \title{Calculate Delta betas between two groups}
 \usage{
-get_delta_betas(betas, group)
+get_delta_betas(betas, design, factor_prefix, level_col)
 }
 \arguments{
 \item{betas}{array of betas values}
 
-\item{group}{group}
+\item{design}{design matrix}
 
-\item{case}{case}
+\item{factor_prefix}{prefix for factor columns}
 
-\item{control}{control}
+\item{level_col}{column for the level of interest}
 }
 \value{
 vector

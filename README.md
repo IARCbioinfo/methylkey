@@ -23,34 +23,23 @@
 install.packages("pak")
 
 pak::pkg_install(c(
-  "cran::ggsankeyfier", 
+  "github::pepijn-devries/ggsankeyfier",
   "github::perishky/dmrff",
   "github::sailalithabollepalli/EpiSmokEr",
   "github::chiaraherzog/IlluminaMouseMethylationanno.12.v1.mm10",
+  "github::achilleasNP/IlluminaHumanMethylationEPICmanifest",
+  "github::achilleasNP/IlluminaHumanMethylationEPICanno.ilm10b5.hg38",
   "github::IARCbioinfo/methylkey"
-  "github::achilleasNP/IlluminaHumanMethylationEPICmanifest")
-  "github::achilleasNP/IlluminaHumanMethylationEPICanno.ilm10b5.hg38")
 ))
 ```
-### With conda environment :
+### With a conda environment
 
-1. Create the conda environment
+From the repository directory, run the setup script. It creates the conda
+environment and installs the R packages hosted on GitHub:
 
 ```bash
-mamba env create -f environment.yml
+bash setup_environment.sh
 conda activate methylkey
-```
-
-2. Install other libraries and methylkey in R
-
-```r
-library(pak)
-pak::pkg_install(c("cran::ggsankeyfier", "github::perishky/dmrff"))
-pak::pkg_install("github::sailalithabollepalli/EpiSmokEr")
-pak::pkg_install("chiaraherzog/IlluminaMouseMethylationanno.12.v1.mm10")
-pak::pkg_install("github::IARCbioinfo/methylkey")
-pak::pkg_install("achilleasNP/IlluminaHumanMethylationEPICmanifest")
-pak::pkg_install("achilleasNP/IlluminaHumanMethylationEPICanno.ilm10b5.hg38")
 ```
 
 

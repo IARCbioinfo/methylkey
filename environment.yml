@@ -38,12 +38,11 @@ dependencies:
   - bioconductor-watermelon
   - bioconductor-illuminahumanmethylation450kanno.ilmn12.hg19
   - bioconductor-illuminahumanmethylationepicanno.ilm10b4.hg19
-  - bioconductor-illuminahumanmethylationepicanno.ilm10b5.hg38
   - bioconductor-txdb.hsapiens.ucsc.hg19.knowngene
   - bioconductor-txdb.hsapiens.ucsc.hg38.knowngene
   - bioconductor-txdb.mmusculus.ucsc.mm10.knowngene
   - bioconductor-org.hs.eg.db
-  - bioconductor-bioconductor-bsgenome.hsapiens.ucsc.hg19
+  - bioconductor-bsgenome.hsapiens.ucsc.hg19
   - bioconductor-bsgenome.hsapiens.ucsc.hg38
   - bioconductor-bsgenome.mmusculus.ucsc.mm10
   - bioconductor-flowsorted.blood.epic
@@ -56,14 +55,3 @@ dependencies:
   - glpk
   - pandoc
   - plotly
-  - pip
-  - pip:
-    - git+https://github.com/pepijn-devries/ggsankeyfier/
-    - git+https://github.com/perishky/dmrff
-    - git+https://github.com/sailalithabollepalli/EpiSmokEr
-    - git+https://github.com/achilleasNP/IlluminaHumanMethylationEPICmanifest.git
-    - git+https://github.com/chilleasNP/IlluminaHumanMethylationEPICanno.ilm10b5.hg38
-    - git+https://github.com/chiaraherzog/IlluminaMouseMethylationanno.12.v1.mm10
-    - git+https://github.com/IARCbioinfo/methylkey"
-
-prefix: /home/cahaisv/miniforge3/envs/methylkey

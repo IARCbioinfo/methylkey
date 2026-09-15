@@ -1,0 +1,484 @@
+---
+title: "Methylation Analysis with methylkey"
+author: "Vincent Cahais"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Methylation Analysis with methylkey}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+# Methylation Analysis with `methylkey`
+
+A training guide covering Illumina methylation array basics and the `methylkey` analysis pipeline, from raw IDAT files to differentially methylated positions (DMPs) and regions (DMRs). See the [`methylkey` repository](https://github.com/IARCbioinfo/methylkey) for the package itself.
+
+## Quick start
+
+A minimal, end-to-end run. See the sections below for what each argument does and for the full `methylkey`-report version.
+
+```r
+library(methylkey)
+
+# 1. Read IDAT files into a Betas object
+meth <- sesame2betas(
+  idat         = "/data/idat_path",
+  sample_sheet = sample_sheet,     # data.frame, see "Sample sheet format" below
+  prep         = "QCDPB",          # human EPIC/450k; see prep-code table below
+  na           = 0.2,
+  ncore        = 4
+)
+
+# 2. Convert to M-values (no batch correction on this minimal pass)
+methM <- get_mvals(meth, grp = "group", sva = NULL, win = TRUE, sex = FALSE)
+mvals <- get_mvals(methM)
+
+# 3. Fit a simple model: group vs. Control
+mrs <- MethylResultSet(
+  se        = methM,
+  model     = "~group",
+  intercept = "Control",
+  method    = "ls"
+)
+
+# 4. Calculate DMPs and DMRs
+mrs <- get_results(
+  mrs,
+  index  = 1,
+  tools  = c("dmrcate"),
+  genome = "hg38",
+  mvals  = mvals,
+  fdr    = 0.2
+)
+
+# 5. Extract results
+dmps <- get_dmps(mrs)
+dmrs <- get_dmrs(mrs)
+```
+
+`sample_sheet` needs at minimum a `barcode` column plus a `group` column to test; see [3.2 Sample sheet format](#32-sample-sheet-format) for the full example and naming rules.
+
+---
+
+## 1. Illumina methylation arrays
+
+### 1.1 Array platforms
+
+`methylkey` supports data from several Illumina methylation array generations:
+
+- **Illumina 450K**
+- **Illumina EPIC v1**
+- **Illumina EPIC v2**
+- **Illumina MM285**
+
+### 1.2 Barcodes and IDAT file naming
+
+Each sample is identified by a **barcode**, built as:
+
+```
+Barcode = Sentrix_ID + Sentrix_Position
+```
+
+Each sample position produces a pair of raw intensity files (green and red channel):
+
+```
+204839210001_R01C01_Grn.idat
+204839210001_R01C01_Red.idat
+204839210002_R01C01_Grn.idat
+204839210002_R01C01_Red.idat
+```
+
+### 1.3 Probe ID nomenclature
+
+A probe ID is built from a prefix plus, for EPIC v2, a design suffix, e.g. `cg00000165_BC11`.
+
+**Prefix — what the probe targets:**
+
+| Prefix | Meaning |
+|---|---|
+| `cg` | CpG site |
+| `ch` | Non-CpG site |
+| `rs` | SNP |
+| `nv` | Probe for a somatic mutation found in cancer |
+| `ctl` | Control |
+
+**EPIC v2 design suffix (e.g. `_BC11`) — decoded position by position:**
+
+| Component | Code | Meaning |
+|---|---|---|
+| 1st letter (Strand) | `T` / `B` | Top / Bottom — targeted DNA strand |
+| 2nd letter (Conversion) | `C` / `O` | Converted / Opposite — bisulfite conversion state (`C` = converted strand, `O` = opposite strand) |
+| 1st number (Chemistry) | `1` / `2` | Infinium assay type — `1` = Infinium I (two distinct beads: methylated M and unmethylated U); `2` = Infinium II (single bead, two-color detection) |
+| 2nd number (Replicate) | `1, 2, 3…` | Replicate index — which design replicate this is, when a CpG locus has multiple designs on the EPIC v2 array |
+
+---
+
+## 2. Pipeline overview
+
+The `methylkey` pipeline runs in four stages, from raw IDAT files to a list of DMPs/DMRs ready for biological interpretation.
+
+### Step 1 — IDAT file processing (SeSAMe)
+
+Raw IDAT pairs are read and normalized with the `sesame` R package, producing a beta-value matrix (rows = CpG probes, columns = samples; values range from 0 = unmethylated to 1 = fully methylated).
+
+
+### Step 2 — Quality control (QC)
+
+QC diagnostics are generated from the normalized data: green/red channel barplots per sample, a signal-intensity scatterplot, a bisulfite conversion efficiency plot, and the fraction of detected probes per sample, so that failing samples can be flagged before proceeding.
+
+
+### Step 3 — Group control and batch correction (SeSAMe)
+
+PCA is run before and after batch correction to check for, and remove, batch-related variation while preserving the biological signal of interest.
+
+
+### Step 4 — Differential methylation analysis (limma)
+
+A linear model is fit on the corrected beta/M-values to identify differentially methylated probes (DMPs) and, from those, differentially methylated regions (DMRs), each reported with QQ-plots and summary tables.
+
+
+---
+
+## 3. Reading raw data
+
+### 3.1 Reading IDAT files
+
+The `sesame2betas()` pipeline uses `sesame` to read and preprocess the IDAT
+files. It marks probes with too many missing values and returns a `Betas`
+object, a `SummarizedExperiment` subclass.
+https://www.bioconductor.org/packages/release/bioc/html/sesame.html
+
+```r
+meth <- sesame2betas(
+  idat = "/data/idat_path",
+  sample_sheet = sample_sheet,
+  prep = "TQCDPB",
+  na = 0.2,
+  ncore = 4
+)
+```
+
+The `prep` code depends on the array platform and the sample organism relative to the array's design organism:
+
+| Platform | Sample organism | Prep code |
+|---|---|---|
+| EPICv2 / MSA / EPIC / HM450 | human | `QCDPB` |
+| EPICv2 / MSA / EPIC / HM450 | non-human organism | `SQCDPB` |
+| MM285 | mouse | `TQCDPB` |
+| MM285 | non-mouse organism | `SQCDPB` |
+| Mammal40 | human | `HCDPB` |
+| Mammal40 | non-human organism | `SHCDPB` |
+
+### 3.2 Sample sheet format
+
+Example sample sheet:
+
+| samples | barcode | sentrix_id | sentrix_position | celllines | treatment | time | array_version |
+|---|---|---|---|---|---|---|---|
+| WSE48_43-1 | 206402350139_R06C01 | 206402350139 | R06C01 | MCF-7 | WSE_IC20 | hours48 | Epic_V1 |
+| CTR48_42-1 | 206402350139_R07C01 | 206402350139 | R07C01 | MCF-7 | Control | hours48 | Epic_V1 |
+| CSE48_45-1 | 206402350139_R08C01 | 206402350139 | R08C01 | MCF-7 | CSE_IC20 | hours48 | Epic_V1 |
+| CTR48_06-1 | 206402350141_R07C01 | 206402350141 | R07C01 | MCF-7 | Control | hours48 | Epic_V1 |
+| WSE48_17-1 | 206402350141_R08C01 | 206402350141 | R08C01 | MCF-7 | WSE_IC20 | hours48 | Epic_V1 |
+| CSE48_09-1 | 206402350143_R07C01 | 206402350143 | R07C01 | MCF-7 | CSE_IC20 | hours48 | Epic_V1 |
+| CTR48_16-1 | 206402350143_R08C01 | 206402350143 | R08C01 | MCF-7 | Control | hours48 | Epic_V1 |
+| WSE48_07-1 | 206402350146_R07C01 | 206402350146 | R07C01 | MCF-7 | WSE_IC20 | hours48 | Epic_V1 |
+
+**Formatting rules:**
+- No spaces anywhere — not in column names, not in sample names.
+- Only letters, numbers, `-` and `_` are allowed (no special characters such as `%`, `µ`, `&`, `/`, etc.).
+- `methylkey` lower-cases all column names automatically.
+
+---
+
+## 4. The Betas object
+
+The `Betas` object extends Bioconductor's `SummarizedExperiment`:
+
+- `colData(meth)` holds the sample sheet (treatment, sex, group, etc.), one row per sample.
+- `get_betas(meth)` returns the beta-value matrix: one row per probe, one column per sample (barcode), with `NA` for masked/failed measurements.
+- A companion probe mask table (`Probe_ID`, `MASK`) flags probes that should be excluded from downstream analysis.
+
+```r
+sample_sheet <- colData(meth)
+betas <- get_betas(meth)
+```
+
+---
+
+## 5. The M-values object
+
+The Mvalues object also extends Bioconductor's `SummarizedExperiment`.
+
+M-values are the logit transform of beta values, generally preferred for statistical testing due to better variance properties.
+
+$$M = \log_2 \left( \frac{\beta}{1 - \beta} \right)$$
+
+```r
+# Get raw M-values
+methM <- get_mvals(meth, grp = "group", sva = NULL, win = TRUE, sex = FALSE)
+
+# grp : the main variable used to calculate delta-betas
+# win : winsorization
+# sex : keep/remove probes on the X and Y chromosomes
+
+# Get batch-corrected M-values
+methM <- get_mvals(meth, grp = "group", sva = "~group+age", win = TRUE, sex = FALSE)
+
+# sva : model formula used to correct for surrogate variables
+```
+
+**Stratifying a dataset** (e.g. to keep only a subset of samples/probes):
+
+```r
+samples2keep <- dplyr::filter(colData(methM), age == "young") |>
+  dplyr::pull(barcode)
+probes2keep  <- probes(methM)
+methM_bis    <- subset_mval(methM, samples2keep, probes2keep)
+```
+
+**Extracting the raw matrix** for use in downstream functions that require it directly (e.g. `get_results()`, see [Section 7](#7-dmps-and-dmrs)):
+
+```r
+mvals <- get_mvals(methM)
+```
+
+---
+
+## 6. Statistical models
+
+Models are declared with `MethylResultSet`:
+
+```r
+mrs <- MethylResultSet(
+  se        = methM,        # se        : SummarizedExperiment / Mvals object
+  model     = "~treatment",
+  intercept = "Control",    # intercept : the reference level
+  method    = "ls"          # method    : "ls" (least squares) or "robust"
+)
+```
+
+Three common model shapes and what each one measures:
+
+| Model | What it measures |
+|---|---|
+| `~ treatment` (simple main effect) | The unadjusted, raw effect of the treatment on methylation levels. Directly compares the treatment group against the control group, ignoring all other biological or technical variables. |
+| `~ treatment + time + sex` (additive model) | The isolated effect of the treatment, controlling for potential confounding from time point and sex. Answers: *"holding time and sex constant, what is the net impact of the treatment?"* This assumes the treatment effect is identical across all time points and sexes (no interaction). |
+| `~ treatment * time + sex` (interaction model) | Whether the treatment effect changes over time, while still adjusting for sex. Expands to `treatment + time + treatment:time`, testing whether the methylation difference between treated and control samples grows, shrinks, or shifts over time (e.g. a delayed biological response). Sex remains an additive covariate. |
+
+---
+
+## 7. DMPs and DMRs
+
+Differentially methylated regions are calculated from a fitted `MethylResultSet`:
+
+```r
+mrs <- get_results(
+  mrs,
+  index,
+  tools  = c("dmrcate", "ipdmr", "combp", "dmrff"),
+  genome = "hg38",
+  mvals  = mvals,
+  fdr    = 0.2
+)
+```
+
+- `index` — the contrast index returned by `get_dmps()` (usually `1` for a single model contrast)
+- `genome` — `"hg38"`, `"hg19"`, or `"mm10"`
+- `mvals` — the M-values **matrix** (via `get_mvals(methM)`), not the `Mvals` object itself
+- `fdr` — the minimal adjusted p-value for a DMP to be carried forward into DMR calling (used by DMRcate)
+
+Extracting results as data frames / `GRanges`:
+
+```r
+get_dmps(mrs)
+get_dmps_ranges(mrs)
+get_dmrs(mrs)
+get_dmrs_ranges(mrs)
+```
+
+---
+
+## 8. Full pipeline with the `methylkey` reports wizard
+
+`methylkey` chains the steps above into a single reproducible, Quarto-rendered report via a fluent, pipe-based API.
+
+**Initiate a project:**
+
+```r
+library(methylkey)
+
+project <- create_methylkey_report(
+  project_dir       = "/data/Waterpipe/reports",
+  report_id         = "MCF7-ALL",
+  idat_path         = "/data/Waterpipe/waterpipe_2025/MCF7-ALL/idat/epic_v1/",
+  sample_sheet_path = "/data/Waterpipe/waterpipe_2025/MCF7-ALL/SampleSheet.txt",
+  title             = "Waterpipe Cell-lines",
+  author            = "Cahais Vincent"
+)
+```
+
+**Data loading:**
+
+```r
+project <- project |>
+  add_report_data_loading(
+    prep  = "QCDPB",
+    ncore = 4
+  )
+```
+
+**Quality control:**
+
+```r
+project <- project |>
+  add_report_qc(groups = c("sentrix_id", "sentrix_position", "treatment"))
+```
+
+**Group control / batch correction:**
+
+```r
+project <- project |>
+  add_report_group_control(
+    groups  = c("array_version", "treatment", "sentrix_id", "sentrix_position"),
+    columns = c("array_version", "treatment", "samples", "sentrix_id", "sentrix_position"),
+    sva     = "~treatment+time",
+    win     = TRUE,
+    xy      = FALSE
+  )
+```
+
+**Model analysis:**
+
+```r
+project <- project |>
+  add_report_model_analysis(
+    model     = "~treatment*time+array_version",
+    intercept = "Control",
+    method    = "ls",
+    genome    = "hg38",
+    model_id  = "crude"
+  )
+```
+
+**Render the report:**
+
+```r
+render_report(project)
+```
+
+---
+
+## 9. Installation and requirements
+
+### 9.1 Requirements
+
+- **R >= 4.2.1**
+- Bioconductor packages (installed automatically as dependencies)
+- For the `sesame` pipeline: `sesame`, `sesameData`
+- For the `minfi` pipeline (alternative to `sesame`, e.g. for standard 450k/EPIC v1 workflows): `minfi`, `wateRmelon`
+
+### 9.2 Option A — R console only
+
+```r
+install.packages("pak")
+
+pak::pkg_install(c(
+  "github::pepijn-devries/ggsankeyfier",
+  "github::perishky/dmrff",
+  "github::sailalithabollepalli/EpiSmokEr",
+  "github::chiaraherzog/IlluminaMouseMethylationanno.12.v1.mm10",
+  "github::IARCbioinfo/methylkey",
+  "github::achilleasNP/IlluminaHumanMethylationEPICmanifest",
+  "github::achilleasNP/IlluminaHumanMethylationEPICanno.ilm10b5.hg38"
+))
+```
+
+> The `pak::pkg_install(...)` call above is corrected for a missing comma and mismatched parentheses found in the source slide.
+
+### 9.3 Option B — conda/mamba environment
+
+The repository ships an [`environment.yml`](https://github.com/IARCbioinfo/methylkey/blob/master/environment.yml) at its root, so the environment doesn't need to be assembled by hand:
+
+```bash
+bash setup_environment.sh
+conda activate methylkey
+```
+
+The script creates the `methylkey` environment from `environment.yml`, then
+uses `pak` inside that environment to install the GitHub-only R packages.
+This is necessary because these repositories contain R and Bioconductor
+packages, not Python packages.
+
+If you need to add or update an R package afterwards without rebuilding the whole environment:
+
+```r
+library(pak)
+pak::pkg_install(c(
+  "github::pepijn-devries/ggsankeyfier",
+  "github::perishky/dmrff",
+  "github::sailalithabollepalli/EpiSmokEr",
+  "github::chiaraherzog/IlluminaMouseMethylationanno.12.v1.mm10",
+  "github::IARCbioinfo/methylkey"
+))
+```
+
+---
+
+## 10. Glossary
+
+| Term | Meaning |
+|---|---|
+| **IDAT** | Raw intensity file produced per sample/channel by the Illumina scanner (one `_Grn.idat` + one `_Red.idat` per sample position). |
+| **Sentrix ID** | Serial number of the physical BeadChip a sample was run on. |
+| **Sentrix position** | Sample's position on that chip (e.g. `R01C01`). |
+| **Barcode** | Unique sample identifier, `Sentrix_ID + Sentrix_Position`. |
+| **Prep code** | Short code (e.g. `QCDPB`) telling `sesame` which preprocessing steps to run, chosen from the array platform and the sample organism. |
+| **Beta value** | Estimated proportion of methylation at a CpG site, on a 0 (unmethylated) – 1 (fully methylated) scale. |
+| **M-value** | Logit transform of the beta value (`log2(beta / (1 - beta))`, roughly); has better statistical properties for testing than beta values, so it's used for modeling while beta values remain the intuitive scale for reporting. |
+| **Winsorization (`win`)** | Capping extreme M-values at a percentile threshold to limit the influence of outliers before modeling. |
+| **SVA (surrogate variable analysis)** | Statistical method for estimating and correcting hidden/unwanted sources of variation (e.g. batch effects) not captured by known covariates; supplied as a model formula, e.g. `sva = "~group+age"`. |
+| **DMP** | Differentially Methylated Position — a single CpG probe whose methylation differs significantly between conditions. |
+| **DMR** | Differentially Methylated Region — a genomic region of consecutive/correlated CpGs called as differentially methylated by combining DMP-level evidence (via `dmrcate`, `ipdmr`, `combp`, or `dmrff`). |
+| **FDR** | False Discovery Rate — here, the adjusted p-value threshold applied to DMPs before they're eligible for DMR calling. |
+| **Intercept (reference level)** | The baseline group a model's other levels are compared against (e.g. `"Control"`). |
+| **Infinium I / II** | The two Illumina bead chemistries: Infinium I uses two bead types (methylated/unmethylated) per CpG; Infinium II uses one bead type with two-color detection. |
+| **Bisulfite conversion** | Chemical treatment that converts unmethylated cytosines to uracil (read as T) while methylated cytosines are protected, which is what lets methylation be read out as a genotype-like signal. |
+| **`sesame`** | Bioconductor package used for reading, normalizing and QC'ing IDAT data (Stages 1–3 of the pipeline). |
+| **`limma`** | Bioconductor package used to fit the linear models behind DMP/DMR detection (Stage 4). |
+| **`SummarizedExperiment`** | Bioconductor container class that pairs a data matrix (betas/M-values) with row (probe) and column (sample) metadata; `methylkey`'s `Betas`/`Mvals` objects extend it. |
+
+---
+
+## 11. Troubleshooting
+
+*To be completed.*
+
+In the meantime, the `methylkey` repository's README lists a few [common issues](https://github.com/IARCbioinfo/methylkey#common-issues) (missing `sesame` install, `Basename`/barcode mismatches between the sample sheet and IDAT files), and the [Issues tracker](https://github.com/IARCbioinfo/methylkey/issues) covers the rest.
+
+---
+
+## 12. License and citation
+
+`methylkey` is released under the **[GPL-3.0 license](https://github.com/IARCbioinfo/methylkey/blob/master/LICENSE)**.
+
+If you use `methylkey` in your research, please cite:
+
+```bibtex
+@software{methylkey2026,
+  author = {Cahais, Vincent},
+  year   = {2026},
+  title  = {methylkey: DNA methylation analysis from Illumina arrays},
+  url    = {https://github.com/IARCbioinfo/methylkey}
+}
+```

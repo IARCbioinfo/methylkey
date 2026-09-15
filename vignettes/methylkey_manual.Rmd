@@ -54,7 +54,7 @@ mrs <- MethylResultSet(
 # 4. Calculate DMPs and DMRs
 mrs <- get_results(
   mrs,
-  index  = 1,
+  index  = names(mrs@dmps)[-1],  # run on all index except intercept
   tools  = c("dmrcate"),
   genome = "hg38",
   mvals  = mvals,
@@ -125,7 +125,7 @@ A probe ID is built from a prefix plus, for EPIC v2, a design suffix, e.g. `cg00
 
 ## 2. Pipeline overview
 
-The `methylkey` pipeline runs in four stages, from raw IDAT files to a list of DMPs/DMRs ready for biological interpretation.
+The `methylkey` pipeline runs in four steps, from raw IDAT files to a list of DMPs/DMRs ready for biological interpretation.
 
 ### Step 1 — IDAT file processing (SeSAMe)
 
@@ -293,7 +293,7 @@ mrs <- get_results(
 )
 ```
 
-- `index` — the contrast index returned by `get_dmps()` (usually `1` for a single model contrast)
+- `index` — `names(mrs@dmps)[-1]` to run on all index except intercept.
 - `genome` — `"hg38"`, `"hg19"`, or `"mm10"`
 - `mvals` — the M-values **matrix** (via `get_mvals(methM)`), not the `Mvals` object itself
 - `fdr` — the minimal adjusted p-value for a DMP to be carried forward into DMR calling (used by DMRcate)

@@ -99,7 +99,7 @@ sesame2betas <- function(
     )
   }
 
-  if (clock_models == "AUTO") {
+  if (identical(clock_models, "AUTO")) {
     clock_models <- get_clock_models(get_plateform(betas))
   }
   # Infer age using clock models if provided

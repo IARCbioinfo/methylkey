@@ -83,7 +83,7 @@ format_sample_sheet <- function(sample_sheet) {
   sample_sheet <- sample_sheet |>
     dplyr::mutate(dplyr::across(
       dplyr::where(is.numeric),
-      ~if (all(. == as.integer(.), na.rm = TRUE) &&
+      ~if (all(. == round(.), na.rm = TRUE) &&
           length(unique(na.omit(.))) < sqrt(length(.))
       ) {
         as.factor(.)

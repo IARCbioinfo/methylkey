@@ -16,4 +16,8 @@ demo/*
 */*_cache/*/*/*/*/*
 */*_cache/*/*/*/*/*/*
 */*.Rproj
-..Rcheck/*STRATEGY.md
+..Rcheck/*
+STRATEGY.md
+ROADMAP.txt
+NEWS.md
+FINAL_VALIDATION_REPORT.md

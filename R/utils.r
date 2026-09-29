@@ -2,28 +2,23 @@
 #'
 #' @param betas array of betas values
 #' @param design design matrix
-#' @param factor_prefix prefix for factor columns
-#' @param level_col column for the level of interest
+#' @param cmtx contrast matrix
+#' @param contrast_name column
 #'
 #' @importFrom MatrixGenerics rowMeans
 #'
 #' @return vector
-get_delta_betas <- function(betas, design, factor_prefix, level_col) {
+get_delta_betas <- function(betas, design, cmtx, contrast_name) {
 
-  factor_cols <- grep(
-    paste0("^", factor_prefix),
-    colnames(design),
-    value = TRUE
-  )
+  score <- as.vector(design %*% cmtx[, contrast_name])
 
-  group1 <- design[, level_col] == 1
-  group0 <- rowSums(design[, factor_cols, drop = FALSE]) == 0
+  group1 <- round(score, 6) == 1
+  group0 <- round(score, 6) == -1
 
   group1_means <- MatrixGenerics::rowMeans(
     betas[, group1, drop = FALSE],
     na.rm = TRUE
   )
-
   group0_means <- MatrixGenerics::rowMeans(
     betas[, group0, drop = FALSE],
     na.rm = TRUE
@@ -31,6 +26,41 @@ get_delta_betas <- function(betas, design, factor_prefix, level_col) {
 
   (group1_means - group0_means) * 100
 }
+
+
+##' Calculate Delta betas between two groups
+##'
+##' @param betas array of betas values
+##' @param design design matrix
+##' @param factor_prefix prefix for factor columns
+##' @param level_col column for the level of interest
+##'
+##' @importFrom MatrixGenerics rowMeans
+##'
+##' @return vector
+# get_delta_betas <- function(betas, design, factor_prefix, level_col) {
+#
+#  factor_cols <- grep(
+#    paste0("^", factor_prefix),
+#     colnames(design),
+#     value = TRUE
+#   )
+
+#   group1 <- design[, level_col] == 1
+#   group0 <- rowSums(design[, factor_cols, drop = FALSE]) == 0
+
+#   group1_means <- MatrixGenerics::rowMeans(
+#     betas[, group1, drop = FALSE],
+#     na.rm = TRUE
+#   )
+
+#   group0_means <- MatrixGenerics::rowMeans(
+#     betas[, group0, drop = FALSE],
+#     na.rm = TRUE
+#   )
+
+#   (group1_means - group0_means) * 100
+# }
 
 #' Calculate mvalues
 #'
@@ -93,7 +123,8 @@ cpg_excl <- function(
 setGeneric("to_geo_submission",
   function(
     x,
-    outfile
+    outfile,
+    digits = 4
   ) {
     standardGeneric("to_geo_submission")
   }
@@ -111,8 +142,8 @@ setGeneric("to_geo_submission",
 #' @export
 setMethod(
   "to_geo_submission",
-  signature(x = "RGChannelSet", outfile = "character"),
-  definition = function(x, outfile = "rawdata2Geo.tsv") {
+  signature(x = "RGChannelSet", outfile = "character", digits = "numeric"),
+  definition = function(x, outfile = "rawdata2Geo.tsv", digits = 4) {
 
     if (!requireNamespace("minfi", quietly = TRUE)) {
       stop("Package 'minfi' is required for this function.",
@@ -144,6 +175,7 @@ setMethod(
 #'
 #' @param Betas a Betas object
 #' @param outfile file output name
+#' @param digits number of decimal places to round to
 #'
 #' importFrom assertthat asserthat
 #' importFrom readr write_tsv
@@ -151,27 +183,48 @@ setMethod(
 #' @export
 setMethod(
   "to_geo_submission",
-  signature(x = "Betas", outfile = "character"),
-  definition = function(x, outfile = "betas2Geo.tsv") {
+  signature(x = "list", outfile = "character", digits = "numeric"),
+  definition = function(x, outfile = "betas2Geo.tsv", digits = 4) {
 
-    assertthat::assert_that(
-      class(x) == "Betas", msg = "x must be a Betas object"
+    if (is.null(names(x)) || any(names(x) == "")) {
+      stop("`sdfs` must be a named list")
+    }
+
+    # --- betas and detection p-values, extract from sdf ---
+    betas_list <- lapply(x, getBetas)
+    pvals_list <- lapply(x,
+      function(sdf) sesame::pOOBAH(sdf, return.pval = TRUE)
     )
-    assertthat::assert_that(
-      is.character(outfile), msg = "outfile must be a character string"
+
+    # same set of probes for everyone
+    # (union, not intersection: we keep everything)
+    all_probes <- Reduce(union, lapply(betas_list, names))
+
+    betas_matrix <- sapply(betas_list, function(x) x[all_probes])
+    pvals_matrix <- sapply(pvals_list, function(x) x[all_probes])
+    rownames(betas_matrix) <- all_probes
+    rownames(pvals_matrix) <- all_probes
+
+    # security : same columns, same order
+    pvals_matrix <- pvals_matrix[, colnames(betas_matrix), drop = FALSE]
+
+    # --- construction dof combined format ---
+    combined <- data.frame(ID_REF = all_probes, check.names = FALSE)
+    for (s in colnames(betas_matrix)) {
+      combined[[s]] <- round(betas_matrix[, s], digits)
+      combined[[paste0(s, ".Detection Pval")]] <-
+        round(pvals_matrix[, s], digits)
+    }
+
+    write.table(
+      combined,
+      file = outfile,
+      sep = "\t",
+      quote = FALSE,
+      row.names = FALSE
     )
 
-    message("Extracting beta values and metadata...")
-    betas <- methylkey::get_betas(x, masked = FALSE, na = FALSE, sex = TRUE)
-    pdata <- colData(x)
-
-    # Create output matrix with sample names as column headers
-    colnames(betas) <- pdata$samples
-
-    # Convert to tibble and add probe ID as first column
-    output_df <- tibble::as_tibble(betas, rownames = "Probe_ID")
-
-    readr::write_tsv(output_df, file = outfile)
+    invisible(combined)
   }
 )
 

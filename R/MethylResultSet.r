@@ -63,6 +63,8 @@ MethylResultSet <- setClass(
 #' @param intercept The reference level for the grouping factor (character).
 #' @param method Fitting method passed to \code{limma::lmFit}. One of
 #'   \code{"ls"} (default) or \code{"robust"}.
+#' @param cmtx Optional contrast matrix. If NULL (default), a contrast matrix is
+#' constructed automatically from the model design.
 #'
 #' @return An object of class \code{\link{MethylResultSet}}.
 #'
@@ -77,10 +79,12 @@ MethylResultSet <- setClass(
 #' @rdname MethylResultSet
 #' @export
 MethylResultSet <- function(
-    se,
-    model,
-    intercept,
-    method  = "ls") {
+  se,
+  model,
+  intercept,
+  method  = "ls",
+  contrasts = NULL
+) {
 
   pdata <- data.frame(colData(se))
   mval <- get_mvals(se)
@@ -93,9 +97,19 @@ MethylResultSet <- function(
   formula1 <- stats::as.formula(model)
   design   <- stats::model.matrix(formula1, data  = pdata)
   colnames(design) <- make.names(colnames(design))
-  cmtx <- limma::makeContrasts(
-    contrasts = colnames(design),
-    levels  = colnames(design)
+
+  #cmtx <- limma::makeContrasts(
+  #  contrasts = ifelse(is.null(contrasts), colnames(design), contrasts),
+  #  levels  = colnames(design)
+  #)
+
+  if (is.null(contrasts)) {
+    contrasts <- colnames(design)
+  }
+
+  cmtx <- do.call(
+    limma::makeContrasts,
+    c(as.list(contrasts), list(levels = colnames(design)))
   )
 
   # Fit linear model
@@ -115,10 +129,12 @@ MethylResultSet <- function(
   ssr <- sst - fit$df.residual * fit$sigma^2
   rsq <- ssr / sst
 
-  dmps <- lapply(colnames(fit), function(x) {
+  #dmps <- lapply(colnames(fit), function(x) {
+  dmps <- lapply(colnames(eb$contrasts), function(x) {
     top_tables(eb, x, rsq)
   })
-  names(dmps) <- colnames(fit)
+
+  names(dmps) <- colnames(eb$contrasts)
 
   for (x in names(dmps)) {
     #dmps[[x]]$deltabetas <- get_delta_betas(
@@ -129,8 +145,10 @@ MethylResultSet <- function(
     dmps[[x]]$deltabetas <- get_delta_betas(
       betas = m2beta(mval[rownames(dmps[[x]]), ]),
       design = design,
-      factor_prefix = grp_g,
-      level_col = x
+      cmtx = cmtx,
+      contrast_name = x
+      #factor_prefix = grp_g,
+      #level_col = x
     )
 
     dmps[[x]] <- dmps[[x]] |>
@@ -206,7 +224,10 @@ setMethod("get_dmps", "MethylResultSet",
 #' (default \code{1}).
 #' @param q Adjusted p-value threshold (default \code{0.05}).
 #'
-#' @return A \code{GRanges} object with one range per significant probe.
+#' @return A \code{GRanges} object with one range per significant DMR when
+#'   \code{as_list = FALSE}. When \code{as_list = TRUE}, returns a named
+#'   \code{GRangesList} containing the platform background and two elements
+#'   (hypermethylated and hypomethylated) for each selected DMR tool.
 #'
 #' @export
 setGeneric("get_dmps_ranges",
@@ -248,7 +269,9 @@ setMethod("get_dmps_ranges", "MethylResultSet",
       as.data.frame(x@manifest),
       x@dmps[[index]],
       by  = "Probe_ID"
-    ) |> dplyr::filter(.data$adj.P.Val < q)
+    ) |>
+      dplyr::filter(.data$adj.P.Val < q) |>
+      dplyr::filter(!is.na(.data$CpG_chrm))
 
     if (!as_list) {
       return(GenomicRanges::makeGRangesFromDataFrame(
@@ -266,21 +289,23 @@ setMethod("get_dmps_ranges", "MethylResultSet",
       stop("deltabetas column is required in DMP table for splitting.")
     }
     plateform <- x@metadata$plateform
+
+    ranges_cols <- c("CpG_chrm", "CpG_beg", "CpG_end")
+    df_manifest <- as.data.frame(x@manifest)
+    df_manifest <- df_manifest[complete.cases(df_manifest[, ranges_cols]), ]
     gr_all <- GenomicRanges::makeGRangesFromDataFrame(
-      as.data.frame(x@manifest),
+      df_manifest,
       seqnames.field = "CpG_chrm",
       start.field = "CpG_beg",
       end.field = "CpG_end",
-      keep.extra.columns  = keep_extra_columns,
-      na.rm = TRUE
+      keep.extra.columns  = keep_extra_columns
     )
     gr_hyper <- GenomicRanges::makeGRangesFromDataFrame(
       dplyr::filter(df, .data$deltabetas > 0),
       seqnames.field = "CpG_chrm",
       start.field = "CpG_beg",
       end.field = "CpG_end",
-      keep.extra.columns  = keep_extra_columns,
-      na.rm = TRUE
+      keep.extra.columns  = keep_extra_columns
     )
     gr_hypo <- GenomicRanges::makeGRangesFromDataFrame(
       dplyr::filter(df, .data$deltabetas < 0),
@@ -290,6 +315,9 @@ setMethod("get_dmps_ranges", "MethylResultSet",
       keep.extra.columns  = keep_extra_columns,
       na.rm = TRUE
     )
+    names(gr_all) <- NULL
+    names(gr_hyper) <- NULL
+    names(gr_hypo) <- NULL
     grl <- GenomicRanges::GRangesList(
       hypermethylated = gr_hyper,
       hypomethylated = gr_hypo
@@ -359,6 +387,7 @@ setMethod("get_dmrs_ranges", "MethylResultSet",
     }
 
     df <- get_dmrs(x, index) |>
+      dplyr::filter(!is.na(.data$chr)) |>
       dplyr::filter(.data$tool_fdr < q) |>
       dplyr::filter(.data$tool %in% tools)
 
@@ -373,42 +402,47 @@ setMethod("get_dmrs_ranges", "MethylResultSet",
       ))
     }
 
-    # as_list = TRUE: split by deltabetas sign and all
+    # as_list = TRUE: split by platform and tool-specific delta-beta sign.
     if (!"mean_deltabeta" %in% colnames(df)) {
       stop("mean_deltabeta column is required in DMP table for splitting.")
     }
-    plateform <- x@metadata$plateform
-    gr_all <- GenomicRanges::makeGRangesFromDataFrame(
-      as.data.frame(x@manifest),
-      seqnames.field = "CpG_chrm",
-      start.field = "CpG_beg",
-      end.field = "CpG_end",
-      keep.extra.columns  = keep_extra_columns,
-      na.rm = TRUE
-    )
-    gr_hyper <- GenomicRanges::makeGRangesFromDataFrame(
-      dplyr::filter(df, .data$mean_deltabeta > 0),
-      seqnames.field = "chr",
-      start.field = "start",
-      end.field = "end",
-      keep.extra.columns  = keep_extra_columns,
-      na.rm = TRUE
-    )
-    gr_hypo <- GenomicRanges::makeGRangesFromDataFrame(
-      dplyr::filter(df, .data$mean_deltabeta < 0),
-      seqnames.field = "chr",
-      start.field = "start",
-      end.field = "end",
-      keep.extra.columns  = keep_extra_columns,
-      na.rm = TRUE
-    )
-    grl <- GenomicRanges::GRangesList(
-      hypermethylated = gr_hyper,
-      hypomethylated = gr_hypo
-    )
-    grl[[plateform]] <- gr_all
 
-    grl
+    make_tool_ranges <- function(tool_, direction) {
+      tool_df <- df |>
+        dplyr::filter(.data$tool == tool_) |>
+        dplyr::filter(
+          if (direction == "hyper") {
+            .data$mean_deltabeta > 0
+          } else {
+            .data$mean_deltabeta < 0
+          }
+        )
+
+      GenomicRanges::makeGRangesFromDataFrame(
+        tool_df,
+        seqnames.field = "chr",
+        start.field = "start",
+        end.field = "end",
+        keep.extra.columns = keep_extra_columns,
+        na.rm = TRUE
+      )
+    }
+
+    tool_ranges <- unlist(lapply(tools, function(tool) {
+      setNames(
+        list(
+          make_tool_ranges(tool, "hyper"),
+          make_tool_ranges(tool, "hypo")
+        ),
+        paste(tool, c("hypermethylated", "hypomethylated"), sep = "_")
+      )
+    }), recursive = FALSE)
+
+    tool_ranges <- lapply(tool_ranges, function(ranges) {
+      if (is.null(ranges)) GenomicRanges::GRanges() else ranges
+    })
+
+    GenomicRanges::GRangesList(tool_ranges)
   }
 )
 
@@ -853,7 +887,7 @@ setMethod("as_dataframe", "MethylResultSet",
     index
   ) {
 
-    dplyr::left_join(
+    dplyr::full_join(
       as.data.frame(mrs@dmps[[index]]),
       as.data.frame(mrs@dmrs[[index]]),
       by = "Probe_ID"
@@ -965,8 +999,8 @@ setMethod("get_dmrs", "MethylResultSet", function(
     dplyr::filter(.data$tool %in% tools) |>
     dplyr::filter(.data$fdr < max_fdr) |>
     dplyr::filter(.data$no.cpgs >= min_cpgs) |>
-    dplyr::group_by(.data$ID, .data$tool) |>
     dplyr::rename(any_of(c(Feature_UCSC = "UCSC_RefGene_Group"))) |>
+    dplyr::group_by(.data$ID, .data$tool) |>
     dplyr::summarize(
       chr = dplyr::first(.data$CpG_chrm),
       start = min(.data$Start),

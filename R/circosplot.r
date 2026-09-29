@@ -69,8 +69,8 @@ circosplot <- function(ranges, genome, label_probes = NULL,
     Seqinfo::seqlevels(my_ideo)
   Seqinfo::seqinfo(ranges) <- Seqinfo::seqinfo(my_ideo)
 
-  g_hypo <- ranges[ranges$deltabetas < 0]
-  g_hyper <- ranges[ranges$deltabetas > 0]
+  g_hypo <- ranges[!is.na(ranges$deltabetas) & ranges$deltabetas < 0]
+  g_hyper <- ranges[!is.na(ranges$deltabetas) & ranges$deltabetas > 0]
 
   if (length(g_hypo) > 0) values(g_hypo)$id <- "Down-regulated"
   if (length(g_hyper) > 0) values(g_hyper)$id <- "Up-regulated"

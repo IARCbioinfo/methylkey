@@ -210,10 +210,14 @@ cpgislands_plot(mrs, what="dmrs", index)
 gr_list <- get_dmrs_ranges(mrs, index,
   tools = params$dmrtools, keep_extra_columns = TRUE, as_list = TRUE )
 gr_list <- gr_list[lengths(gr_list) > 0]
-Peaks <- lapply(gr_list, function(gr) {
-  ChIPseeker::annotatePeak(TxDb = txdb, peak = gr, verbose = FALSE)
-})
-ChIPseeker::plotAnnoBar(Peaks)
+if (length(gr_list) > 0) {
+  Peaks <- lapply(gr_list, function(gr) {
+    ChIPseeker::annotatePeak(TxDb = txdb, peak = gr, verbose = FALSE)
+  })
+  ChIPseeker::plotAnnoBar(Peaks)
+} else {
+  cat("No DMR ranges available for genomic feature annotation.")
+}
 ```
 ::::::::
 

@@ -225,10 +225,12 @@ If you use methylkey in your research, please cite:
 ```
 
 ## References
-
 - Aryee MJ, et al. (2014). Minfi: A flexible and comprehensive Bioconductor package for the analysis of Infinium DNA Methylation microarrays. Bioinformatics, 30(10), 1363–1369.
 - Zhou W, et al. (2018). SeSAMe: reducing artifactual detection of DNA methylation by Infinium BeadChips in genomic deletions. NAR, 46(20), e119.
 - Hansen KD, et al. (2016). Reference-based correction of interstrand dye bias in two-color microarrays. Genome Biology, 17(1), 37.
+- Campagna, M.P., Xavier, A., Lechner-Scott, J. et al. Epigenome-wide association studies: current knowledge, strategies and recommendations. Clin Epigenet 13, 214 (2021). https://doi.org/10.1186/s13148-021-01200-8
+
+
 
 ## License
 

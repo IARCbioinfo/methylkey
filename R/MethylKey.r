@@ -708,12 +708,11 @@ new_betas <- function(betas, sample_sheet, na) {
 #'  for differential analysis.
 #' @param sva A character vector specifying the the model for SVA.
 #'  variables in the model are protected. If NULL, SVA is skipped.
+#' @param model0 A character vector specifying the null model for SVA.
 #' @param win A logical indicating whether Winsorization should be
 #'  applied to the beta values. Default is TRUE.
 #' @param sex A logical indicating whether sex chromosome data
 #'  should be included. Default is FALSE.
-#' @param barcode2remove A list of barcodes to remove from
-#' the analysis. Default is an empty list.
 #'
 #' @return A "Mvals" object containing computed M-values.
 #'
@@ -727,11 +726,12 @@ new_betas <- function(betas, sample_sheet, na) {
 setMethod("get_mvals",
   signature("Betas"),
   function(x,
-           grp = "grp",
-           sva = NULL,
-           win = TRUE,
-           sex = FALSE,
-           barcode2remove = list()) {
+    grp = "grp",
+    sva = NULL,
+    model0 = NULL,
+    win = TRUE,
+    sex = FALSE
+  ) {
 
     # Check parameters
     assertthat::assert_that(
@@ -749,11 +749,7 @@ setMethod("get_mvals",
 
     # get masked betas and remove probes with too many samples
     betas <- methylkey::get_betas(x, mask = FALSE, na = FALSE, sex = sex)
-
-    # remove samples in barcode2remove
-    sel <- which(!colData(x)$barcode %in% barcode2remove)
-    pdata <- colData(x)[sel, ]
-    betas <- betas[, sel]
+    pdata <- colData(x)
 
     # remove remaining na whith mean method
     group <- pdata |> dplyr::pull(tolower(grp))
@@ -774,7 +770,7 @@ setMethod("get_mvals",
     # batch correction with sva
     if (!is.null(sva)) {
       print("Batch correction")
-      betas <- bc_sva(betas, pdata, sva)
+      betas <- bc_sva(betas, pdata, sva, model0)
     }
 
     row_data <- rowData(x)[

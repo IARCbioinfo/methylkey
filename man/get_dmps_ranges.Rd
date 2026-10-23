@@ -30,7 +30,10 @@ get_dmps_ranges(
 \item{q}{Adjusted p-value threshold (default \code{0.05}).}
 }
 \value{
-A \code{GRanges} object with one range per significant probe.
+A \code{GRanges} object with one range per significant DMR when
+\code{as_list = FALSE}. When \code{as_list = TRUE}, returns a named
+\code{GRangesList} containing the platform background and two elements
+(hypermethylated and hypomethylated) for each selected DMR tool.
 }
 \description{
 Returns significant DMPs for a given contrast as a \code{GRanges} object,

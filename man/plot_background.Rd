@@ -8,7 +8,7 @@ plot_background(df)
 }
 \arguments{
 \item{df}{A data frame containing the data to be plotted,
-with columns 'mean_oob_grn', 'mean_oob_red', and 'name'.}
+with columns 'mean_oob_grn', 'mean_oob_red', and 'barcode'.}
 }
 \value{
 A ggplot2 scatter plot with custom annotations.
@@ -17,5 +17,5 @@ A ggplot2 scatter plot with custom annotations.
 This function generates a scatter plot with custom
 annotations using ggplot2. The plot displays data from a data frame,
 where 'mean_oob_grn' and 'mean_oob_red' are used as x and y coordinates,
-and 'name' is used for annotations.
+and 'barcode' is used for annotations.
 }

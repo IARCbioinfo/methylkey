@@ -4,7 +4,7 @@
 \alias{bc_sva}
 \title{Batch Correction with SVA}
 \usage{
-bc_sva(mval, pdata, model)
+bc_sva(mval, pdata, model, model0 = NULL)
 }
 \arguments{
 \item{mval}{matrix of mvalues}
@@ -12,6 +12,8 @@ bc_sva(mval, pdata, model)
 \item{pdata}{sample Sheet (dataframe)}
 
 \item{model}{model to apply with sva (string) eg: "~group+gender"}
+
+\item{model0}{null model to apply with sva (string) eg: "~gender"}
 }
 \value{
 A matrix of batch corrected mvalues

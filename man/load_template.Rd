@@ -2,7 +2,7 @@
 % Please edit documentation in R/report_steps.R
 \name{load_template}
 \alias{load_template}
-\title{Template Rendering Utilities}
+\title{Load Template File}
 \usage{
 load_template(template_name)
 }
@@ -13,15 +13,6 @@ load_template(template_name)
 Character string with template content.
 }
 \description{
-Internal functions for loading and rendering .qmd templates with parameter substitution.
+Read a template file from inst/templates/
 }
-\keyword{File}
-\keyword{Load}
-\keyword{Read}
-\keyword{Template}
-\keyword{a}
-\keyword{file}
-\keyword{from}
-\keyword{inst/templates/}
 \keyword{internal}
-\keyword{template}

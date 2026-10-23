@@ -8,7 +8,7 @@ plot_detection(df)
 }
 \arguments{
 \item{df}{A data frame containing the data to be plotted,
-with columns 'name' and 'frac_dt'.}
+with columns 'barcode' and 'frac_dt'.}
 }
 \value{
 A ggplot2 bar plot for visualizing detection fractions.
@@ -16,5 +16,5 @@ A ggplot2 bar plot for visualizing detection fractions.
 \description{
 This function generates a bar plot to visualize detection
 fractions using ggplot2. It plots data from a data frame,
-where 'name' is used on the x-axis and 'frac_dt' on the y-axis.
+where 'barcode' is used on the x-axis and 'frac_dt' on the y-axis.
 }

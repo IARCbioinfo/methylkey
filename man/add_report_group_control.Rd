@@ -7,6 +7,7 @@
 add_report_group_control(
   report,
   groups = c("sentrix_id", "group", "age", "gender"),
+  columns = c("sample_id", "sentrix_id", "group", "age", "gender"),
   sva = NULL,
   win = TRUE,
   xy = FALSE

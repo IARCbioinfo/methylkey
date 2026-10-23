@@ -2,36 +2,37 @@
 % Please edit documentation in R/enrichment_plots.r
 \name{cpgislands_plot}
 \alias{cpgislands_plot}
-\title{Plot CpG island enrichment for DMPs}
+\title{Plot CpG island enrichment (legacy interface).}
 \usage{
-cpgislands_plot(mrs, index, what = "dmps", position = "fill", fdr = 0.05,
-	tools = c("dmrcate", "ipdmr", "combp", "dmrff"), dn = 1)
+cpgislands_plot(
+  mrs,
+  index,
+  what = "dmps",
+  position = "fill",
+  fdr = 0.05,
+  tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
+  dn = 1
+)
 }
 \arguments{
-\item{mrs}{A methylation result set object
-containing metadata, manifest and DMPs.}
+\item{mrs}{A MethylResultSet object.}
 
-\item{index}{Index or name of the DMP set
-to extract from \code{mrs} via \code{getDMPs}.}
+\item{index}{Contrast index or name.}
 
-\item{what}{Either "dmps" or "dmrs" (définit le type d'analyse)}
+\item{what}{Either "dmps" or "dmrs".}
 
-\item{position}{Position argument passed to \code{geom_bar}
-("stack" or "fill").}
+\item{position}{Either "fill" or "stack".}
 
 \item{fdr}{Significance threshold.}
 
 \item{tools}{DMR tools to include.}
 
-\item{dn}{Number display mode: 0 shows no numbers, 1 shows counts within
-segments, 2 shows bar totals, and 3 shows both.}
+\item{dn}{Number display mode: 0 none, 1 counts within segments,
+2 bar totals, or 3 both.}
 }
 \value{
-A ggplot2 object representing CpG island enrichment.
+A ggplot2 object.
 }
 \description{
-This function plots the distribution of differentially methylated probes
-across CpG island annotation categories for a given methylation result set.
-It compares the probe categories of the selected DMPs against the platform
-background and returns a bar plot with chi-squared enrichment statistics.
+Plot CpG island enrichment (legacy interface).
 }

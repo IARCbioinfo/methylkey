@@ -4,14 +4,7 @@
 \alias{get_mvals,Betas-method}
 \title{Compute M-values from a "Betas" object}
 \usage{
-\S4method{get_mvals}{Betas}(
-  x,
-  grp = "grp",
-  sva = NULL,
-  win = TRUE,
-  sex = FALSE,
-  barcode2remove = list()
-)
+\S4method{get_mvals}{Betas}(x, grp = "grp", sva = NULL, model0 = NULL, win = TRUE, sex = FALSE)
 }
 \arguments{
 \item{x}{A "Betas" object from which to compute M-values.}
@@ -22,14 +15,13 @@ for differential analysis.}
 \item{sva}{A character vector specifying the the model for SVA.
 variables in the model are protected. If NULL, SVA is skipped.}
 
+\item{model0}{A character vector specifying the null model for SVA.}
+
 \item{win}{A logical indicating whether Winsorization should be
 applied to the beta values. Default is TRUE.}
 
 \item{sex}{A logical indicating whether sex chromosome data
 should be included. Default is FALSE.}
-
-\item{barcode2remove}{A list of barcodes to remove from
-the analysis. Default is an empty list.}
 }
 \value{
 A "Mvals" object containing computed M-values.

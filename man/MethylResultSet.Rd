@@ -6,9 +6,9 @@
 \alias{MethylResultSet-class}
 \title{MethylResultSet Class}
 \usage{
-MethylResultSet(se, model, intercept, method = "ls")
+MethylResultSet(se, model, intercept, method = "ls", contrasts = NULL)
 
-MethylResultSet(se, model, intercept, method = "ls")
+MethylResultSet(se, model, intercept, method = "ls", contrasts = NULL)
 }
 \arguments{
 \item{se}{A \code{SummarizedExperiment} (or subclass) produced by
@@ -23,6 +23,9 @@ grouping factor.}
 
 \item{method}{Fitting method passed to \code{limma::lmFit}. One of
 \code{"ls"} (default) or \code{"robust"}.}
+
+\item{cmtx}{Optional contrast matrix. If NULL (default), a contrast matrix is
+constructed automatically from the model design.}
 }
 \value{
 An object of class \code{\link{MethylResultSet}}.

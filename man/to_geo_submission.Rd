@@ -4,7 +4,7 @@
 \alias{to_geo_submission}
 \title{Generic function to extract column data from an object}
 \usage{
-to_geo_submission(x, outfile)
+to_geo_submission(x, outfile, digits = 4)
 }
 \arguments{
 \item{x}{An object RGset or sdfs list.}

@@ -2,16 +2,25 @@
 % Please edit documentation in R/utils.r
 \name{beta2m}
 \alias{beta2m}
-\title{Calculate mvalues}
+\title{Calculate Delta betas between two groups}
 \usage{
 beta2m(betas)
 }
 \arguments{
 \item{betas}{array of betas values}
+
+\item{design}{design matrix}
+
+\item{factor_prefix}{prefix for factor columns}
+
+\item{level_col}{column for the level of interest}
 }
 \value{
+vector
+Calculate mvalues
+
 matrix
 }
 \description{
-Calculate mvalues
+Calculate Delta betas between two groups
 }

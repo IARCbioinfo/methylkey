@@ -102,6 +102,20 @@ sesame2betas <- function(
   if (identical(clock_models, "AUTO")) {
     clock_models <- get_clock_models(get_plateform(betas))
   }
+
+  clock_models <- check_clock_models(clock_models)
+
+  for (model_name in names(clock_models)) {
+    model <- readr::read_rds(clock_models[[model_name]])
+    na_fallback <- "na_fallback" %in% names(model$param)
+    sample_sheet[[model_name]] <- sapply(
+      sample_sheet$barcode, function(barcode) {
+        sesame::predictAge(betas[, barcode], model, na_fallback)
+      }
+    )
+  }
+
+
   # Infer age using clock models if provided
   if (!is.null(clock_models) && length(clock_models) > 0) {
     for (model_name in names(clock_models)) {
@@ -122,6 +136,7 @@ sesame2betas <- function(
   meth <- new_betas(betas, sample_sheet, na)
   metadata(meth)$betas.pipeline.name <- "sesame"
   metadata(meth)$preprocessing.method <- prep
+  metadata(meth)$plateform = get_plateform(betas)
 
   # Add QC statistics
   qcs <- sesame::openSesame(
@@ -135,6 +150,71 @@ sesame2betas <- function(
 
   meth
 }
+
+
+#' Download Clock Model from URL
+#'
+#' This function downloads a clock model file from a given URL
+#' and saves it to a specified destination directory.
+#'
+#' @param url The URL of the clock model file to download.
+#' @param dest_dir The destination directory where the clock model file will be saved.
+#'   Default is "clock_models".
+#' @return The path to the downloaded clock model file, or NA if the download failed.
+dl_clock_model <- function(url, dest_dir = "clock_models") {
+  dir.create(dest_dir, showWarnings = FALSE, recursive = TRUE)
+  dest_file <- file.path(dest_dir, basename(sub("[?#].*$", "", url)))
+  
+  if (file.exists(dest_file)) return(dest_file)
+  
+  ok <- tryCatch({
+    utils::download.file(url, dest_file, mode = "wb", quiet = TRUE)
+    TRUE
+  }, error = function(e) {
+    warning("Téléchargement impossible : ", url, " (", conditionMessage(e), ")",
+            call. = FALSE)
+    FALSE
+  })
+  
+  if (!ok) {
+    unlink(dest_file)  # évite de garder un fichier partiel
+    return(NA_character_)
+  }
+  dest_file
+}
+
+#' Check Clock Models
+#'
+#' This function checks the provided clock models, downloading them if they are URLs,
+#' and returns a character vector of valid clock model file paths.
+#' @param clock_models A named list of clock model file paths or URLs.
+#' @param dest_dir The destination directory where clock model files will be saved if they are downloaded. Default is "clock_models".
+#' @return A character vector of valid clock model file paths.
+check_clock_models <- function(clock_models, dest_dir = "clock_models") {
+  if (is.null(clock_models) || length(clock_models) == 0) {
+    return(character(0))
+  }
+  
+  checked <- vapply(names(clock_models), function(model_name) {
+    model_file <- clock_models[[model_name]]
+    
+    if (grepl("^(https?|ftp)://", model_file)) {
+      model_file <- dl_clock_model(model_file, dest_dir)
+    }
+    
+    if (is.na(model_file) || !file.exists(model_file)) {
+      warning("Modèle '", model_name, "' ignoré : fichier introuvable",
+              call. = FALSE)
+      return(NA_character_)
+    }
+    model_file
+  }, character(1))
+  
+  checked[!is.na(checked)]
+}
+
+
+
 
 #' Convert Illumina IDAT Files to Beta Values Using minfi
 #'

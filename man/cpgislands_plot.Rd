@@ -4,7 +4,8 @@
 \alias{cpgislands_plot}
 \title{Plot CpG island enrichment for DMPs}
 \usage{
-cpgislands_plot(mrs, index, what = "dmps", position = "fill")
+cpgislands_plot(mrs, index, what = "dmps", position = "fill", fdr = 0.05,
+	tools = c("dmrcate", "ipdmr", "combp", "dmrff"), dn = 1)
 }
 \arguments{
 \item{mrs}{A methylation result set object
@@ -17,6 +18,13 @@ to extract from \code{mrs} via \code{getDMPs}.}
 
 \item{position}{Position argument passed to \code{geom_bar}
 ("stack" or "fill").}
+
+\item{fdr}{Significance threshold.}
+
+\item{tools}{DMR tools to include.}
+
+\item{dn}{Number display mode: 0 shows no numbers, 1 shows counts within
+segments, 2 shows bar totals, and 3 shows both.}
 }
 \value{
 A ggplot2 object representing CpG island enrichment.

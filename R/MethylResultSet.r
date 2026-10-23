@@ -441,10 +441,31 @@ setMethod("get_dmrs_ranges", "MethylResultSet",
     tool_ranges <- lapply(tool_ranges, function(ranges) {
       if (is.null(ranges)) GenomicRanges::GRanges() else ranges
     })
-
-    GenomicRanges::GRangesList(tool_ranges)
+    
+    grl <- GenomicRanges::GRangesList(tool_ranges)
+    
+    grl[[x@metadata$plateform]] <- get_PlateformRanges(x)
+    grl
   }
 )
+
+
+get_PlateformRanges<-function(x){
+  
+  ranges_cols <- c("CpG_chrm", "CpG_beg", "CpG_end")
+  df_manifest <- as.data.frame(x@manifest)
+  df_manifest <- df_manifest[complete.cases(df_manifest[, ranges_cols]), ]
+  gr<-GenomicRanges::makeGRangesFromDataFrame(
+    df_manifest,
+    seqnames.field = "CpG_chrm",
+    start.field = "CpG_beg",
+    end.field = "CpG_end",
+    keep.extra.columns  = TRUE
+  )
+  names(gr) <- NULL
+  gr
+}
+
 
 #' Retrieve Full Per-Probe Results with DMR Annotations
 #'

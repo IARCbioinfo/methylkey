@@ -1,9 +1,3 @@
-#' Template Rendering Utilities
-#'
-#' Internal functions for loading and rendering .qmd templates with parameter substitution.
-#'
-#' @keywords internal
-
 #' Load Template File
 #'
 #' Read a template file from inst/templates/

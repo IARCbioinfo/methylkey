@@ -10,10 +10,10 @@
 #' @return vector
 get_delta_betas <- function(betas, design, cmtx, contrast_name) {
 
-  score <- as.vector(design %*% cmtx[, contrast_name])
+  score <- round(as.vector(design %*% cmtx[, contrast_name]), 6)
 
-  group1 <- round(score, 6) == 1
-  group0 <- round(score, 6) == -1
+  group1 <- score > 0
+  group0 <- score < 0
 
   group1_means <- MatrixGenerics::rowMeans(
     betas[, group1, drop = FALSE],
@@ -79,6 +79,50 @@ beta2m <- function(betas) {
 #'
 m2beta <- function(mvalues) {
   (2^mvalues) / (1 + 2^mvalues)
+}
+
+#' Winsorize beta values independently for each probe
+#'
+#' Caps values in each probe row at row-specific quantiles.
+#'
+#' @param betas Numeric matrix of beta values, with probes in rows and samples
+#'   in columns.
+#' @param probs Numeric vector of length two giving the lower and upper
+#'   quantiles used as caps (default \code{c(0.01, 0.99)}).
+#' @return A matrix with the same dimensions and dimnames as \code{betas};
+#'   missing values are preserved.
+#' @noRd
+winsorize_by_probe <- function(betas, probs = c(0.01, 0.99)) {
+  if (!is.matrix(betas) || !is.numeric(betas)) {
+    stop("`betas` must be a numeric matrix.", call. = FALSE)
+  }
+  if (!is.numeric(probs) || length(probs) != 2L || anyNA(probs) ||
+      any(!is.finite(probs)) || probs[1] < 0 || probs[2] > 1 ||
+      probs[1] > probs[2]) {
+    stop(
+      "`probs` must contain two ordered probabilities between 0 and 1.",
+      call. = FALSE
+    )
+  }
+
+  for (i in seq_len(nrow(betas))) {
+    observed <- !is.na(betas[i, ])
+    if (!any(observed)) {
+      next
+    }
+
+    limits <- stats::quantile(
+      betas[i, observed],
+      probs = probs,
+      names = FALSE
+    )
+    betas[i, observed] <- pmax(
+      limits[1],
+      pmin(betas[i, observed], limits[2])
+    )
+  }
+
+  betas
 }
 
 
@@ -244,4 +288,142 @@ h_mean <- function(x, na.rm = TRUE) {
 
   # Calcul classique
   (1 / mean(1 / x))
+}
+
+
+#' Regroupe les DMRs qui partagent au moins une sonde
+#'
+#' @param edges data.frame avec les colonnes `ID` (DMR) et `Probe_ID`
+#'   (une ligne par couple DMR / sonde).
+#' @return Vecteur nomme (noms = ID de DMR, valeurs = numero de cluster),
+#'   ou NULL si aucune arete valide.
+#' @noRd
+dmr_clusters <- function(edges) {
+  edges <- edges |>
+    dplyr::transmute(
+      ID = trimws(as.character(.data$ID)),
+      Probe_ID = trimws(as.character(.data$Probe_ID))
+    ) |>
+    dplyr::filter(
+      !is.na(.data$ID), .data$ID != "",
+      !is.na(.data$Probe_ID), .data$Probe_ID != ""
+    ) |>
+    dplyr::distinct()
+
+  if (nrow(edges) == 0) {
+    return(NULL)
+  }
+
+  g <- igraph::graph_from_data_frame(edges, directed = FALSE)
+  igraph::components(g)$membership
+}
+
+
+
+#' Valide et compile une expression `combine`
+#'
+#' Grammaire : noms d'outils, `&`, `|`, `!`, `( )`, `n_of(k, a, b, ...)`
+#' (au moins k outils parmi ceux mentionnes) et `only(a, b, ...)` (exactement
+#' ces outils parmi ceux mentionnes). Tout le reste est refuse.
+#'
+#' @param expr chaine de caracteres.
+#' @param tools noms d'outils valides (univers de `only()`).
+#' @return Une fonction `f(pres)` qui prend une matrice logique
+#'   regions x outils et renvoie un vecteur logique. L'attribut `tools` de la
+#'   fonction contient les outils references dans l'expression.
+#' @noRd
+compile_combine <- function(expr, tools) {
+  if (!is.character(expr) || length(expr) != 1 || is.na(expr)) {
+    stop("`combine` must be a single character string.", call. = FALSE)
+  }
+
+  parsed <- tryCatch(
+    str2lang(expr),
+    error = function(e) {
+      stop("Invalid `combine` expression: ", conditionMessage(e), call. = FALSE)
+    }
+  )
+
+  bad_tool <- function(nm) {
+    stop(
+      "Unknown tool '", nm, "' in `combine`. Available: ",
+      paste(tools, collapse = ", "), call. = FALSE
+    )
+  }
+
+  collect_tools <- function(node) {
+    if (is.symbol(node)) {
+      return(as.character(node))
+    }
+    if (is.call(node)) {
+      return(unlist(lapply(as.list(node)[-1], collect_tools),
+                    use.names = FALSE))
+    }
+    character()
+  }
+  referenced_tools <- unique(collect_tools(parsed))
+
+  walk <- function(node) {
+    if (is.symbol(node)) {
+      nm <- as.character(node)
+      if (!nm %in% tools) bad_tool(nm)
+      return(node)
+    }
+
+    if (!is.call(node) || !is.symbol(node[[1]])) {
+      stop("Unsupported element in `combine`: ", deparse(node), call. = FALSE)
+    }
+
+    fn <- as.character(node[[1]])
+    args <- as.list(node)[-1]
+
+    if (fn %in% c("&", "|", "!", "(")) {
+      node[-1] <- lapply(args, walk)
+      return(node)
+    }
+
+    if (fn == "n_of") {
+      if (
+        length(args) < 2 || !is.numeric(args[[1]]) || length(args[[1]]) != 1
+      ) {
+        stop("n_of() expects a number followed by tool names: n_of(2, a, b, c).",
+             call. = FALSE)
+      }
+      node[-c(1, 2)] <- lapply(args[-1], walk)
+      return(node)
+    }
+
+    if (fn == "only") {
+      if (length(args) < 1 || !all(vapply(args, is.symbol, logical(1)))) {
+        stop("only() expects tool names: only(a, b).", call. = FALSE)
+      }
+      chosen <- vapply(args, as.character, character(1))
+      invisible(lapply(args, walk))
+      others <- setdiff(unique(referenced_tools), chosen)
+      terms <- c(
+        lapply(chosen, as.symbol),
+        lapply(others, function(o) call("!", as.symbol(o)))
+      )
+      return(Reduce(function(a, b) call("&", a, b), terms))
+    }
+
+    stop("Function '", fn, "' is not allowed in `combine`.", call. = FALSE)
+  }
+
+  ast <- walk(parsed)
+
+  predicate <- function(pres) {
+    env <- new.env(parent = emptyenv())
+    for (op in c("&", "|", "!", "(")) {
+      env[[op]] <- get(op, envir = baseenv())
+    }
+    env$n_of <- function(k, ...) rowSums(cbind(...)) >= k
+    for (tl in unique(referenced_tools)) {
+      env[[tl]] <- unname(pres[, tl])
+    }
+    res <- eval(ast, env)
+    res & !is.na(res)
+  }
+  attr(predicate, "tools") <- unique(referenced_tools)
+  predicate
 }

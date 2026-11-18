@@ -9,7 +9,7 @@ cpgislands_plot_dmps_fill(mrs, index, fdr = 0.05, dn = 1)
 \arguments{
 \item{mrs}{A MethylResultSet object.}
 
-\item{index}{Contrast index or name.}
+\item{index}{One or more contrast indices or names, in display order.}
 
 \item{fdr}{Adjusted p-value threshold.}
 
@@ -17,7 +17,10 @@ cpgislands_plot_dmps_fill(mrs, index, fdr = 0.05, dn = 1)
 2 bar totals, or 3 both.}
 }
 \value{
-A ggplot2 object.
+A ggplot2 object with a \code{stat} data frame containing chi-squared test
+details. Contrast labels are colored by methylation status, and the platform
+background appears once as \code{"All probes"}; a matching status legend is
+included.
 }
 \description{
 Plot DMP CpG island enrichment with platform background.

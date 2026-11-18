@@ -122,7 +122,7 @@ circosplot <- function(ranges, genome, label_probes = NULL,
 
   p +
     ggplot2::scale_colour_manual(
-      values = c("Up-regulated" = "#2E86AB", "Down-regulated" = "#A23B72"),
+      values = c("Hypermethylated" = "#2E86AB", "Hypomethylated" = "#A23B72"),
       name = "Direction"
     )
 }

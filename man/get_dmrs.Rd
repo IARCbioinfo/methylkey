@@ -8,30 +8,51 @@
 get_dmrs(
   mrs,
   index,
-  tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   max_fdr = 0.05,
-  min_cpgs = 2
+  tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
+  combine = NULL,
+  min_size = 1,
+  max_size = Inf,
+  min_cpgs = 2,
+  max_cpgs = Inf
 )
 
 \S4method{get_dmrs}{MethylResultSet}(
   mrs,
   index,
-  tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   max_fdr = 0.05,
-  min_cpgs = 2
+  tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
+  combine = NULL,
+  min_size = 1,
+  max_size = Inf,
+  min_cpgs = 2,
+  max_cpgs = Inf
 )
 }
 \arguments{
+\item{mrs}{A \code{MethylResultSet} object.}
+
+\item{index}{Integer index or character name of the contrast.}
+
+\item{max_fdr}{Maximum FDR threshold for DMR inclusion (default \code{0.05}).}
+
 \item{tools}{Character vector of DMR tools to include.
 If \code{NULL} (default), includes all tools present in the results.}
 
-\item{max_fdr}{Maximum FDR threshold for DMR inclusion (default \code{0.05}).}
+\item{combine}{Expression defining how DMR tools are combined into consensus
+regions. If \code{NULL} (default), returns one row per DMR and tool. Only
+tools mentioned in the expression are considered, even if \code{tools}
+contains additional tools.}
+
+\item{min_size}{Minimum DMR size in base pairs (default \code{1}).}
+
+\item{max_size}{Maximum DMR size in base pairs (default \code{Inf}).}
 
 \item{min_cpgs}{Minimum number of CpGs required for DMR inclusion
 (default \code{2}).}
 
-\item{results}{A data frame as returned by
-\code{\link{get_results}} (long format).}
+\item{max_cpgs}{Maximum number of CpGs required for DMR inclusion
+(default \code{Inf}).}
 }
 \value{
 A data frame with one row per unique DMR, containing:

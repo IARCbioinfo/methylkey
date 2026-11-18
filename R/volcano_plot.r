@@ -3,8 +3,8 @@
 #' Publication-ready volcano plot showing log2(fold-change) vs -log10(p-value)
 #'
 #' @param df Data frame with DMPs/DMRs
-#'   (columns: deltabetas or maxdiff, adj.P.Val or HMFDR)
-#' @param fdr_threshold FDR significance threshold (default 0.05)
+#'   (columns: deltabetas or maxdiff, adj.P.Val or HMPADJ)
+#' @param q FDR significance threshold (default 0.05)
 #' @param deltabeta_threshold Delta beta threshold for highlighting
 #'   (default 0, no highlighting)
 #' @param title Plot title (default: "Volcano Plot")
@@ -25,7 +25,7 @@
 #' @importFrom ggpubr theme_pubr
 #'
 #' @export
-volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
+volcano <- function(df, q = 0.05, deltabeta_threshold = 0,
                     title = "Volcano Plot", subtitle = NULL,
                     label_probes = NULL, max_labels = 10,
                     label_column = "genesUniq") {
@@ -38,8 +38,8 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
   if (!any(c("mean_deltabeta", "deltabetas") %in% names(df))) {
     stop("df must contain either 'deltabetas' or 'mean_deltabeta'.")
   }
-  if (!any(c("adj.P.Val", "HMFDR") %in% names(df))) {
-    stop("df must contain either 'adj.P.Val' or 'HMFDR'.")
+  if (!any(c("adj.P.Val", "HMPADJ") %in% names(df))) {
+    stop("df must contain either 'adj.P.Val' or 'HMPADJ'.")
   }
   if (!any(c("Probe_ID", "ID") %in% names(df))) {
     stop("df must contain either 'Probe_ID' or 'ID'.")
@@ -49,7 +49,7 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
   df <- df |>
     dplyr::rename_with(
       ~ dplyr::case_when(
-        . == "HMFDR" ~ "adj.P.Val",
+        . == "HMPADJ" ~ "adj.P.Val",
         . == "mean_deltabeta" ~ "deltabetas",
         . == "ID" ~ "Probe_ID",
         TRUE ~ .
@@ -59,7 +59,7 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
       log10_pval = -log10(.data$adj.P.Val),
       # Categorize points for coloring
       significance = dplyr::case_when(
-        .data$adj.P.Val < fdr_threshold &
+        .data$adj.P.Val < q &
           abs(.data$deltabetas) > abs(deltabeta_threshold) ~
           dplyr::if_else(
             .data$deltabetas > 0,
@@ -81,7 +81,7 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
   if (is.null(label_probes) && max_labels > 0) {
     label_probes <- volcano_label_probes(
       df,
-      max_fdr = fdr_threshold,
+      q = q,
       min_delta_beta = deltabeta_threshold,
       max_labels = max_labels
     )
@@ -116,7 +116,7 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
       alpha = 0.7
     ) +
     ggplot2::geom_hline(
-      yintercept = -log10(fdr_threshold),
+      yintercept = -log10(q),
       linetype = "dashed",
       color = "#888888",
       linewidth = 0.5,
@@ -160,7 +160,7 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
       title = title,
       subtitle = subtitle,
       x = "Delta Beta (Effect Size)",
-      y = bquote("-log"[10]*"(FDR)")
+      y = bquote("-log"[10] * "(adj. P-value)")
     ) +
     ggpubr::theme_pubr(base_size = 11, border = TRUE) +
     ggplot2::theme(
@@ -179,8 +179,8 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
 #'   et les plus fortes par effet.
 #'
 #' @param df Data frame of DMPs/DMRs. Must contain columns `Probe_ID`,
-#' `adj.P.Val` or `HMFDR`, and `deltabetas` or `maxdiff`.
-#' @param max_fdr Maximum FDR threshold for eligible probes.
+#' `adj.P.Val` or `HMPADJ`, and `deltabetas` or `maxdiff`.
+#' @param q Maximum adj.P.value threshold for eligible probes.
 #' @param min_delta_beta Minimum absolute delta beta for eligible probes.
 #' @param max_labels Maximum number of probes to select.
 #'
@@ -191,14 +191,14 @@ volcano <- function(df, fdr_threshold = 0.05, deltabeta_threshold = 0,
 #' @export
 volcano_label_probes <- function(
     df,
-    max_fdr = 0.05,
+    q = 0.05,
     min_delta_beta = 0.2,
     max_labels = 10) {
 
   df <- df |>
     dplyr::rename_with(
       ~ dplyr::case_when(
-        . == "HMFDR" ~ "adj.P.Val",
+        . == "HMPADJ" ~ "adj.P.Val",
         . == "maxdiff" ~ "deltabetas",
         TRUE ~ .
       )
@@ -213,7 +213,7 @@ volcano_label_probes <- function(
       !is.na(.data$Probe_ID),
       !is.na(.data$adj.P.Val),
       !is.na(.data$deltabetas),
-      .data$adj.P.Val <= max_fdr,
+      .data$adj.P.Val <= q,
       abs(.data$deltabetas) >= min_delta_beta
     )
 
@@ -286,7 +286,7 @@ best_probe_by_gene <- function(df, genes, gene_column = "genesUniq") {
   df <- df |>
     dplyr::rename_with(
       ~ dplyr::case_when(
-        . == "HMFDR" ~ "adj.P.Val",
+        . == "HMPADJ" ~ "adj.P.Val",
         . == "maxdiff" ~ "deltabetas",
         TRUE ~ .
       )

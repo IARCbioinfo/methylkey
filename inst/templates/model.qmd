@@ -138,8 +138,8 @@ dmrsFileName <- paste0("dmrs_", model_name, "_", index, ".tsv")
 dmrs <- get_dmrs(mrs,index)
 readr::write_tsv(dmrs,file = fs::path(output_dir,dmrsFileName))
 
-dmrs |> dplyr::filter(HMFDR<0.05, no.cpgs>1) |>
-  dplyr::arrange(HMFDR, no.cpgs) |> head(100) |>
+dmrs |> dplyr::filter(HMPADJ<0.05, no.cpgs>1) |>
+  dplyr::arrange(HMPADJ, no.cpgs) |> head(100) |>
   DT::datatable(
     extensions = 'Buttons',
     options = list(

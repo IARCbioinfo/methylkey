@@ -92,7 +92,7 @@ manhattan <- function(df, sig = 5e-8) {
   df <- df  |>
     rename_with(
       ~ case_when(
-        . == "HMFDR" ~ "adj.P.Val",
+        . == "HMPADJ" ~ "adj.P.Val",
         . == "seqnames" ~ "chr",
         TRUE ~ .
       )

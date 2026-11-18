@@ -1,6 +1,6 @@
 Package: methylkey
 Title: Analysis of DNA Methylation from Illumina Methylation Arrays
-Version: 0.4.1.0015
+Version: 0.4.1.0016
 Date: 2026-05-29
 Authors@R: 
     person(given = "Vincent",
@@ -33,6 +33,7 @@ Imports:
     factoextra (>= 1.0.7),
     ggbio (>= 1.46.0),
     ggplot2 (>= 3.4.2),
+    ggtext (>= 0.1.2),
     ggpubr (>= 0.6.0),
     ggvenn (>= 0.1.10),
     ggsankeyfier (>= 0.1.8),

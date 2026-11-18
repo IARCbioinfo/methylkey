@@ -11,13 +11,14 @@ cpgislands_plot(
   position = "fill",
   fdr = 0.05,
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
-  dn = 1
+  dn = 1,
+  separate_by_tool = TRUE
 )
 }
 \arguments{
 \item{mrs}{A MethylResultSet object.}
 
-\item{index}{Contrast index or name.}
+\item{index}{One or more contrast indices or names, in display order.}
 
 \item{what}{Either "dmps" or "dmrs".}
 
@@ -27,11 +28,17 @@ cpgislands_plot(
 
 \item{tools}{DMR tools to include.}
 
+\item{separate_by_tool}{Logical; whether to plot each DMR tool separately
+when \code{what = "dmrs"} (default \code{TRUE}).}
+
 \item{dn}{Number display mode: 0 none, 1 counts within segments,
 2 bar totals, or 3 both.}
 }
 \value{
-A ggplot2 object.
+A ggplot2 object with a \code{stat} data frame containing chi-squared test
+details. Contrast labels are colored by methylation status, and the platform
+background appears once as \code{"All probes"}; a matching status legend is
+included.
 }
 \description{
 Plot CpG island enrichment (legacy interface).

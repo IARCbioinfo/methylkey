@@ -184,6 +184,7 @@ MethylResultSet <- function(
 #' @param index Integer index or character name of the contrast to retrieve
 #'   (default \code{1}).
 #' @param q Adjusted p-value threshold for filtering DMPs (default \code{1}).
+#' @param d Absolute delta-beta threshold for filtering DMPs (default \code{0}).
 #' @param method Multiple-testing correction method: \code{"fdr"},
 #'   \code{"BH"}, or \code{"bonferroni"} (default \code{"fdr"}).
 #'
@@ -192,7 +193,7 @@ MethylResultSet <- function(
 #'
 #' @export
 setGeneric("get_dmps", function(
-  x, index = 1, q = 1, method = c("fdr", "BH", "bonferroni")
+  x, index = 1, q = 1, d = 0, method = c("fdr", "BH", "bonferroni")
 ) {
   standardGeneric("get_dmps")
 })
@@ -200,7 +201,7 @@ setGeneric("get_dmps", function(
 #' @importFrom dplyr left_join rename mutate select
 #' @describeIn get_dmps Method for MethylResultSet
 setMethod("get_dmps", "MethylResultSet",
-  function(x, index = 1, q = 1, method = c("fdr", "BH", "bonferroni")) {
+  function(x, index = 1, q = 1, d = 0, method = c("fdr", "BH", "bonferroni")) {
     method <- match.arg(method)
     if (is.numeric(index) && (index < 1 || index > length(x@dmps))) {
       warning(sprintf(
@@ -222,6 +223,7 @@ setMethod("get_dmps", "MethylResultSet",
         adj.P.Val = stats::p.adjust(.data$P.Value, method = method)
       ) |>
       dplyr::filter(.data$adj.P.Val <= q) |>
+      dplyr::filter(abs(.data$deltabetas) >= d) |>
       dplyr::mutate(pos = .data$CpG_beg + 1) |>
       dplyr::select(-c("CpG_beg", "CpG_end"))
   }
@@ -230,12 +232,13 @@ setMethod("get_dmps", "MethylResultSet",
 #' Retrieve DMP Ranges as a GRanges Object
 #'
 #' Returns significant DMPs for a given contrast as a \code{GRanges} object,
-#' filtered by adjusted p-value.
+#' filtered by adjusted p-value and absolute delta-beta.
 #'
 #' @param x A \code{MethylResultSet} object.
 #' @param index Integer index or character name of the contrast
 #' (default \code{1}).
 #' @param q Adjusted p-value threshold (default \code{0.05}).
+#' @param d Absolute delta-beta threshold for filtering DMPs (default \code{0}).
 #' @param method Multiple-testing correction method: \code{"fdr"},
 #'   \code{"BH"}, or \code{"bonferroni"} (default \code{"fdr"}).
 #'
@@ -250,6 +253,7 @@ setGeneric("get_dmps_ranges",
     x,
     index = NULL,
     q = 0.05,
+    d = 0,
     method = c("fdr", "BH", "bonferroni"),
     keep_extra_columns = TRUE,
     as_list = FALSE
@@ -266,6 +270,7 @@ setMethod("get_dmps_ranges", "MethylResultSet",
     x,
     index = 1,
     q = 0.05,
+    d = 0,
     method = c("fdr", "BH", "bonferroni"),
     keep_extra_columns = TRUE,
     as_list = FALSE
@@ -294,7 +299,7 @@ setMethod("get_dmps_ranges", "MethylResultSet",
       return(GenomicRanges::GRanges())
     }
 
-    df <- get_dmps(x, index, q, method)
+    df <- get_dmps(x, index, q = q, d = d, method = method)
 
     if (!all(c("CpG_beg", "CpG_end", "CpG_chrm") %in% names(df))) {
       df <- dplyr::mutate(df,
@@ -790,6 +795,7 @@ setMethod("add_dmrff", "data.frame", function(x, mvals, maxgap  = 1000) {
 #' @param mrs A \code{MethylResultSet} object.
 #' @param index Integer index or character name of the contrast.
 #' @param q Adjusted p-value threshold for filtering DMPs (default \code{1}).
+#' @param d Absolute delta-beta threshold for filtering DMPs (default \code{0}).
 #' @param method Multiple-testing correction method, either \code{"fdr"} or
 #'   \code{"BH"} (default \code{"fdr"}).
 #'
@@ -817,6 +823,7 @@ setGeneric("as_dataframe",
     mrs,
     index = 1,
     q = 1,
+    d = 0,
     method = c("fdr", "BH", "bonferroni")
   ) {
     standardGeneric("as_dataframe")
@@ -831,6 +838,7 @@ setMethod("as_dataframe", "MethylResultSet",
     mrs,
     index = 1,
     q = 1,
+    d = 0,
     method = c("fdr", "BH", "bonferroni")
   ) {
 
@@ -842,7 +850,7 @@ setMethod("as_dataframe", "MethylResultSet",
     }
 
     dplyr::full_join(
-      get_dmps(mrs, index, q, method),
+      get_dmps(mrs, index, q = q, d = d, method = method),
       dmrs,
       by = "Probe_ID"
     ) |>
@@ -859,8 +867,8 @@ setMethod("as_dataframe", "MethylResultSet",
 #'
 #' @param combined Logical indicating whether to include combined DMR columns
 #'   (default \code{FALSE}). If \code{TRUE}, the returned data frame will
-#'   include columns for combined DMR statistics, excluding the \code{tool} and
-#'    \code{tool_fdr} columns.
+#'   include columns for combined DMR statistics, excluding the \code{tool}
+#'   column.
 #' @return An empty data frame with the appropriate column names and types.
 empty_dmrs <- function(combined = FALSE) {
   out <- data.frame(
@@ -883,7 +891,7 @@ empty_dmrs <- function(combined = FALSE) {
     Feature_UCSC = character(),
     genesUniq = character()
   )
-  if (combined) out[, setdiff(names(out), c("tool", "tool_fdr"))] else out
+  if (combined) out[, setdiff(names(out), "tool")] else out
 }
 
 
@@ -895,6 +903,13 @@ empty_dmrs <- function(combined = FALSE) {
 #'
 #' @param results A data frame as returned by
 #'   \code{\link{get_results}} (long format).
+#' @param index Integer index or character name of the contrast.
+#' @param q Maximum adjusted p-value threshold for DMR inclusion
+#'  (default \code{0.05}).
+#' @param d Minimum mean absolute delta-beta across probes in a DMR
+#'   (default \code{0}, no additional effect-size filter).
+#' @param method Multiple-testing correction method, either \code{"fdr"} or
+#'   \code{"BH"} (default \code{"fdr"}).
 #' @param tools Character vector of DMR tools to include.
 #'   If \code{NULL} (default), includes all tools present in the results.
 #' @param combine Character vector of DMR tools to combine into a single DMR table.
@@ -908,10 +923,6 @@ empty_dmrs <- function(combined = FALSE) {
 #'   (default \code{1}).
 #' @param max_size Maximum DMR size in base pairs for inclusion
 #'   (default \code{Inf}).
-#' @param q Maximum adjusted p-value threshold for DMR inclusion
-#'   (default \code{0.05}).
-#' @param method Multiple-testing correction method, either \code{"fdr"} or
-#'   \code{"BH"} (default \code{"fdr"}).
 #' @param min_cpgs Minimum number of CpGs required for DMR inclusion
 #'   (default \code{2}).
 #' @param max_cpgs Maximum number of CpGs required for DMR inclusion
@@ -924,7 +935,8 @@ empty_dmrs <- function(combined = FALSE) {
 #'     \item \code{Start}: DMR start position
 #'     \item \code{End}: DMR end position
 #'     \item \code{tools}: Comma-separated list of tools that detected this DMR
-#'     \item \code{tool_fdr}: FDR value reported by the detecting tool
+#'     \item \code{tool_fdr}: FDR value from the first contributing DMR record
+#'       in a combined region, or the detecting DMR in non-combined output
 #'     \item \code{min_padj}: Minimum adjusted p-value across probes
 #'     \item \code{max_padj}: Maximum adjusted p-value across probes
 #'     \item \code{HMPADJ}: Harmonic mean of adjusted p-values
@@ -951,6 +963,7 @@ setGeneric("get_dmrs", function(
   mrs,
   index,
   q = 0.05,
+  d = 0,
   method = c("fdr", "BH", "bonferroni"),
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   combine = NULL,
@@ -968,6 +981,7 @@ setMethod("get_dmrs", "MethylResultSet", function(
   mrs,
   index,
   q = 0.05,
+  d = 0,
   method = c("fdr", "BH", "bonferroni"),
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   combine = NULL,
@@ -1000,8 +1014,8 @@ setMethod("get_dmrs", "MethylResultSet", function(
       paste(collapse = ";")
   }
 
-  # 1. Filtres par outil (identiques dans les deux modes)
-  df <- as_dataframe(mrs, index, q = Inf, method = method) |>
+  # Keep all constituent probes; apply d to the summarized region below.
+  df <- as_dataframe(mrs, index, q = Inf, d = 0, method = method) |>
     dplyr::filter(.data$tool %in% universe) |>
     dplyr::filter(.data$no.cpgs >= min_cpgs) |>
     dplyr::filter(.data$no.cpgs <= max_cpgs) |>
@@ -1034,7 +1048,8 @@ setMethod("get_dmrs", "MethylResultSet", function(
           .groups = "drop"
         ) |>
         dplyr::arrange(.data$chr, .data$start) |>
-        dplyr::filter(.data$HMPADJ <= q)
+        dplyr::filter(.data$HMPADJ <= q) |>
+        dplyr::filter(abs(.data$mean_abs_deltabeta) >= d)
     )
   }
 
@@ -1078,6 +1093,7 @@ setMethod("get_dmrs", "MethylResultSet", function(
     dplyr::summarize(
       min_padj = min(.data$adj.P.Val, na.rm = TRUE),
       max_padj = max(.data$adj.P.Val, na.rm = TRUE),
+      tool_fdr = dplyr::first(.data$fdr),
       HMPADJ = h_mean(.data$adj.P.Val, na.rm = TRUE),
       no.cpgs = dplyr::n_distinct(.data$Probe_ID),
       probes = paste(sort(unique(.data$Probe_ID)), collapse = ";"),
@@ -1099,11 +1115,13 @@ setMethod("get_dmrs", "MethylResultSet", function(
     dplyr::filter((.data$end - .data$start + 1) <= max_size) |>
     dplyr::select(
       "ID", "chr", "start", "end", "tools",
+      "tool_fdr",
       "min_padj", "max_padj", "HMPADJ", "no.cpgs", "probes",
       "mean_deltabeta", "mean_abs_deltabeta", "max_deltabeta",
       "Relation_to_Island", "Feature_UCSC", "genesUniq"
     ) |>
     dplyr::filter(.data$HMPADJ <= q) |>
+    dplyr::filter(abs(.data$mean_abs_deltabeta) >= d) |>
     dplyr::arrange(.data$chr, .data$start)
 
 })
@@ -1111,12 +1129,14 @@ setMethod("get_dmrs", "MethylResultSet", function(
 #' Retrieve DMR Ranges as a GRanges Object
 #'
 #' Returns significant DMRs for a given contrast as a \code{GRanges} object,
-#' filtered by adjusted p-value.
+#' filtered by adjusted p-value and mean absolute delta-beta.
 #'
 #' @param x A \code{MethylResultSet} object.
 #' @param index Integer index or character name of the contrast
 #' (default \code{1}).
 #' @param q Adjusted p-value threshold (default \code{0.05}).
+#' @param d Minimum mean absolute delta-beta across probes in a DMR
+#'   (default \code{0}, no additional effect-size filter).
 #' @param method Multiple-testing correction method: \code{"fdr"},
 #'   \code{"BH"}, or \code{"bonferroni"} (default \code{"fdr"}).
 #' @param keep_extra_columns Logical, whether to keep extra columns
@@ -1145,6 +1165,7 @@ setGeneric("get_dmrs_ranges",
     keep_extra_columns = TRUE,
     as_list = FALSE,
     q = 0.05,
+    d = 0,
     method = c("fdr", "BH", "bonferroni"),
     tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
     combine = NULL,
@@ -1167,6 +1188,7 @@ setMethod("get_dmrs_ranges", "MethylResultSet",
     keep_extra_columns = TRUE,
     as_list = FALSE,
     q = 0.05,
+    d = 0,
     method = c("fdr", "BH", "bonferroni"),
     tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
     combine = NULL,
@@ -1204,6 +1226,7 @@ setMethod("get_dmrs_ranges", "MethylResultSet",
       x,
       index,
       q = q,
+      d = d,
       method = method,
       tools = tools,
       combine = combine,
@@ -1515,6 +1538,8 @@ setMethod("get_number_of_dmrs", "MethylResultSet",
 #'   extraction. Default is \code{c("dmrcate", "ipdmr", "combp", "dmrff")}.
 #' @param q Numeric value specifying the FDR threshold for significance
 #'   (default \code{0.05}).
+#' @param d Numeric value specifying the absolute delta-beta threshold for
+#'   significance (default \code{0}).
 #' @param deltabetas Numeric value specifying the minimum absolute
 #'   delta beta threshold for significance (default \code{0.3}).
 #' @param min_cpgs Integer specifying the minimum number of CpGs
@@ -1538,6 +1563,7 @@ setGeneric("get_genes",
     index,
     tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
     q = 0.05,
+    d = 0,
     deltabetas = 3.0,
     min_cpgs = 2
   ) {
@@ -1553,17 +1579,18 @@ setMethod("get_genes", "MethylResultSet",
     index,
     tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
     q = 0.05,
+    d = 0,
     deltabetas = 3.0,
     min_cpgs = 2
   ) {
 
     # genes from significant dmps
-    dmps_genes <- get_dmps(x, index, q = q) |>
+    dmps_genes <- get_dmps(x, index, q = q, d = d) |>
       dplyr::filter(!is.na(.data$genesUniq)) |>
       dplyr::filter(.data$deltabetas >= deltabetas)
 
     # genes from significant dmrs
-    dmrs_genes <- get_dmrs(x, index, q = q) |>
+    dmrs_genes <- get_dmrs(x, index, q = q, d = d) |>
       dplyr::filter(!is.na(.data$genesUniq)) |>
       dplyr::filter(.data$tool %in% tools) |>
       dplyr::filter(.data$HMPADJ <= q) |>

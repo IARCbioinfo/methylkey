@@ -9,6 +9,8 @@ get_dmps_ranges(
   x,
   index = NULL,
   q = 0.05,
+  d = 0,
+  method = c("fdr", "BH", "bonferroni"),
   keep_extra_columns = TRUE,
   as_list = FALSE
 )
@@ -17,6 +19,8 @@ get_dmps_ranges(
   x,
   index = 1,
   q = 0.05,
+  d = 0,
+  method = c("fdr", "BH", "bonferroni"),
   keep_extra_columns = TRUE,
   as_list = FALSE
 )
@@ -28,16 +32,21 @@ get_dmps_ranges(
 (default \code{1}).}
 
 \item{q}{Adjusted p-value threshold (default \code{0.05}).}
+
+\item{d}{Absolute delta-beta threshold for filtering DMPs (default \code{0}).}
+
+\item{method}{Multiple-testing correction method: \code{"fdr"},
+\code{"BH"}, or \code{"bonferroni"} (default \code{"fdr"}).}
 }
 \value{
-A \code{GRanges} object with one range per significant DMR when
+A \code{GRanges} object with one range per significant DMP when
 \code{as_list = FALSE}. When \code{as_list = TRUE}, returns a named
 \code{GRangesList} containing the platform background and two elements
 (hypermethylated and hypomethylated) for each selected DMR tool.
 }
 \description{
 Returns significant DMPs for a given contrast as a \code{GRanges} object,
-filtered by adjusted p-value.
+filtered by adjusted p-value and absolute delta-beta.
 }
 \section{Functions}{
 \itemize{

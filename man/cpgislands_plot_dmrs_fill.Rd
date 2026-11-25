@@ -7,7 +7,9 @@
 cpgislands_plot_dmrs_fill(
   mrs,
   index,
-  max_fdr = 0.05,
+  q = 0.05,
+  d = 0,
+  method = c("fdr", "BH", "bonferroni"),
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   combine = NULL,
   min_size = 1,
@@ -23,7 +25,11 @@ cpgislands_plot_dmrs_fill(
 
 \item{index}{One or more contrast indices or names, in display order.}
 
-\item{max_fdr}{DMR FDR threshold.}
+\item{q}{DMR FDR threshold.}
+
+\item{d}{Minimum absolute mean delta-beta for DMRs.}
+
+\item{method}{Multiple testing correction method for DMRs.}
 
 \item{tools}{DMR tools to include.}
 
@@ -39,18 +45,18 @@ to each combined DMR region, for example
 
 \item{max_cpgs}{Maximum number of probes in the resulting region.}
 
+\item{dn}{Number display mode: 0 none, 1 counts within segments,
+2 bar totals, or 3 both.}
+
 \item{separate_by_tool}{Logical; whether to plot each DMR tool separately
 (default \code{TRUE}). If \code{combine} is not \code{NULL}, this is
 forced to \code{FALSE} with a warning.}
-
-\item{dn}{Number display mode: 0 none, 1 counts within segments,
-2 bar totals, or 3 both.}
 }
 \value{
-A ggplot2 object with a \code{stat} data frame containing chi-squared test
-details. Contrast labels are colored by methylation status, and the platform
-background appears once as \code{"All probes"}; a matching status legend is
-included.
+A ggplot2 object with a \code{stat} data frame containing
+chi-squared test details. Contrast labels are colored by methylation
+status with a matching legend; the platform background appears once as
+\code{"All probes"}.
 }
 \description{
 Plot DMR CpG island enrichment by tool with platform background.

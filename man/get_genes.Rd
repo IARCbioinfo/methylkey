@@ -13,6 +13,7 @@ get_genes(
   index,
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   q = 0.05,
+  d = 0,
   deltabetas = 3,
   min_cpgs = 2
 )
@@ -22,6 +23,7 @@ get_genes(
   index,
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   q = 0.05,
+  d = 0,
   deltabetas = 3,
   min_cpgs = 2
 )
@@ -36,6 +38,9 @@ extraction. Default is \code{c("dmrcate", "ipdmr", "combp", "dmrff")}.}
 
 \item{q}{Numeric value specifying the FDR threshold for significance
 (default \code{0.05}).}
+
+\item{d}{Numeric value specifying the absolute delta-beta threshold for
+significance (default \code{0}).}
 
 \item{deltabetas}{Numeric value specifying the minimum absolute
 delta beta threshold for significance (default \code{0.3}).}

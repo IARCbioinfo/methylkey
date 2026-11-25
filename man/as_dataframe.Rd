@@ -5,14 +5,33 @@
 \alias{as_dataframe,MethylResultSet-method}
 \title{Retrieve Full Per-Probe Results with DMR Annotations}
 \usage{
-as_dataframe(mrs, index)
+as_dataframe(
+  mrs,
+  index = 1,
+  q = 1,
+  d = 0,
+  method = c("fdr", "BH", "bonferroni")
+)
 
-\S4method{as_dataframe}{MethylResultSet}(mrs, index)
+\S4method{as_dataframe}{MethylResultSet}(
+  mrs,
+  index = 1,
+  q = 1,
+  d = 0,
+  method = c("fdr", "BH", "bonferroni")
+)
 }
 \arguments{
 \item{mrs}{A \code{MethylResultSet} object.}
 
 \item{index}{Integer index or character name of the contrast.}
+
+\item{q}{Adjusted p-value threshold for filtering DMPs (default \code{1}).}
+
+\item{d}{Absolute delta-beta threshold for filtering DMPs (default \code{0}).}
+
+\item{method}{Multiple-testing correction method, either \code{"fdr"} or
+\code{"BH"} (default \code{"fdr"}).}
 }
 \value{
 A data frame in long format with columns:

@@ -4,21 +4,32 @@
 \alias{cpgislands_plot_dmps_stack}
 \title{Plot DMP CpG island counts without platform background.}
 \usage{
-cpgislands_plot_dmps_stack(mrs, index, fdr = 0.05, dn = 1)
+cpgislands_plot_dmps_stack(
+  mrs,
+  index,
+  q = 0.05,
+  d = 0,
+  method = c("fdr", "BH", "bonferroni"),
+  dn = 1
+)
 }
 \arguments{
 \item{mrs}{A MethylResultSet object.}
 
 \item{index}{One or more contrast indices or names, in display order.}
 
-\item{fdr}{Adjusted p-value threshold.}
+\item{q}{Adjusted p-value threshold.}
+
+\item{d}{Absolute delta-beta threshold.}
+
+\item{method}{Multiple testing correction method.}
 
 \item{dn}{Number display mode: 0 none, 1 counts within segments,
 2 bar totals, or 3 both.}
 }
 \value{
-A ggplot2 object with an empty \code{stat} data frame. Contrast labels are
-colored by methylation status with a matching legend.
+A ggplot2 object with an empty \code{stat} data frame. Contrast
+labels are colored by methylation status with a matching legend.
 }
 \description{
 Plot DMP CpG island counts without platform background.

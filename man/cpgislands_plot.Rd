@@ -9,7 +9,9 @@ cpgislands_plot(
   index,
   what = "dmps",
   position = "fill",
-  fdr = 0.05,
+  max_fdr = 0.05,
+  d = 0,
+  method = c("fdr", "BH", "bonferroni"),
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   dn = 1,
   separate_by_tool = TRUE
@@ -24,21 +26,23 @@ cpgislands_plot(
 
 \item{position}{Either "fill" or "stack".}
 
-\item{fdr}{Significance threshold.}
+\item{max_fdr}{DMR FDR threshold.}
+
+\item{d}{Minimum absolute mean delta-beta for DMRs.}
 
 \item{tools}{DMR tools to include.}
 
-\item{separate_by_tool}{Logical; whether to plot each DMR tool separately
-when \code{what = "dmrs"} (default \code{TRUE}).}
-
 \item{dn}{Number display mode: 0 none, 1 counts within segments,
 2 bar totals, or 3 both.}
+
+\item{separate_by_tool}{Logical; whether to plot each DMR tool separately
+when \code{what = "dmrs"} (default \code{TRUE}).}
 }
 \value{
-A ggplot2 object with a \code{stat} data frame containing chi-squared test
-details. Contrast labels are colored by methylation status, and the platform
-background appears once as \code{"All probes"}; a matching status legend is
-included.
+A ggplot2 object with a \code{stat} data frame containing
+chi-squared test details when a platform background is included.
+Contrast labels are colored by methylation status with a matching legend,
+and the platform background appears once as \code{"All probes"}.
 }
 \description{
 Plot CpG island enrichment (legacy interface).

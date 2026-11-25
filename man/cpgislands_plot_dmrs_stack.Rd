@@ -7,7 +7,9 @@
 cpgislands_plot_dmrs_stack(
   mrs,
   index,
-  max_fdr = 0.05,
+  q = 0.05,
+  d = 0,
+  method = c("fdr", "BH", "bonferroni"),
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   combine = NULL,
   min_size = 1,
@@ -23,7 +25,11 @@ cpgislands_plot_dmrs_stack(
 
 \item{index}{One or more contrast indices or names, in display order.}
 
-\item{max_fdr}{DMR FDR threshold.}
+\item{q}{DMR FDR threshold.}
+
+\item{d}{Minimum absolute mean delta-beta for DMRs.}
+
+\item{method}{Multiple testing correction method for DMRs.}
 
 \item{tools}{DMR tools to include.}
 
@@ -39,16 +45,16 @@ to each combined DMR region, for example
 
 \item{max_cpgs}{Maximum number of probes in the resulting region.}
 
+\item{dn}{Number display mode: 0 none, 1 counts within segments,
+2 bar totals, or 3 both.}
+
 \item{separate_by_tool}{Logical; whether to plot each DMR tool separately
 (default \code{TRUE}). If \code{combine} is not \code{NULL}, this is
 forced to \code{FALSE} with a warning.}
-
-\item{dn}{Number display mode: 0 none, 1 counts within segments,
-2 bar totals, or 3 both.}
 }
 \value{
-A ggplot2 object with an empty \code{stat} data frame. Contrast labels are
-colored by methylation status with a matching legend.
+A ggplot2 object with an empty \code{stat} data frame. Contrast
+labels are colored by methylation status with a matching legend.
 }
 \description{
 Plot DMR CpG island counts by tool without platform background.

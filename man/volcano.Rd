@@ -6,7 +6,7 @@
 \usage{
 volcano(
   df,
-  fdr_threshold = 0.05,
+  q = 0.05,
   deltabeta_threshold = 0,
   title = "Volcano Plot",
   subtitle = NULL,
@@ -17,9 +17,9 @@ volcano(
 }
 \arguments{
 \item{df}{Data frame with DMPs/DMRs
-(columns: deltabetas or maxdiff, adj.P.Val or HMFDR)}
+(columns: deltabetas or maxdiff, adj.P.Val or HMPADJ)}
 
-\item{fdr_threshold}{FDR significance threshold (default 0.05)}
+\item{q}{FDR significance threshold (default 0.05)}
 
 \item{deltabeta_threshold}{Delta beta threshold for highlighting
 (default 0, no highlighting)}

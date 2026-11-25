@@ -51,7 +51,7 @@ mrs <- MethylResultSet(
 #| output: asis
 #| echo: FALSE
 model_name <- get_model_name(mrs)
-for (index in names(mrs@dmps)[-1]) {
+for (index in names(mrs@dmps)) {
   model <- gsub("~", "", mrs@metadata$model)
   level <- gsub(model, "", index)
   cat("\n\n## ", level, "\n\n")

@@ -6,9 +6,23 @@
 \alias{MethylResultSet-class}
 \title{MethylResultSet Class}
 \usage{
-MethylResultSet(se, model, intercept, method = "ls", contrasts = NULL)
+MethylResultSet(
+  se,
+  model,
+  intercept,
+  method = "ls",
+  adj_method = c("fdr", "BH", "bonferroni"),
+  contrasts = NULL
+)
 
-MethylResultSet(se, model, intercept, method = "ls", contrasts = NULL)
+MethylResultSet(
+  se,
+  model,
+  intercept,
+  method = "ls",
+  adj_method = c("fdr", "BH", "bonferroni"),
+  contrasts = NULL
+)
 }
 \arguments{
 \item{se}{A \code{SummarizedExperiment} (or subclass) produced by

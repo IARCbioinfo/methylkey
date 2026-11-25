@@ -4,7 +4,7 @@
 \alias{top_tables}
 \title{Extract Top Probes with Extended Statistics}
 \usage{
-top_tables(eb, x, rsq)
+top_tables(eb, x, rsq, method = c("fdr", "BH", "bonferroni"))
 }
 \arguments{
 \item{eb}{An eBayes object as returned by \code{limma::eBayes}.}

@@ -8,7 +8,9 @@
 get_dmrs(
   mrs,
   index,
-  max_fdr = 0.05,
+  q = 0.05,
+  d = 0,
+  method = c("fdr", "BH", "bonferroni"),
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   combine = NULL,
   min_size = 1,
@@ -20,7 +22,9 @@ get_dmrs(
 \S4method{get_dmrs}{MethylResultSet}(
   mrs,
   index,
-  max_fdr = 0.05,
+  q = 0.05,
+  d = 0,
+  method = c("fdr", "BH", "bonferroni"),
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   combine = NULL,
   min_size = 1,
@@ -30,29 +34,42 @@ get_dmrs(
 )
 }
 \arguments{
-\item{mrs}{A \code{MethylResultSet} object.}
-
 \item{index}{Integer index or character name of the contrast.}
 
-\item{max_fdr}{Maximum FDR threshold for DMR inclusion (default \code{0.05}).}
+\item{q}{Maximum adjusted p-value threshold for DMR inclusion
+(default \code{0.05}).}
+
+\item{d}{Minimum mean absolute delta-beta across probes in a DMR
+(default \code{0}, no additional effect-size filter).}
+
+\item{method}{Multiple-testing correction method, either \code{"fdr"} or
+\code{"BH"} (default \code{"fdr"}).}
 
 \item{tools}{Character vector of DMR tools to include.
 If \code{NULL} (default), includes all tools present in the results.}
 
-\item{combine}{Expression defining how DMR tools are combined into consensus
-regions. If \code{NULL} (default), returns one row per DMR and tool. Only
-tools mentioned in the expression are considered, even if \code{tools}
-contains additional tools.}
+\item{combine}{Character vector of DMR tools to combine into a single DMR table.
+If \code{NULL} (default), one line by DMR and Tool.
+or an expression like \code{"dmrcate & (ipdmr | combp)"} to combine DMRs detected by dmrcate and either ipdmr or combp.
+\code{"n_of(2, dmrcate, ipdmr, combp, dmrff)"} to combine DMRs detected by at least 2 of the 4 tools.
+\code{"only(dmrcate, ipdmr)"} to combine regions detected by exactly
+those tools among the tools mentioned in \code{combine}. Tools not
+mentioned in the expression are ignored, even when present in \code{tools}.}
 
-\item{min_size}{Minimum DMR size in base pairs (default \code{1}).}
+\item{min_size}{Minimum DMR size in base pairs for inclusion
+(default \code{1}).}
 
-\item{max_size}{Maximum DMR size in base pairs (default \code{Inf}).}
+\item{max_size}{Maximum DMR size in base pairs for inclusion
+(default \code{Inf}).}
 
 \item{min_cpgs}{Minimum number of CpGs required for DMR inclusion
 (default \code{2}).}
 
 \item{max_cpgs}{Maximum number of CpGs required for DMR inclusion
 (default \code{Inf}).}
+
+\item{results}{A data frame as returned by
+\code{\link{get_results}} (long format).}
 }
 \value{
 A data frame with one row per unique DMR, containing:
@@ -62,8 +79,11 @@ A data frame with one row per unique DMR, containing:
 \item \code{Start}: DMR start position
 \item \code{End}: DMR end position
 \item \code{tools}: Comma-separated list of tools that detected this DMR
-\item \code{mean_fdr}: Mean FDR across detecting tools
-\item \code{min_fdr}: Minimum FDR across detecting tools
+\item \code{tool_fdr}: FDR value from the first contributing DMR record
+in a combined region, or the detecting DMR in non-combined output
+\item \code{min_padj}: Minimum adjusted p-value across probes
+\item \code{max_padj}: Maximum adjusted p-value across probes
+\item \code{HMPADJ}: Harmonic mean of adjusted p-values
 \item \code{no.cpgs}: Number of CpGs in the DMR
 \item \code{probes}: Semicolon-separated list of probe IDs in the DMR
 \item \code{mean_deltabeta}: Arithmetic mean of delta beta values

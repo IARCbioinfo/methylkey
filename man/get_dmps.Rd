@@ -5,15 +5,22 @@
 \alias{get_dmps,MethylResultSet-method}
 \title{Retrieve Differentially Methylated Positions (DMPs)}
 \usage{
-get_dmps(x, group = 1)
+get_dmps(x, index = 1, q = 1, d = 0, method = c("fdr", "BH", "bonferroni"))
 
-\S4method{get_dmps}{MethylResultSet}(x, group = 1)
+\S4method{get_dmps}{MethylResultSet}(x, index = 1, q = 1, d = 0, method = c("fdr", "BH", "bonferroni"))
 }
 \arguments{
 \item{x}{A \code{MethylResultSet} object.}
 
-\item{group}{Integer index or character name of the contrast to retrieve
+\item{index}{Integer index or character name of the contrast to retrieve
 (default \code{1}).}
+
+\item{q}{Adjusted p-value threshold for filtering DMPs (default \code{1}).}
+
+\item{d}{Absolute delta-beta threshold for filtering DMPs (default \code{0}).}
+
+\item{method}{Multiple-testing correction method: \code{"fdr"},
+\code{"BH"}, or \code{"bonferroni"} (default \code{"fdr"}).}
 }
 \value{
 A tibble with one row per probe, containing limma statistics and

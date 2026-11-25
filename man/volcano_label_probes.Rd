@@ -4,13 +4,13 @@
 \alias{volcano_label_probes}
 \title{Select probes to label on a volcano plot}
 \usage{
-volcano_label_probes(df, max_fdr = 0.05, min_delta_beta = 0.2, max_labels = 10)
+volcano_label_probes(df, q = 0.05, min_delta_beta = 0.2, max_labels = 10)
 }
 \arguments{
 \item{df}{Data frame of DMPs/DMRs. Must contain columns \code{Probe_ID},
 \code{adj.P.Val} or \code{HMPADJ}, and \code{deltabetas} or \code{maxdiff}.}
 
-\item{max_fdr}{Maximum FDR threshold for eligible probes.}
+\item{q}{Maximum adj.P.value threshold for eligible probes.}
 
 \item{min_delta_beta}{Minimum absolute delta beta for eligible probes.}
 

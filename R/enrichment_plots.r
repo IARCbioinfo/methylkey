@@ -21,6 +21,7 @@
   index = 1,
   type = "dmps",
   q = 0.05,
+  d = 0,
   method = c("fdr", "BH", "bonferroni"),
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   combine = NULL,
@@ -30,7 +31,7 @@
   max_cpgs = Inf
 ) {
   if (type == "dmps") {
-    return(get_dmps(mrs, index, q, method) |>
+    return(get_dmps(mrs, index, q = q, d = d, method = method) |>
       dplyr::mutate(
         tool = NA_character_,
         status = dplyr::if_else(
@@ -43,6 +44,7 @@
     mrs,
     index,
     q = q,
+    d = d,
     method = method,
     tools = tools,
     combine = combine,
@@ -73,7 +75,7 @@
 }
 
 .cpg_island_plot <- function(mrs, index, type, position, add_platform,
-                             q = 0.05, method = c("fdr", "BH", "bonferroni"),
+                             q = 0.05, d = 0, method = c("fdr", "BH", "bonferroni"),
                              tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
                              combine = NULL, min_size = 1, max_size = Inf,
                              min_cpgs = 1, max_cpgs = Inf, dn = 1,
@@ -125,8 +127,11 @@
     as.character(index)
   }
   dt <- dplyr::bind_rows(lapply(seq_along(index), function(i) {
-    .cpg_island_data(mrs, index[[i]], type, q, method, tools, combine,
-  min_size, max_size, min_cpgs, max_cpgs) |>
+    .cpg_island_data(
+      mrs, index[[i]], type = type, q = q, d = d, method = method,
+      tools = tools, combine = combine, min_size = min_size,
+      max_size = max_size, min_cpgs = min_cpgs, max_cpgs = max_cpgs
+    ) |>
       dplyr::mutate(index = index_labels[[i]])
   }))
 
@@ -435,7 +440,9 @@
 #' Plot DMP CpG island enrichment with platform background.
 #' @param mrs A MethylResultSet object.
 #' @param index One or more contrast indices or names, in display order.
-#' @param max_fdr Adjusted p-value threshold.
+#' @param q Adjusted p-value threshold.
+#' @param d Absolute delta-beta threshold.
+#' @param method Multiple testing correction method.
 #' @param dn Number display mode: 0 none, 1 counts within segments,
 #'   2 bar totals, or 3 both.
 #' @return A ggplot2 object with a \code{stat} data frame containing
@@ -443,27 +450,37 @@
 #'   status with a matching legend; the platform background appears once as
 #'   \code{"All probes"}.
 #' @export
-cpgislands_plot_dmps_fill <- function(mrs, index, q = 0.05, method = c("fdr", "BH", "bonferroni"), dn = 1) {
-  .cpg_island_plot(mrs, index, "dmps", "fill", TRUE, q, method = method, dn = dn)
+cpgislands_plot_dmps_fill <- function(mrs, index, q = 0.05, d = 0, method = c("fdr", "BH", "bonferroni"), dn = 1) {
+  .cpg_island_plot(
+    mrs, index, "dmps", "fill", TRUE,
+    q = q, d = d, method = method, dn = dn
+  )
 }
 
 #' Plot DMP CpG island counts without platform background.
 #' @param mrs A MethylResultSet object.
 #' @param index One or more contrast indices or names, in display order.
-#' @param max_fdr Adjusted p-value threshold.
+#' @param q Adjusted p-value threshold.
+#' @param d Absolute delta-beta threshold.
+#' @param method Multiple testing correction method.
 #' @param dn Number display mode: 0 none, 1 counts within segments,
 #'   2 bar totals, or 3 both.
 #' @return A ggplot2 object with an empty \code{stat} data frame. Contrast
 #'   labels are colored by methylation status with a matching legend.
 #' @export
-cpgislands_plot_dmps_stack <- function(mrs, index, q = 0.05, method = c("fdr", "BH", "bonferroni"), dn = 1) {
-  .cpg_island_plot(mrs, index, "dmps", "stack", FALSE, q, method = method, dn = dn)
+cpgislands_plot_dmps_stack <- function(mrs, index, q = 0.05, d = 0, method = c("fdr", "BH", "bonferroni"), dn = 1) {
+  .cpg_island_plot(
+    mrs, index, "dmps", "stack", FALSE,
+    q = q, d = d, method = method, dn = dn
+  )
 }
 
 #' Plot DMR CpG island enrichment by tool with platform background.
 #' @param mrs A MethylResultSet object.
 #' @param index One or more contrast indices or names, in display order.
 #' @param q DMR FDR threshold.
+#' @param d Minimum absolute mean delta-beta for DMRs.
+#' @param method Multiple testing correction method for DMRs.
 #' @param tools DMR tools to include.
 #' @param combine Optional expression describing which tools should contribute
 #'   to each combined DMR region, for example
@@ -486,6 +503,7 @@ cpgislands_plot_dmrs_fill <- function(
   mrs,
   index,
   q = 0.05,
+  d = 0,
   method = c("fdr", "BH", "bonferroni"),
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   combine = NULL,
@@ -495,15 +513,20 @@ cpgislands_plot_dmrs_fill <- function(
   max_cpgs = Inf,
   dn = 1,
   separate_by_tool = TRUE) {
-  .cpg_island_plot(mrs, index, "dmrs", "fill", TRUE, q, method = method, tools,
-                   combine, min_size, max_size, min_cpgs, max_cpgs,
-                   dn = dn, separate_by_tool = separate_by_tool)
+  .cpg_island_plot(
+    mrs, index, "dmrs", "fill", TRUE,
+    q = q, d = d, method = method, tools = tools, combine = combine,
+    min_size = min_size, max_size = max_size, min_cpgs = min_cpgs,
+    max_cpgs = max_cpgs, dn = dn, separate_by_tool = separate_by_tool
+  )
 }
 
 #' Plot DMR CpG island counts by tool without platform background.
 #' @param mrs A MethylResultSet object.
 #' @param index One or more contrast indices or names, in display order.
 #' @param q DMR FDR threshold.
+#' @param d Minimum absolute mean delta-beta for DMRs.
+#' @param method Multiple testing correction method for DMRs.
 #' @param tools DMR tools to include.
 #' @param combine Optional expression describing which tools should contribute
 #'   to each combined DMR region, for example
@@ -524,6 +547,7 @@ cpgislands_plot_dmrs_stack <- function(
   mrs,
   index,
   q = 0.05,
+  d = 0,
   method = c("fdr", "BH", "bonferroni"),
   tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
   combine = NULL,
@@ -533,9 +557,12 @@ cpgislands_plot_dmrs_stack <- function(
   max_cpgs = Inf,
   dn = 1,
   separate_by_tool = TRUE) {
-  .cpg_island_plot(mrs, index, "dmrs", "stack", FALSE, q, method = method, tools,
-                   combine, min_size, max_size, min_cpgs, max_cpgs,
-                   dn = dn, separate_by_tool = separate_by_tool)
+  .cpg_island_plot(
+    mrs, index, "dmrs", "stack", FALSE,
+    q = q, d = d, method = method, tools = tools, combine = combine,
+    min_size = min_size, max_size = max_size, min_cpgs = min_cpgs,
+    max_cpgs = max_cpgs, dn = dn, separate_by_tool = separate_by_tool
+  )
 }
 
 
@@ -552,6 +579,7 @@ cpgislands_plot_dmrs_stack <- function(
 #' @param what Either "dmps" or "dmrs".
 #' @param position Either "fill" or "stack".
 #' @param max_fdr DMR FDR threshold.
+#' @param d Minimum absolute mean delta-beta for DMRs.
 #' @param tools DMR tools to include.
 #' @param separate_by_tool Logical; whether to plot each DMR tool separately
 #'   when \code{what = "dmrs"} (default \code{TRUE}).
@@ -563,14 +591,17 @@ cpgislands_plot_dmrs_stack <- function(
 #'   and the platform background appears once as \code{"All probes"}.
 #' @export
 cpgislands_plot <- function(mrs, index, what = "dmps", position = "fill",
-                            max_fdr = 0.05, method = c("fdr", "BH", "bonferroni"),
+                            max_fdr = 0.05, d = 0, method = c("fdr", "BH", "bonferroni"),
                             tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
                             dn = 1, separate_by_tool = TRUE) {
   if (!what %in% c("dmps", "dmrs") || !position %in% c("fill", "stack")) {
     stop("what must be 'dmps' or 'dmrs' and position must be 'fill' or 'stack'")
   }
-  .cpg_island_plot(mrs, index, what, position, position == "fill", max_fdr, method = method, tools,
-                   dn = dn, separate_by_tool = separate_by_tool)
+  .cpg_island_plot(
+    mrs, index, what, position, position == "fill",
+    q = max_fdr, d = d, method = method, tools = tools,
+    dn = dn, separate_by_tool = separate_by_tool
+  )
 }
 
 # Historical singular name retained for callers using the old API.

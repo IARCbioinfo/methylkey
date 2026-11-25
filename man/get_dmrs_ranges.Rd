@@ -3,24 +3,38 @@
 \name{get_dmrs_ranges}
 \alias{get_dmrs_ranges}
 \alias{get_dmrs_ranges,MethylResultSet-method}
-\title{Retrieve DRP Ranges as a GRanges Object}
+\title{Retrieve DMR Ranges as a GRanges Object}
 \usage{
 get_dmrs_ranges(
   x,
   index,
-  q = 0.05,
   keep_extra_columns = TRUE,
   as_list = FALSE,
-  tools = c("dmrcate", "ipdmr", "combp", "dmrff")
+  q = 0.05,
+  d = 0,
+  method = c("fdr", "BH", "bonferroni"),
+  tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
+  combine = NULL,
+  min_size = 1,
+  max_size = Inf,
+  min_cpgs = 2,
+  max_cpgs = Inf
 )
 
 \S4method{get_dmrs_ranges}{MethylResultSet}(
   x,
   index,
-  q = 0.05,
   keep_extra_columns = TRUE,
   as_list = FALSE,
-  tools = c("dmrcate", "ipdmr", "combp", "dmrff")
+  q = 0.05,
+  d = 0,
+  method = c("fdr", "BH", "bonferroni"),
+  tools = c("dmrcate", "ipdmr", "combp", "dmrff"),
+  combine = NULL,
+  min_size = 1,
+  max_size = Inf,
+  min_cpgs = 2,
+  max_cpgs = Inf
 )
 }
 \arguments{
@@ -29,14 +43,43 @@ get_dmrs_ranges(
 \item{index}{Integer index or character name of the contrast
 (default \code{1}).}
 
+\item{keep_extra_columns}{Logical, whether to keep extra columns
+in the GRanges object (default \code{TRUE}).}
+
+\item{as_list}{Logical, whether to return a GRangesList split by
+methylation direction and including the platform background
+(default \code{FALSE}). With \code{combine = NULL}, ranges are split by
+tool and direction; otherwise, combined ranges are split by direction.}
+
 \item{q}{Adjusted p-value threshold (default \code{0.05}).}
+
+\item{d}{Minimum mean absolute delta-beta across probes in a DMR
+(default \code{0}, no additional effect-size filter).}
+
+\item{method}{Multiple-testing correction method: \code{"fdr"},
+\code{"BH"}, or \code{"bonferroni"} (default \code{"fdr"}).}
+
+\item{tools}{Character vector of DMR tools to include in the output
+(default \code{c("dmrcate", "ipdmr", "combp", "dmrff")}).}
+
+\item{combine}{Optional expression for combining DMR tools.}
+
+\item{min_size}{Minimum size of DMRs to include (default \code{1}).}
+
+\item{max_size}{Maximum size of DMRs to include (default \code{Inf}).}
+
+\item{min_cpgs}{Minimum number of CpGs in DMRs to include (default \code{2}).}
+
+\item{max_cpgs}{Maximum number of CpGs in DMRs to include
+(default \code{Inf}).}
 }
 \value{
-A \code{GRanges} object with one range per significant probe.
+A \code{GRanges} object, or a \code{GRangesList} when
+\code{as_list = TRUE}.
 }
 \description{
-Returns significant DRPs for a given contrast as a \code{GRanges} object,
-filtered by adjusted p-value.
+Returns significant DMRs for a given contrast as a \code{GRanges} object,
+filtered by adjusted p-value and mean absolute delta-beta.
 }
 \section{Functions}{
 \itemize{

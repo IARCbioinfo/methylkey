@@ -904,8 +904,7 @@ get_mask <- function(mat) {
     mask <- readr::read_tsv(
       paste0(zhou_lab_url, "EPIC/EPIC.hg38.mask.tsv.gz"),
       show_col_types = FALSE
-    ) |>
-      dplyr::rename(Probe_ID = "probeID", M_general = "MASK_general")
+    )
 
     manifest <- readr::read_tsv(
       paste0(zhou_lab_url, "EPIC/EPIC.hg38.manifest.tsv.gz"),
